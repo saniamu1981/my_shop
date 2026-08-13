@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Админ-панель - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar min-vh-100">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'admin_panel:dashboard' %}">
+                            📊 Панель управления
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_panel:product_list' %}">
+                            📦 Товары
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'order' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_panel:order_list' %}">
+                            📋 Заказы
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'admin_panel:category_list' %}">
+                            🏷️ Категории
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin:index' %}">
+                            ⚙️ Расширенная админка
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">{% block admin_title %}Панель управления{% endblock %}</h1>
+            </div>
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

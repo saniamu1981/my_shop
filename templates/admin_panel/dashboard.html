@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Панель администратора</h1>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Товары</h5>
+                    <p class="card-text display-4">{{ total_products }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Все заказы</h5>
+                    <p class="card-text display-4">{{ total_orders }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Новые заказы</h5>
+                    <p class="card-text display-4">{{ pending_orders }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">➕ Добавить товар</a>
+                        <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">➕ Добавить категорию</a>
+                        <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">📋 Просмотр заказов</a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-secondary">⚙️ Расширенная админка</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Информация</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Всего товаров:</strong> {{ total_products }}</p>
+                    <p><strong>Всего заказов:</strong> {{ total_orders }}</p>
+                    <p><strong>Новых заказов:</strong> {{ pending_orders }}</p>
+                    <p><strong>Текущий пользователь:</strong> {{ user.username }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

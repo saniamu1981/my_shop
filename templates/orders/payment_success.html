@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1 class="display-1 text-success">✅</h1>
+                    <h2 class="card-title">Оплата прошла успешно!</h2>
+                    <p class="card-text">Заказ №{{ order.id }} успешно оплачен.</p>
+                    <p class="card-text">Мы отправим уведомление о статусе заказа на ваш email.</p>
+                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-primary">Просмотреть заказ</a>
+                    <a href="{% url 'products:product_list' %}" class="btn btn-secondary">Продолжить покупки</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

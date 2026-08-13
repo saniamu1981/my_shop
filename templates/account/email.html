@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load account %}
+
+{% block title %}Управление email{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0">📧 Управление email-адресами</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if user.emailaddress_set.all %}
+                        <p class="text-muted mb-4">
+                            <i class="bi bi-info-circle"></i>
+                            {% trans 'Следующие email-адреса привязаны к вашему аккаунту:' %}
+                        </p>
+
+                        <form action="{% url 'account_email' %}" method="post" class="email_list">
+                            {% csrf_token %}
+
+                            <div class="list-group mb-4">
+                                {% for emailaddress in user.emailaddress_set.all %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                        <div class="d-flex align-items-center">
+                                            <input type="radio" name="email" value="{{ emailaddress.email }}"
+                                                   id="email_radio_{{ forloop.counter }}"
+                                                   {% if emailaddress.primary or user.emailaddress_set.count == 1 %}checked{% endif %}
+                                                   class="form-check-input me-3">
+                                            <div>
+                                                <label for="email_radio_{{ forloop.counter }}" class="fw-bold mb-0">
+                                                    {{ emailaddress.email }}
+                                                </label>
+                                                <div class="mt-1">
+                                                    {% if emailaddress.verified %}
+                                                        <span class="badge bg-success">
+                                                            <i class="bi bi-check-circle-fill"></i> {% trans "Подтвержден" %}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="bi bi-exclamation-triangle-fill"></i> {% trans "Не подтвержден" %}
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if emailaddress.primary %}
+                                                        <span class="badge bg-primary">
+                                                            <i class="bi bi-star-fill"></i> {% trans "Основной" %}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                                <button class="btn btn-primary" type="submit" name="action_primary">
+                                    <i class="bi bi-star"></i> {% trans 'Сделать основным' %}
+                                </button>
+                                <button class="btn btn-success" type="submit" name="action_send">
+                                    <i class="bi bi-envelope-paper"></i> {% trans 'Отправить подтверждение' %}
+                                </button>
+                                <button class="btn btn-danger" type="submit" name="action_remove"
+                                        onclick="return confirm('{% trans "Вы уверены, что хотите удалить этот email-адрес?" %}');">
+                                    <i class="bi bi-trash3"></i> {% trans 'Удалить' %}
+                                </button>
+                            </div>
+                        </form>
+
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill"></i>
+                            {% trans 'У вас пока нет привязанных email-адресов.' %}
+                        </div>
+                    {% endif %}
+
+                    {% if can_add_email %}
+                        <hr class="my-4">
+                        <h5 class="mb-3">
+                            <i class="bi bi-plus-circle"></i> {% trans "Добавить email-адрес" %}
+                        </h5>
+                        <form method="post" action="{% url 'account_email' %}" class="add_email">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <input type="email" name="email" placeholder="{% trans 'Введите новый email' %}"
+                                       class="form-control" required id="id_email">
+                                <button class="btn btn-primary" name="action_add" type="submit">
+                                    <i class="bi bi-plus-lg"></i> {% trans "Добавить" %}
+                                </button>
+                            </div>
+                            {% if form.errors %}
+                                <div class="text-danger mt-2">
+                                    {% for error in form.email.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> {% trans "Вернуться в профиль" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3 border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-lightbulb"></i> {% trans "Советы" %}
+                    </h6>
+                    <ul class="text-muted small mb-0">
+                        <li>{% trans "Основной email используется для входа в аккаунт." %}</li>
+                        <li>{% trans "Подтвержденный email дает полный доступ к функциям аккаунта." %}</li>
+                        <li>{% trans "Вы можете добавить несколько email-адресов для безопасности." %}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

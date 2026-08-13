@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">❤️ Избранное</h1>
+
+    <div class="row">
+        <div class="col-12">
+            <!-- Контейнер для списка товаров -->
+            <div id="favorites-container">
+                <div class="row" id="favorites-grid">
+                    {% for product in products %}
+                        <div class="col-md-3 col-sm-6 mb-4 favorite-item" data-product-id="{{ product.id }}">
+                            <div class="card product-card h-100" style="position: relative;">
+                                <!-- Кнопка избранного -->
+                                {% if user.is_authenticated %}
+                                    <button class="favorite-btn" data-product-id="{{ product.id }}"
+                                            style="position: absolute; top: 8px; right: 8px; z-index: 999; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 0; transition: all 0.3s;">
+                                        <i class="bi bi-heart-fill"
+                                           style="font-size: 20px; color: #dc3545; transition: all 0.3s; pointer-events: none;"></i>
+                                    </button>
+                                {% endif %}
+
+                                <a href="{% url 'products:product_detail' product.category.slug product.slug %}" class="text-decoration-none text-dark" style="display: block; position: relative; z-index: 1;">
+                                    <div class="card-img-wrapper" style="height: 296px; overflow: hidden; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                                        {% if product.image %}
+                                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}"
+                                                 style="width: 100%; height: 100%; object-fit: contain; padding: 0px;">
+                                        {% else %}
+                                            <div class="d-flex align-items-center justify-content-center" style="height: 100%; width: 100%; background: #f8f9fa;">
+                                                <span class="text-muted">Нет фото</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title" style="font-size: 14px; min-height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ product.name }}</h5>
+                                        <p class="card-text mt-auto" style="font-size: 16px; font-weight: bold; color: #007bff;">{{ product.price }} ₽</p>
+                                        <div class="mt-2">
+                                            <form action="{% url 'cart:cart_add' product.id %}" method="post" onclick="event.stopPropagation();">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-sm w-100" style="font-size: 13px; padding: 6px 0;">В корзину</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col-12" id="empty-favorites">
+                            <div class="alert alert-info text-center" style="padding: 50px;">
+                                <h3>💔 У вас пока нет избранных товаров</h3>
+                                <p class="mt-3">Добавляйте товары в избранное, чтобы не потерять их!</p>
+                                <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">Перейти в каталог</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Пагинация -->
+            {% if products.has_other_pages %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if products.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.previous_page_number }}">«</a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in products.paginator.page_range %}
+                            {% if products.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if products.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ products.next_page_number }}">»</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const favoriteBtns = document.querySelectorAll('.favorite-btn');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
+    }
+
+    favoriteBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const productId = this.dataset.productId;
+            const card = this.closest('.favorite-item');
+
+            fetch(`/products/toggle-favorite/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.is_favorite) {
+                    // Удаляем карточку
+                    if (card) {
+                        card.remove();
+                    }
+
+                    // Проверяем, остались ли еще товары в избранном
+                    const remainingItems = document.querySelectorAll('.favorite-item');
+                    const emptyMessage = document.getElementById('empty-favorites');
+                    const favoritesGrid = document.getElementById('favorites-grid');
+
+                    if (remainingItems.length === 0) {
+                        // Если товаров не осталось, показываем сообщение
+                        if (favoritesGrid) {
+                            favoritesGrid.innerHTML = `
+                                <div class="col-12" id="empty-favorites">
+                                    <div class="alert alert-info text-center" style="padding: 50px;">
+                                        <h3>💔 У вас пока нет избранных товаров</h3>
+                                        <p class="mt-3">Добавляйте товары в избранное, чтобы не потерять их!</p>
+                                        <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">Перейти в каталог</a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+
+                // Обновляем счетчик в шапке
+                const badge = document.querySelector('.nav-link-custom .bi-heart + .badge-icon');
+                if (badge) {
+                    if (data.favorites_count > 0) {
+                        badge.textContent = data.favorites_count;
+                        badge.classList.remove('zero');
+                    } else {
+                        badge.textContent = '0';
+                        badge.classList.add('zero');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

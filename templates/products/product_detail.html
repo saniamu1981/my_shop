@@ -1,0 +1,1328 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="Breadcrumb" class="breadcrumb-nav">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'products:product_list' %}" class="breadcrumb-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Каталог
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{{ product.category.get_absolute_url }}" class="breadcrumb-link">
+                    {{ product.category.name }}
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                {{ product.name|truncatechars:50 }}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Галерея изображений -->
+        <div class="col-md-6" style="width: 35%;">
+            <div class="gallery-container" style="display: flex; gap: 8px; align-items: flex-start;">
+                <!-- Миниатюры слева с прокруткой -->
+                <div class="thumbnails-wrapper" style="display: flex; flex-direction: column; align-items: center; height: 450px; justify-content: space-between; flex-shrink: 0;">
+                    <button class="scroll-btn" id="scrollUp" style="background: transparent; border: none; cursor: pointer; font-size: 16px; padding: 0; color: #999; display: none; width: 60px; text-align: center; height: 20px; line-height: 20px; flex-shrink: 0;">▲</button>
+
+                    <div class="thumbnails-container" style="flex: 1; overflow: hidden; position: relative; width: 60px; scroll-behavior: smooth;">
+                        <div class="thumbnails" id="thumbnailsList" style="display: flex; flex-direction: column; gap: 8px; width: 60px;">
+                            <!-- Фото -->
+                            {% if product.image %}
+                                <div class="thumbnail-item" data-type="image" data-src="{{ product.image.url }}" style="cursor: pointer; border-radius: 8px; overflow: hidden; border: 2px solid {% if not all_images %} #007bff {% else %} transparent {% endif %}; flex: 0 0 90px;">
+                                    <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                                         style="width: 60px; height: 90px; object-fit: cover; display: block;">
+                                </div>
+                            {% endif %}
+                            {% for img in all_images %}
+                                <div class="thumbnail-item" data-type="image" data-src="{{ img.image.url }}" style="cursor: pointer; border-radius: 8px; overflow: hidden; border: 2px solid {% if forloop.first and not product.image %} #007bff {% else %} transparent {% endif %}; flex: 0 0 90px; position: relative;">
+                                    <img src="{{ img.image.url }}" alt="{{ product.name }}"
+                                         style="width: 60px; height: 90px; object-fit: cover; display: block;">
+                                </div>
+                            {% endfor %}
+                            <!-- Видео -->
+                            {% for video in videos %}
+                                <div class="thumbnail-item" data-type="video" data-src="{{ video.video.url }}" data-thumbnail="{% if video.thumbnail %}{{ video.thumbnail.url }}{% elif product.image %}{{ product.image.url }}{% endif %}" style="cursor: pointer; border-radius: 8px; overflow: hidden; border: 2px solid transparent; flex: 0 0 90px; position: relative;">
+                                    <img src="{% if video.thumbnail %}{{ video.thumbnail.url }}{% elif product.image %}{{ product.image.url }}{% endif %}" alt="Видео" style="width: 60px; height: 90px; object-fit: cover; display: block;">
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white;">
+                                        ▶
+                                    </div>
+                                    <div style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 1px 5px; border-radius: 3px;">
+                                        🎬
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <button class="scroll-btn" id="scrollDown" style="background: transparent; border: none; cursor: pointer; font-size: 16px; padding: 0; color: #999; display: none; width: 60px; text-align: center; height: 20px; line-height: 20px; flex-shrink: 0;">▼</button>
+                </div>
+
+                <!-- Главное окно -->
+                <div class="main-image-wrapper" style="flex: 0 0 auto; background: transparent; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 12px; padding: 0; min-height: 450px; max-width: 450px; position: relative;">
+                    <!-- Фото -->
+                    <img id="mainImage" src="
+                        {% if product.image %}
+                            {{ product.image.url }}
+                        {% elif all_images.first %}
+                            {{ all_images.first.image.url }}
+                        {% else %}
+                            https://via.placeholder.com/500x500?text=Нет+фото
+                        {% endif %}"
+                         alt="{{ product.name }}"
+                         style="width: 100%; height: 100%; max-width: 450px; max-height: 450px; object-fit: contain; display: block; border-radius: 12px; margin: 0; padding: 0;">
+
+                    <div style="width: 339px;">
+                        <!-- Видео (скрыто по умолчанию) -->
+                        <video id="mainVideo" controls style="width: 100%; height: 100%; max-height: 450px; display: none; border-radius: 12px; background: #000; object-fit: contain;">
+                            <source id="videoSource" src="" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о товаре -->
+        <div class="col-md-6" style="width: 40%;">
+            <h3 class="mb-3">{{ product.name }}</h3>
+            <p class="text-muted">
+                Категория: <a href="{{ product.category.get_absolute_url }}" class="category-link">{{ product.category.name }}</a>
+            </p>
+
+            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <h2 class="text-primary mb-0" style="font-size: 32px; font-weight: 700;">{{ product.price }} ₽</h2>
+
+                    {% if product.available %}
+                        <span class="badge bg-success" style="font-size: 13px; padding: 5px 14px; border-radius: 20px; font-weight: 500;">
+                            ✅ В наличии
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger" style="font-size: 13px; padding: 5px 14px; border-radius: 20px; font-weight: 500;">
+                            ❌ Нет в наличии
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if product.sku %}
+                    <span class="text-muted" style="font-size: 14px;">
+                        Артикул: <strong>{{ product.sku }}</strong>
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Характеристики товара -->
+            {% if product.sku or product.material or product.composition or product.color or product.russian_size or product.country %}
+            <div class="product-specs mt-4">
+                <h5 class="specs-title">📋 Характеристики</h5>
+                <div class="specs-grid">
+                    {% if product.material %}
+                    <div class="spec-item">
+                        <span class="spec-label">Материал</span>
+                        <span class="spec-value">{{ product.material }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.composition %}
+                    <div class="spec-item">
+                        <span class="spec-label">Состав материала</span>
+                        <span class="spec-value">{{ product.composition }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.size_on_model %}
+                    <div class="spec-item">
+                        <span class="spec-label">Размер на модели</span>
+                        <span class="spec-value">{{ product.size_on_model }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.height_on_model %}
+                    <div class="spec-item">
+                        <span class="spec-label">Рост на модели</span>
+                        <span class="spec-value">{{ product.height_on_model }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.model_params %}
+                    <div class="spec-item">
+                        <span class="spec-label">Параметры модели</span>
+                        <span class="spec-value">{{ product.model_params }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.color %}
+                    <div class="spec-item">
+                        <span class="spec-label">Цвет</span>
+                        <span class="spec-value">
+                            <span class="color-dot" style="background-color: {{ product.color|lower }};"></span>
+                            {{ product.color }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if product.russian_size %}
+                    <div class="spec-item">
+                        <span class="spec-label">Российский размер</span>
+                        <span class="spec-value">{{ product.russian_size }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.country %}
+                    <div class="spec-item">
+                        <span class="spec-label">Страна-изготовитель</span>
+                        <span class="spec-value">{{ product.country }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.lining_material %}
+                    <div class="spec-item">
+                        <span class="spec-label">Материал подкладки</span>
+                        <span class="spec-value">{{ product.lining_material }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.fastener_type %}
+                    <div class="spec-item">
+                        <span class="spec-label">Вид застежки</span>
+                        <span class="spec-value">{{ product.fastener_type }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.sleeve %}
+                    <div class="spec-item">
+                        <span class="spec-label">Рукав</span>
+                        <span class="spec-value">{{ product.sleeve }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.set_composition %}
+                    <div class="spec-item">
+                        <span class="spec-label">Состав комплекта</span>
+                        <span class="spec-value">{{ product.set_composition }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.care_instructions %}
+                    <div class="spec-item spec-full">
+                        <span class="spec-label">Уход за вещами</span>
+                        <span class="spec-value">{{ product.care_instructions|linebreaks }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Модальное окно для просмотра фото -->
+        <div id="lightbox" class="lightbox" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; align-items: center; justify-content: center; cursor: pointer;">
+            <button class="lightbox-close" style="position: absolute; top: 20px; right: 30px; background: none; border: none; color: white; font-size: 40px; cursor: pointer; z-index: 10000; transition: transform 0.3s;">&times;</button>
+            <button class="lightbox-prev" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 50px; cursor: pointer; padding: 20px 15px; border-radius: 50%; transition: all 0.3s; z-index: 10000; backdrop-filter: blur(4px);">&lt;</button>
+            <button class="lightbox-next" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; font-size: 50px; cursor: pointer; padding: 20px 15px; border-radius: 50%; transition: all 0.3s; z-index: 10000; backdrop-filter: blur(4px);">&gt;</button>
+            <img id="lightbox-img" src="" alt="Просмотр" style="max-width: 90%; max-height: 90%; object-fit: contain; cursor: default; border-radius: 8px; box-shadow: 0 0 50px rgba(0,0,0,0.5);">
+            <div class="lightbox-counter" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 16px; background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px; font-family: Arial, sans-serif; z-index: 10000;">1 / 10</div>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="col-md-6" style="width: 25%; border: 1px solid green;">
+            <div class="product-actions">
+                <!-- Блок размеров -->
+                <div class="size-block">
+                    <div class="size-trigger">
+                        <span class="size-label">📏 Выберите размер</span>
+                        <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
+                    </div>
+                    <div class="size-dropdown">
+                        {% if product.sizes.all %}
+                            {% for size in product.sizes.all %}
+                                <div class="size-item">
+                                    <input type="radio" name="size" id="size-{{ size.id }}" value="{{ size.size }}"
+                                           {% if size.quantity <= 0 %}disabled{% endif %}>
+                                    <label for="size-{{ size.id }}">
+                                        <span class="size-name">{{ size.size }}</span>
+                                        {% if size.quantity > 0 %}
+                                            <span class="size-availability">✅ В наличии</span>
+                                        {% else %}
+                                            <span class="size-availability out">❌ Нет в наличии</span>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="size-item" style="padding: 10px 16px; color: #999; font-size: 14px;">
+                                Размеры не добавлены
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Блок доставки -->
+                <div class="delivery-block">
+                    <div class="delivery-trigger">
+                        <span class="delivery-label">🚚 Выберите способ доставки</span>
+                        <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
+                    </div>
+                    <div class="delivery-dropdown">
+                        <div class="delivery-item">
+                            <input type="radio" name="delivery" id="delivery-sdek" value="sdek">
+                            <label for="delivery-sdek">📦 СДЭК</label>
+                        </div>
+                        <div class="delivery-item">
+                            <input type="radio" name="delivery" id="delivery-yandex" value="yandex">
+                            <label for="delivery-yandex">🚚 Яндекс-доставка</label>
+                        </div>
+                        <div class="delivery-item">
+                            <input type="radio" name="delivery" id="delivery-5post" value="5post">
+                            <label for="delivery-5post">📮 5 Пост</label>
+                        </div>
+                        <div class="delivery-item">
+                            <input type="radio" name="delivery" id="delivery-boxberry" value="boxberry">
+                            <label for="delivery-boxberry">📦 Boxberry</label>
+                        </div>
+                        <div class="delivery-item">
+                            <input type="radio" name="delivery" id="delivery-courier" value="courier">
+                            <label for="delivery-courier">🚗 Курьерская доставка</label>
+                        </div>
+                        <div class="delivery-item">
+                            <input type="radio" name="delivery" id="delivery-pickup" value="pickup">
+                            <label for="delivery-pickup">🏪 Самовывоз</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки -->
+                <div style="margin-top: 10px;">
+                    {% if product.available %}
+                        <div class="d-flex flex-column gap-2">
+                            <!-- Кнопка "В корзину" и "Избранное" -->
+                            <div class="d-flex gap-2 align-items-center justify-content-center">
+                                <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-inline" style="flex: 1;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="size" id="selected-size" value="">
+                                    <button type="submit" class="btn btn-success btn-lg w-100" style="border-radius: 17px; padding: 8px 25px;">
+                                        🛒 В корзину
+                                    </button>
+                                </form>
+                                {% if user.is_authenticated %}
+                                    <button class="favorite-btn" data-product-id="{{ product.id }}"
+                                            style="border: none; background: #f0f0f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0;">
+                                        <i class="bi bi-heart{% if is_favorite %}-fill{% endif %}"
+                                           style="font-size: 22px; color: {% if is_favorite %}#dc3545{% else %}#888{% endif %}; transition: all 0.3s ease; line-height: 1;"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                            <!-- Кнопка "Купить сейчас" -->
+                            <form action="{% url 'orders:buy_now' product.id %}" method="post" class="w-100">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-lg w-100"
+                                        style="border-radius: 17px; padding: 8px 25px; background: linear-gradient(135deg, #ff6b00, #ff9a00); border: none; font-weight: 600;">
+                                    ⚡ Купить сейчас
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning mt-4">
+                            <h5>⚠️ Товар временно отсутствует</h5>
+                            <p class="mb-0">Но вы можете посмотреть его описание и фото. Ожидайте поступления!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <h5>Описание</h5>
+            <p>{{ product.description|linebreaks }}</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mainImage = document.getElementById('mainImage');
+    const mainVideo = document.getElementById('mainVideo');
+    const videoSource = document.getElementById('videoSource');
+    const thumbnails = document.querySelectorAll('.thumbnail-item');
+
+    // Функция для показа фото
+    function showImage(src) {
+        mainImage.style.display = 'block';
+        mainVideo.style.display = 'none';
+        mainVideo.pause();
+        mainImage.src = src;
+    }
+
+    // Функция для показа видео
+    function showVideo(src, thumbnail) {
+        mainImage.style.display = 'none';
+        mainVideo.style.display = 'block';
+        videoSource.src = src;
+        mainVideo.load();
+        mainVideo.play();
+    }
+
+    // Обработка клика по миниатюрам
+    thumbnails.forEach(item => {
+        item.addEventListener('click', function() {
+            thumbnails.forEach(t => {
+                t.style.borderColor = 'transparent';
+            });
+            this.style.borderColor = '#007bff';
+
+            const type = this.dataset.type;
+            const src = this.dataset.src;
+
+            if (type === 'image') {
+                showImage(src);
+            } else if (type === 'video') {
+                const thumbnail = this.dataset.thumbnail || '';
+                showVideo(src, thumbnail);
+            }
+        });
+    });
+
+    // Если есть миниатюры, делаем первую активной
+    const firstThumbnail = document.querySelector('.thumbnail-item');
+    if (firstThumbnail) {
+        firstThumbnail.style.borderColor = '#007bff';
+    }
+
+    // Функция для обновления счетчика избранного в шапке
+    function updateFavoriteBadge(count) {
+        // Ищем бейдж избранного - ищем по тексту "Избранное" или по ID
+        let badge = document.getElementById('favorites-badge');
+
+        // Если не нашли по ID, ищем через родительский элемент
+        if (!badge) {
+            // Ищем все пункты меню
+            const navItems = document.querySelectorAll('.nav-item');
+            for (let item of navItems) {
+                const label = item.querySelector('.nav-icon-label');
+                if (label && label.textContent.trim() === 'Избранное') {
+                    const wrapper = item.querySelector('.nav-icon-wrapper');
+                    if (wrapper) {
+                        badge = wrapper.querySelector('.badge-icon');
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Если все еще не нашли, ищем через иконку сердца
+        if (!badge) {
+            const heartIcons = document.querySelectorAll('.bi-heart');
+            for (let icon of heartIcons) {
+                const wrapper = icon.closest('.nav-icon-wrapper');
+                if (wrapper) {
+                    const parentLink = wrapper.closest('.nav-link-custom');
+                    if (parentLink) {
+                        const label = parentLink.querySelector('.nav-icon-label');
+                        if (label && label.textContent.trim() === 'Избранное') {
+                            badge = wrapper.querySelector('.badge-icon');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (badge) {
+            // Очищаем все стили
+            badge.style.cssText = '';
+            badge.className = 'badge-icon';
+
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'flex';
+                badge.style.alignItems = 'center';
+                badge.style.justifyContent = 'center';
+                badge.style.backgroundColor = '#dc3545';
+                badge.style.color = 'white';
+                badge.style.borderRadius = '50%';
+                badge.style.minWidth = '18px';
+                badge.style.height = '18px';
+                badge.style.fontSize = '10px';
+                badge.style.fontWeight = '600';
+                badge.style.padding = '0 4px';
+                badge.style.border = '2px solid #212529';
+                badge.style.marginLeft = '5px';
+                badge.classList.remove('zero');
+            } else {
+                badge.textContent = '0';
+                badge.classList.add('zero');
+                badge.style.display = 'none';
+            }
+        } else {
+            console.log('Бейдж избранного не найден!');
+        }
+    }
+
+    // Обработка кнопки "В избранное"
+    const favoriteBtn = document.querySelector('.favorite-btn');
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const productId = this.dataset.productId;
+            const icon = this.querySelector('i');
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+            if (!csrfToken) {
+                console.error('CSRF token not found');
+                return;
+            }
+
+            fetch(`/products/toggle-favorite/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_favorite) {
+                    icon.classList.remove('bi-heart');
+                    icon.classList.add('bi-heart-fill');
+                    icon.style.color = '#dc3545';
+                    this.style.background = '#fff5f5';
+                    this.style.boxShadow = '0 2px 8px rgba(220, 53, 69, 0.2)';
+                } else {
+                    icon.classList.remove('bi-heart-fill');
+                    icon.classList.add('bi-heart');
+                    icon.style.color = '#888';
+                    this.style.background = '#f0f0f0';
+                    this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                }
+
+                // Обновляем счетчик
+                updateFavoriteBadge(data.favorites_count);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    }
+});
+
+// Обработка выбора размера
+document.querySelectorAll('.size-item input[type="radio"]').forEach(input => {
+    input.addEventListener('change', function() {
+        const selectedSize = document.getElementById('selected-size');
+        if (selectedSize) {
+            selectedSize.value = this.value;
+        }
+    });
+});
+
+// Прокрутка миниатюр
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.querySelector('.thumbnails-container');
+    const list = document.getElementById('thumbnailsList');
+    const scrollUp = document.getElementById('scrollUp');
+    const scrollDown = document.getElementById('scrollDown');
+    const itemHeight = 98;
+
+    function updateScrollButtons() {
+        const maxScroll = list.scrollHeight - container.clientHeight;
+        const currentScroll = container.scrollTop;
+        scrollUp.style.display = currentScroll > 0 ? 'block' : 'none';
+        scrollDown.style.display = currentScroll < maxScroll - 1 ? 'block' : 'none';
+    }
+
+    function scrollThumbnails(direction) {
+        const step = itemHeight * 2;
+        const currentScroll = container.scrollTop;
+        const maxScroll = list.scrollHeight - container.clientHeight;
+        let newScroll = direction === 'up' ? currentScroll - step : currentScroll + step;
+        newScroll = Math.max(0, Math.min(newScroll, maxScroll));
+        container.scrollTo({ top: newScroll, behavior: 'smooth' });
+        setTimeout(updateScrollButtons, 300);
+    }
+
+    scrollUp.addEventListener('click', () => scrollThumbnails('up'));
+    scrollDown.addEventListener('click', () => scrollThumbnails('down'));
+    setTimeout(updateScrollButtons, 100);
+    window.addEventListener('resize', updateScrollButtons);
+
+    container.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 1 : -1;
+        const step = itemHeight * delta;
+        const currentScroll = container.scrollTop;
+        const maxScroll = list.scrollHeight - container.clientHeight;
+        let newScroll = currentScroll + step;
+        newScroll = Math.max(0, Math.min(newScroll, maxScroll));
+        container.scrollTo({ top: newScroll, behavior: 'smooth' });
+        setTimeout(updateScrollButtons, 300);
+    });
+});
+
+// ============ ЛАЙТБОКС ДЛЯ ФОТО ============
+document.addEventListener('DOMContentLoaded', function() {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCounter = document.querySelector('.lightbox-counter');
+    const closeBtn = document.querySelector('.lightbox-close');
+    const prevBtn = document.querySelector('.lightbox-prev');
+    const nextBtn = document.querySelector('.lightbox-next');
+
+    // Собираем все фото товара
+    const images = [];
+
+    // Добавляем главное фото
+    if (mainImage && mainImage.src && !mainImage.src.includes('placeholder')) {
+        images.push(mainImage.src);
+    }
+
+    // Добавляем фото из миниатюр
+    document.querySelectorAll('.thumbnail-item[data-type="image"]').forEach(item => {
+        const src = item.dataset.src;
+        if (src && !images.includes(src)) {
+            images.push(src);
+        }
+    });
+
+    let currentIndex = 0;
+
+    // Функция открытия лайтбокса
+    function openLightbox(index) {
+        if (images.length === 0) return;
+        currentIndex = index;
+        updateLightboxImage();
+        lightbox.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Функция обновления изображения в лайтбоксе
+    function updateLightboxImage() {
+        if (images.length > 0 && images[currentIndex]) {
+            lightboxImg.src = images[currentIndex];
+            lightboxImg.alt = 'Фото товара ' + (currentIndex + 1);
+            if (lightboxCounter) {
+                lightboxCounter.textContent = (currentIndex + 1) + ' / ' + images.length;
+            }
+            // Обновляем состояние кнопок
+            if (prevBtn) prevBtn.style.display = currentIndex > 0 ? 'block' : 'none';
+            if (nextBtn) nextBtn.style.display = currentIndex < images.length - 1 ? 'block' : 'none';
+        }
+    }
+
+    // Закрытие лайтбокса
+    function closeLightbox() {
+        lightbox.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // Навигация
+    function prevImage(e) {
+        e.stopPropagation();
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateLightboxImage();
+        }
+    }
+
+    function nextImage(e) {
+        e.stopPropagation();
+        if (currentIndex < images.length - 1) {
+            currentIndex++;
+            updateLightboxImage();
+        }
+    }
+
+    // Клик по главному фото для открытия
+    if (mainImage) {
+        mainImage.addEventListener('click', function(e) {
+            if (mainImage.style.display !== 'none') {
+                openLightbox(0);
+            }
+        });
+    }
+
+    // События для кнопок
+    if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+    if (prevBtn) prevBtn.addEventListener('click', prevImage);
+    if (nextBtn) nextBtn.addEventListener('click', nextImage);
+
+    // Клик по фону для закрытия
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeLightbox();
+        }
+    });
+
+    // Клавиши на клавиатуре
+    document.addEventListener('keydown', function(e) {
+        if (lightbox.style.display === 'flex') {
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                currentIndex--;
+                updateLightboxImage();
+            }
+            if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
+                currentIndex++;
+                updateLightboxImage();
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.gallery-container {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.thumbnails-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 450px;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.thumbnails-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    width: 60px;
+    scroll-behavior: smooth;
+}
+
+.thumbnails {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 60px;
+}
+
+.thumbnail-item {
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+    flex: 0 0 90px;
+    position: relative;
+}
+
+.thumbnail-item:hover {
+    border-color: #007bff !important;
+}
+
+.thumbnail-item img {
+    width: 60px;
+    height: 90px;
+    object-fit: cover;
+    display: block;
+}
+
+.thumbnail-item.active {
+    border-color: #007bff !important;
+}
+
+.scroll-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    color: #999;
+    width: 60px;
+    text-align: center;
+    height: 20px;
+    line-height: 20px;
+    flex-shrink: 0;
+    transition: color 0.3s;
+}
+
+.scroll-btn:hover {
+    color: #007bff;
+}
+
+.main-image-wrapper {
+    flex: 0 0 auto;
+    background: transparent !important;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    border-radius: 12px;
+    padding: 0;
+    min-height: 450px;
+    max-width: 450px;
+    position: relative;
+}
+
+.main-image-wrapper img {
+    width: auto;
+    height: auto;
+    max-width: 450px;
+    max-height: 450px;
+    object-fit: contain;
+    display: block;
+    border-radius: 12px;
+    margin: 0;
+    padding: 0;
+}
+
+.main-image-wrapper video {
+    width: 100%;
+    height: 100%;
+    max-height: 450px;
+    display: none;
+    border-radius: 12px;
+    background: #000;
+    object-fit: contain;
+    margin: 0 auto;
+}
+
+.category-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: color 0.3s ease;
+    border-bottom: none;
+}
+
+.category-link:hover {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.category-link::before {
+    content: "🏷️ ";
+    font-size: 12px;
+}
+
+/* Breadcrumb стили */
+.breadcrumb-nav {
+    margin-bottom: 20px;
+    padding: 8px 0;
+}
+
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    background: transparent;
+    border-radius: 0;
+    gap: 4px;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #999;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    padding: 0 8px;
+    color: #ccc;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.breadcrumb-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: none;
+}
+
+.breadcrumb-link:hover {
+    color: #005bff;
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: #333;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+/* Кнопка избранного */
+.favorite-btn {
+    border: none;
+    background: #f0f0f0;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.05);
+    background: #f8f8f8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.favorite-btn:active {
+    transform: scale(0.95);
+}
+
+.favorite-btn i {
+    font-size: 22px;
+    transition: all 0.3s ease;
+    line-height: 1;
+}
+
+.favorite-btn i.bi-heart {
+    color: #888;
+}
+
+.favorite-btn i.bi-heart-fill {
+    color: #dc3545;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .main-image-wrapper {
+        max-width: 350px;
+        min-height: 350px;
+    }
+    .main-image-wrapper img {
+        max-height: 350px;
+    }
+    .main-image-wrapper video {
+        max-height: 350px;
+    }
+    .thumbnails-wrapper {
+        height: 350px;
+    }
+    .thumbnail-item {
+        flex: 0 0 70px;
+    }
+    .thumbnail-item img {
+        height: 70px;
+    }
+    .col-md-6 {
+        margin-left: 0 !important;
+    }
+    .favorite-btn {
+        width: 40px;
+        height: 40px;
+    }
+    .favorite-btn i {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 576px) {
+    .breadcrumb-item {
+        font-size: 12px;
+    }
+    .breadcrumb-item + .breadcrumb-item::before {
+        padding: 0 4px;
+        font-size: 14px;
+    }
+    .breadcrumb-link svg {
+        width: 14px;
+        height: 14px;
+    }
+    .favorite-btn {
+        width: 36px;
+        height: 36px;
+    }
+    .favorite-btn i {
+        font-size: 16px;
+    }
+}
+
+/* Стили для выпадающего списка доставки */
+.delivery-block {
+    position: relative;
+    cursor: pointer;
+    padding: 10px 0;
+    user-select: none;
+}
+
+.delivery-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: #333;
+}
+
+.delivery-trigger:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+}
+
+.delivery-label {
+    font-weight: 500;
+}
+
+.delivery-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+.delivery-block:hover .delivery-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.delivery-block:hover .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+.delivery-item {
+    padding: 8px 16px;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.delivery-item:hover {
+    background: #f8f9fa;
+}
+
+.delivery-item input[type="radio"] {
+    display: none;
+}
+
+.delivery-item label {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    padding: 4px 0;
+}
+
+.delivery-item input[type="radio"]:checked + label {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.delivery-item input[type="radio"]:checked + label::after {
+    content: " ✅";
+    margin-left: auto;
+    color: #28a745;
+}
+
+.delivery-item:hover label {
+    color: #007bff;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .delivery-dropdown {
+        min-width: unset;
+        width: 100%;
+    }
+}
+
+.btn-buy-now {
+    background: linear-gradient(135deg, #ff6b00, #ff9a00);
+    color: white;
+    border: none;
+    border-radius: 17px;
+    padding: 8px 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-buy-now:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(255, 107, 0, 0.4);
+    color: white;
+}
+
+.btn-buy-now:active {
+    transform: translateY(0);
+}
+
+.product-actions {
+    margin: 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 16px;
+    border: 1px solid #e9ecef;
+    max-width: 100%;
+}
+
+/* Характеристики товара */
+.product-specs {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.specs-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.spec-item:last-child {
+    border-bottom: none;
+}
+
+.spec-full {
+    grid-column: 1 / -1;
+}
+
+.spec-label {
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.spec-value {
+    color: #212529;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+}
+
+.color-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .specs-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .spec-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 10px 0;
+    }
+
+    .spec-value {
+        text-align: left;
+    }
+
+    .product-specs {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .d-flex.flex-wrap {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .text-primary {
+        font-size: 26px !important;
+    }
+}
+
+/* Лайтбокс */
+.lightbox {
+    animation: fadeIn 0.3s ease;
+}
+
+.lightbox-close:hover {
+    transform: rotate(90deg);
+    color: #ff6b6b;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.lightbox-prev:active,
+.lightbox-next:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Стили для главного фото - добавляем курсор увеличительного стекла */
+#mainImage {
+    cursor: pointer !important;
+}
+
+.thumbnail-item[data-type="image"] {
+    cursor: pointer !important;
+}
+
+/* Стили для выпадающего списка размеров */
+.size-block {
+    position: relative;
+    cursor: pointer;
+    padding: 10px 0;
+    user-select: none;
+}
+
+.size-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.size-trigger:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+}
+
+.size-label {
+    font-weight: 500;
+}
+
+.size-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+.size-block:hover .size-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.size-block:hover .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+.size-item {
+    padding: 8px 16px;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.size-item:hover {
+    background: #f8f9fa;
+}
+
+.size-item input[type="radio"] {
+    display: none;
+}
+
+.size-item label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    padding: 4px 0;
+}
+
+.size-item input[type="radio"]:checked + label {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.size-item input[type="radio"]:checked + label::after {
+    content: " ✅";
+    color: #28a745;
+}
+
+.size-item input[type="radio"]:disabled + label {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.size-availability {
+    font-size: 12px;
+    color: #28a745;
+    font-weight: 400;
+}
+
+.size-availability.out {
+    color: #dc3545;
+}
+</style>
+{% endblock %}

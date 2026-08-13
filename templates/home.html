@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="jumbotron bg-light p-5 rounded-lg m-3">
+    <h1 class="display-4">Добро пожаловать в наш магазин!</h1>
+    <p class="lead">Лучшие товары по лучшим ценам</p>
+    <hr class="my-4">
+    <p>Начните покупки прямо сейчас</p>
+    <a class="btn btn-primary btn-lg" href="{% url 'products:product_list' %}" role="button">Перейти в каталог</a>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3>🛒</h3>
+                <h5>Широкий ассортимент</h5>
+                <p>Тысячи товаров в различных категориях</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3>🚚</h3>
+                <h5>Быстрая доставка</h5>
+                <p>Доставляем по всей стране</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h3>💳</h3>
+                <h5>Безопасная оплата</h5>
+                <p>Различные способы оплаты</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

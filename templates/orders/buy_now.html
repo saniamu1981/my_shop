@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0">⚡ Быстрый заказ</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                                 style="max-height: 150px; object-fit: contain;">
+                        {% endif %}
+                        <h5 class="mt-2">{{ product.name }}</h5>
+                        <p class="text-primary h4">{{ product.price }} ₽</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">Имя *</label>
+                            <input type="text" name="first_name" id="first_name"
+                                   class="form-control" value="{{ user.first_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Фамилия</label>
+                            <input type="text" name="last_name" id="last_name"
+                                   class="form-control" value="{{ user.last_name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" name="email" id="email"
+                                   class="form-control" value="{{ user.email }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Телефон *</label>
+                            <input type="tel" name="phone" id="phone"
+                                   class="form-control" value="{{ user.phone|default:'' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Адрес доставки *</label>
+                            <textarea name="address" id="address" class="form-control" rows="3" required>Адрес не указан</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                ⚡ Подтвердить заказ
+                            </button>
+                            <a href="{% url 'products:product_detail' product.category.slug product.slug %}"
+                               class="btn btn-outline-secondary">Назад к товару</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
