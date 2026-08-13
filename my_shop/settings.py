@@ -3,10 +3,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Загружаем переменные из .env
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Загружаем переменные из .env только если файл существует
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
 
 # Секретный ключ из .env
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
@@ -41,7 +43,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Для статики в продакшене
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,7 +53,6 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
-# Для Whitenoise (должно быть после MIDDLEWARE)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ROOT_URLCONF = 'my_shop.urls'
@@ -78,8 +79,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'my_shop.wsgi.application'
 
 # База данных
-if DEBUG:
-    # Для разработки (SQLite)
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'False') == 'True'
+
+if DEBUG or not USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -87,7 +89,6 @@ if DEBUG:
         }
     }
 else:
-    # Для продакшена (PostgreSQL)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -96,7 +97,7 @@ else:
             'PASSWORD': os.getenv('DB_PASSWORD', 'your_db_password'),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
-            'CONN_MAX_AGE': 600,  # Держит соединение открытым 10 минут
+            'CONN_MAX_AGE': 600,
         }
     }
 
@@ -122,16 +123,15 @@ TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (загруженные пользователями)
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
@@ -160,7 +160,7 @@ if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.yandex.ru')  # Для Яндекс.Почты
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.yandex.ru')
     EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
     EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
@@ -174,13 +174,13 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_...')
 # CSRF и сессии
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SECURE = not DEBUG  # Только для HTTPS
-SESSION_COOKIE_SECURE = not DEBUG  # Только для HTTPS
-SECURE_SSL_REDIRECT = not DEBUG  # Перенаправление на HTTPS
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = not DEBUG
 
-# Security headers (для продакшена)
+# Security headers
 if not DEBUG:
-    SECURE_HSTS_SECONDS = 31536000  # 1 год
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_BROWSER_XSS_FILTER = True
@@ -188,7 +188,7 @@ if not DEBUG:
 
 CART_SESSION_ID = 'cart'
 
-# Logging (для отладки в продакшене)
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
