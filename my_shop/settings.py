@@ -11,8 +11,9 @@ if env_path.exists():
     load_dotenv(env_path)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = ['maidlingerie.ru', 'www.maidlingerie.ru', 'saniamu1981-my-shop-3994.twc1.net', 'localhost', '127.0.0.1', '172.18.0.6', '172.18.0.7', '*']
+DEBUG = True  # Временно для отладки
+ALLOWED_HOSTS = ['*']
+SECURE_SSL_REDIRECT = False
 
 # Application definition
 INSTALLED_APPS = [
