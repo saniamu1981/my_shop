@@ -75,21 +75,30 @@ TEMPLATES = [
 WSGI_APPLICATION = 'my_shop.wsgi.application'
 
 # ============ БАЗА ДАННЫХ ============
-USE_POSTGRES = os.getenv('USE_POSTGRES', 'True') == 'True'  # По умолчанию True
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'True') == 'True'
 
-# ============ БАЗА ДАННЫХ ============
-# ПРИНУДИТЕЛЬНО POSTGRESQL
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'my_shop_db',
-        'USER': 'su639945',
-        'PASSWORD': '13Sent2005',
-        'HOST': 'postgres',
-        'PORT': '5432',
-        'CONN_MAX_AGE': 600,
+if USE_POSTGRES:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'default_db'),
+            'USER': os.getenv('DB_USER', 'gen_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', '13Sent2005'),
+            'HOST': os.getenv('DB_HOST', 'f58bcedf1f7b47e6242ee947.twc1.net'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+            'CONN_MAX_AGE': 600,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
