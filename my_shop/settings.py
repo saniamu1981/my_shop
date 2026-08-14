@@ -77,25 +77,19 @@ WSGI_APPLICATION = 'my_shop.wsgi.application'
 # ============ БАЗА ДАННЫХ ============
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'True') == 'True'  # По умолчанию True
 
-if USE_POSTGRES:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'my_shop_db',
-            'USER': 'su639945',
-            'PASSWORD': '13Sent2005',
-            'HOST': 'postgres',
-            'PORT': '5432',
-            'CONN_MAX_AGE': 600,
-        }
+# ============ БАЗА ДАННЫХ ============
+# ПРИНУДИТЕЛЬНО POSTGRESQL
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'my_shop_db',
+        'USER': 'su639945',
+        'PASSWORD': '13Sent2005',
+        'HOST': 'postgres',
+        'PORT': '5432',
+        'CONN_MAX_AGE': 600,
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
