@@ -10,12 +10,8 @@ env_path = BASE_DIR / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-# Секретный ключ из .env
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
-
-# DEBUG из .env
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
