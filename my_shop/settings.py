@@ -74,17 +74,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'my_shop.wsgi.application'
 
-# База данных
-USE_POSTGRES = os.getenv('USE_POSTGRES', 'False') == 'True'
+# ============ БАЗА ДАННЫХ ============
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'True') == 'True'  # По умолчанию True
 
 if USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'NAME': os.getenv('DB_NAME', 'my_shop_db'),
+            'USER': os.getenv('DB_USER', 'su639945'),
+            'PASSWORD': os.getenv('DB_PASSWORD', '13Sent2005'),
+            'HOST': os.getenv('DB_HOST', 'postgres'),
             'PORT': os.getenv('DB_PORT', '5432'),
             'CONN_MAX_AGE': 600,
         }
