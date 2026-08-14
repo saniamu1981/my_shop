@@ -12,7 +12,7 @@ if env_path.exists():
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['maidlingerie.ru', 'www.maidlingerie.ru', 'saniamu1981-my-shop-3994.twc1.net', 'localhost', '127.0.0.1', '172.18.0.6', '172.18.0.7', '*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -77,28 +77,21 @@ WSGI_APPLICATION = 'my_shop.wsgi.application'
 # ============ БАЗА ДАННЫХ ============
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'True') == 'True'
 
-if USE_POSTGRES:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'default_db'),
-            'USER': os.getenv('DB_USER', 'gen_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', '13Sent2005'),
-            'HOST': os.getenv('DB_HOST', 'f58bcedf1f7b47e6242ee947.twc1.net'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-            'OPTIONS': {
-                'sslmode': 'require',
-            },
-            'CONN_MAX_AGE': 600,
-        }
+# ============ БАЗА ДАННЫХ ============
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'default_db',
+        'USER': 'gen_user',
+        'PASSWORD': '13Sent2005',
+        'HOST': 'f58bcedf1f7b47e6242ee947.twc1.net',
+        'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+        'CONN_MAX_AGE': 600,
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
