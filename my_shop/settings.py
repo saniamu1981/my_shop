@@ -81,11 +81,11 @@ if USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'my_shop_db'),
-            'USER': os.getenv('DB_USER', 'su639945'),
-            'PASSWORD': os.getenv('DB_PASSWORD', '13Sent2005'),
-            'HOST': os.getenv('DB_HOST', 'postgres'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'NAME': 'my_shop_db',
+            'USER': 'su639945',
+            'PASSWORD': '13Sent2005',
+            'HOST': 'postgres',
+            'PORT': '5432',
             'CONN_MAX_AGE': 600,
         }
     }
