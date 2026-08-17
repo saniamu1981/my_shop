@@ -1,4 +1,4 @@
-# В самом начале settings.py
+# my_shop/settings.py
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -12,7 +12,27 @@ if env_path.exists():
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
 DEBUG = True  # Временно для отладки
-ALLOWED_HOSTS = ['*']
+
+# ============ ХОСТЫ И БЕЗОПАСНОСТЬ ============
+ALLOWED_HOSTS = [
+    'maidlingerie.ru',
+    'www.maidlingerie.ru',
+    'saniamu1981-my-shop-3994.twc1.net',
+    'localhost',
+    '127.0.0.1',
+    '*',  # Временно для теста
+]
+
+# ============ CSRF НАСТРОЙКИ ============
+CSRF_TRUSTED_ORIGINS = [
+    'https://maidlingerie.ru',
+    'http://maidlingerie.ru',
+    'https://saniamu1981-my-shop-3994.twc1.net',
+    'http://saniamu1981-my-shop-3994.twc1.net',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 SECURE_SSL_REDIRECT = False
 
 # Application definition
@@ -74,9 +94,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'my_shop.wsgi.application'
-
-# ============ БАЗА ДАННЫХ ============
-USE_POSTGRES = os.getenv('USE_POSTGRES', 'True') == 'True'
 
 # ============ БАЗА ДАННЫХ ============
 DATABASES = {
