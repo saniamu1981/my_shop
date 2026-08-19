@@ -7,15 +7,30 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
-from apps.products.models import Product
+from apps.products.models import Product, Review
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+
+# apps/orders/views.py
 
 @login_required
 def order_list(request):
     """Список заказов пользователя"""
     orders = Order.objects.filter(user=request.user).order_by('-created')
+
+    # Добавляем информацию об отзывах для каждого товара в заказе
+    for order in orders:
+        for item in order.items.all():
+            # Проверяем, есть ли отзыв на этот товар от ЭТОГО пользователя
+            has_review = Review.objects.filter(
+                product=item.product,
+                user=request.user  # <-- Важно: проверяем конкретного пользователя
+            ).exists()
+            item.has_review = has_review
+            # Отладка
+            print(f"Order {order.id}, Product {item.product.id}, User {request.user.email}: has_review = {has_review}")
+
     paginator = Paginator(orders, 10)
     page = request.GET.get('page')
     orders = paginator.get_page(page)
@@ -149,18 +164,41 @@ def buy_now(request, product_id):
     product = get_object_or_404(Product, id=product_id, available=True)
 
     if request.method == 'POST':
-        # Создаем заказ для одного товара
+        size = request.POST.get('size', '')
+        delivery_method = request.POST.get('delivery_method', '')
+        delivery_point = request.POST.get('delivery_point', '{}')
+
+        try:
+            import json
+            point_data = json.loads(delivery_point) if delivery_point else {}
+        except:
+            point_data = {}
+
+        # Получаем телефон пользователя, если есть
+        user_phone = ''
+        if hasattr(request.user, 'phone') and request.user.phone:
+            user_phone = request.user.phone
+        elif hasattr(request.user, 'profile') and hasattr(request.user.profile, 'phone'):
+            user_phone = request.user.profile.phone
+
+        # Если телефона нет, используем заглушку
+        if not user_phone:
+            user_phone = 'Не указан'
+
         order = Order.objects.create(
             user=request.user,
             first_name=request.user.first_name or 'Покупатель',
             last_name=request.user.last_name or '',
             email=request.user.email,
-            address='Адрес не указан',
-            phone=request.user.phone if hasattr(request.user, 'phone') else 'Не указан',
-            total_price=product.price
+            address=point_data.get('address', 'Адрес не указан'),
+            phone=user_phone,  # <-- Важно: передаем телефон
+            total_price=product.price,
+            delivery_method=delivery_method,
+            delivery_point_code=point_data.get('code', ''),
+            delivery_point_name=point_data.get('name', ''),
+            delivery_point_address=point_data.get('address', ''),
         )
 
-        # Добавляем товар в заказ
         OrderItem.objects.create(
             order=order,
             product=product,
@@ -172,3 +210,86 @@ def buy_now(request, product_id):
         return redirect('orders:payment_process', order_id=order.id)
 
     return redirect('products:product_detail', category_slug=product.category.slug, product_slug=product.slug)
+
+@login_required
+def add_review(request):
+    """
+    Страница добавления отзыва на товары из доставленного заказа
+    """
+    order_id = request.GET.get('order_id')
+
+    if not order_id:
+        messages.error(request, 'Заказ не указан')
+        return redirect('orders:order_list')
+
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    # Проверяем, что заказ доставлен
+    if order.status != 'delivered':
+        messages.error(request, 'Отзыв можно оставить только для доставленных заказов')
+        return redirect('orders:order_list')
+
+    # Проверяем, есть ли уже отзывы на товары из этого заказа
+    existing_reviews = Review.objects.filter(order=order, user=request.user)
+    reviewed_product_ids = existing_reviews.values_list('product_id', flat=True)
+
+    # Получаем товары из заказа, на которые еще нет отзывов
+    items = order.items.all()
+    available_products = []
+    for item in items:
+        if item.product.id not in reviewed_product_ids:
+            available_products.append(item.product)
+
+    if not available_products:
+        messages.info(request, 'Вы уже оставили отзывы на все товары из этого заказа')
+        return redirect('orders:order_list')
+
+    if request.method == 'POST':
+        product_id = request.POST.get('product_id')
+        rating = request.POST.get('rating')
+        comment = request.POST.get('comment')
+
+        if not product_id or not rating:
+            messages.error(request, 'Заполните все обязательные поля')
+            return redirect(f'/orders/add-review/?order_id={order_id}')
+
+        product = get_object_or_404(Product, id=product_id)
+
+        # Проверяем, что товар есть в заказе
+        if not order.items.filter(product_id=product_id).exists():
+            messages.error(request, 'Товар не найден в заказе')
+            return redirect('orders:order_list')
+
+        # Проверяем, что отзыв еще не оставлен
+        if Review.objects.filter(product=product, user=request.user, order=order).exists():
+            messages.warning(request, 'Отзыв на этот товар уже оставлен')
+            return redirect(f'/orders/add-review/?order_id={order_id}')
+
+        Review.objects.create(
+            product=product,
+            user=request.user,
+            order=order,
+            rating=int(rating),
+            comment=comment
+        )
+
+        messages.success(request, f'Спасибо за отзыв на "{product.name}"!')
+
+        # Проверяем, остались ли еще товары без отзывов
+        remaining_items = order.items.exclude(product_id=product_id)
+        remaining_products = []
+        for item in remaining_items:
+            if item.product.id not in reviewed_product_ids:
+                remaining_products.append(item.product)
+
+        if remaining_products:
+            return redirect(f'/orders/add-review/?order_id={order_id}')
+        else:
+            return redirect('orders:order_list')
+
+    context = {
+        'order': order,
+        'available_products': available_products,
+        'existing_reviews': existing_reviews,
+    }
+    return render(request, 'orders/add_review.html', context)

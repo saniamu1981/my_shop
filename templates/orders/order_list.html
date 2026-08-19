@@ -14,6 +14,8 @@
                         <th>Сумма</th>
                         <th>Статус</th>
                         <th>Оплата</th>
+                        <th>Доставка</th>
+                        <th>Пункт выдачи</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -38,21 +40,64 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <!-- Кнопка Детали всегда доступна -->
-                                <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-info">Детали</a>
-
-                                <!-- Кнопка Оплатить только для неоплаченных и неотмененных заказов -->
-                                {% if not order.paid and order.status != 'cancelled' %}
-                                    <a href="{% url 'orders:payment_process' order.id %}" class="btn btn-sm btn-success">Оплатить</a>
+                                {% if order.delivery_method %}
+                                    <span class="badge bg-secondary">{{ order.get_delivery_method_display }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
                                 {% endif %}
-
-                                <!-- Кнопка Отменить только для заказов, которые можно отменить -->
-                                {% if order.can_cancel %}
-                                    <form action="{% url 'orders:cancel_order' order.id %}" method="post" style="display: inline-block;" onsubmit="return confirm('Вы уверены, что хотите отменить заказ №{{ order.id }}?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-danger">Отменить</button>
-                                    </form>
+                            </td>
+                            <td>
+                                {% if order.delivery_point_name %}
+                                    <span title="{{ order.delivery_point_address }}">
+                                        {{ order.delivery_point_name|truncatechars:25 }}
+                                    </span>
+                                {% elif order.delivery_point_address %}
+                                    <span title="{{ order.delivery_point_address }}">
+                                        {{ order.delivery_point_address|truncatechars:25 }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
                                 {% endif %}
+                            </td>
+                            <td style="min-width: 200px;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                    <!-- Кнопка Детали всегда доступна -->
+                                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-info">Детали</a>
+
+                                    <!-- Кнопка Оплатить только для неоплаченных и неотмененных заказов -->
+                                    {% if not order.paid and order.status != 'cancelled' %}
+                                        <a href="{% url 'orders:payment_process' order.id %}" class="btn btn-sm btn-success">Оплатить</a>
+                                    {% endif %}
+
+                                    <!-- Кнопка Отменить только для заказов, которые можно отменить -->
+                                    {% if order.can_cancel %}
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="showCancelModal({{ order.id }})">
+                                            Отменить
+                                        </button>
+                                    {% endif %}
+
+                                    {% load order_filters %}
+
+                                    <!-- Отзывы для доставленных заказов -->
+                                    {% if order.status == 'delivered' %}
+                                        {% for item in order.items.all %}
+                                            {% if item|has_user_review:user %}
+                                                <!-- НЕ КЛИКАБЕЛЬНАЯ надпись - такого же размера как кнопки -->
+                                                <span class="btn btn-sm btn-success" style="cursor: default; user-select: none; pointer-events: none; opacity: 0.8;">
+                                                    ✅ Отзыв оставлен
+                                                </span>
+                                            {% else %}
+                                                <!-- КЛИКАБЕЛЬНАЯ кнопка -->
+                                                <a href="{% url 'orders:add_review' %}?order_id={{ order.id }}"
+                                                   class="btn btn-sm btn-warning">
+                                                    ⭐ Оставить отзыв
+                                                </a>
+                                            {% endif %}
+                                        {% empty %}
+                                            <span class="text-muted small">Нет товаров</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -97,4 +142,62 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Модальное окно подтверждения отмены заказа -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">⚠️ Подтверждение отмены</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-exclamation-triangle" style="font-size: 48px; color: #dc3545;"></i>
+                <h4 class="mt-3">Вы уверены, что хотите отменить заказ?</h4>
+                <p class="text-muted">Заказ №<span id="cancel-order-id"></span> будет отменен. Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelBtn">Да, отменить заказ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============ ОТМЕНА ЗАКАЗА ЧЕРЕЗ МОДАЛЬНОЕ ОКНО ============
+let cancelOrderId = null;
+
+function showCancelModal(orderId) {
+    cancelOrderId = orderId;
+    document.getElementById('cancel-order-id').textContent = orderId;
+    const modal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmBtn = document.getElementById('confirmCancelBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (cancelOrderId) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/orders/${cancelOrderId}/cancel/`;
+
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = csrfToken;
+                    form.appendChild(csrfInput);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

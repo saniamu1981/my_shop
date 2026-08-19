@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">⭐ Оставить отзыв</h1>
+    <p class="text-muted">Заказ №{{ order.id }} от {{ order.created|date:"d.m.Y" }}</p>
+
+    {% if available_products %}
+        <div class="row">
+            {% for product in available_products %}
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                {% if product.image %}
+                                    <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                                {% endif %}
+                                <div>
+                                    <h5 class="card-title mb-1">{{ product.name }}</h5>
+                                    <p class="text-muted small">{{ product.price }} ₽</p>
+                                </div>
+                            </div>
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="product_id" value="{{ product.id }}">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Оценка</label>
+                                    <div class="rating-stars">
+                                        <div class="btn-group" role="group">
+                                            {% for i in "12345"|make_list %}
+                                                <input type="radio" class="btn-check" name="rating" value="{{ i }}" id="rating{{ product.id }}{{ i }}" required>
+                                                <label class="btn btn-outline-warning" for="rating{{ product.id }}{{ i }}">⭐</label>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Комментарий</label>
+                                    <textarea name="comment" class="form-control" rows="3"
+                                              placeholder="Поделитесь впечатлениями о товаре..." required></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100">Отправить отзыв</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>Вы уже оставили отзывы на все товары из этого заказа.</p>
+            <a href="{% url 'orders:order_list' %}" class="btn btn-primary">Вернуться к заказам</a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.rating-stars .btn-check:checked + .btn {
+    background: #ffc107;
+    color: #000;
+    border-color: #ffc107;
+}
+.rating-stars .btn {
+    font-size: 20px;
+    padding: 5px 10px;
+    min-width: 40px;
+}
+.rating-stars .btn:hover {
+    background: #ffed4a;
+}
+</style>
+{% endblock %}

@@ -13,6 +13,7 @@ urlpatterns = [
     path('orders/', include('apps.orders.urls')),
     path('profile/', include('apps.accounts.urls')),
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('delivery/', include('delivery.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">✏️ Редактировать отзыв</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-4">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-0">{{ product.name }}</h5>
+                            <p class="text-muted small mb-0">{{ product.price }} ₽</p>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Оценка</label>
+                            <div class="rating-stars">
+                                <div class="btn-group" role="group">
+                                    {% for i in "12345"|make_list %}
+                                        <input type="radio" class="btn-check" name="rating"
+                                               value="{{ forloop.counter }}"
+                                               id="rating{{ forloop.counter }}"
+                                               {% if review.rating == forloop.counter %}checked{% endif %}
+                                               required>
+                                        <label class="btn btn-outline-warning" for="rating{{ forloop.counter }}">⭐</label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Комментарий</label>
+                            <textarea name="comment" class="form-control" rows="5" required>{{ review.comment }}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
+                            <a href="{% url 'products:product_detail' category_slug=product.category.slug product_slug=product.slug %}"
+                               class="btn btn-secondary">Отмена</a>
+                            <button type="button" class="btn btn-danger ms-auto"
+                                    onclick="if(confirm('Вы уверены, что хотите удалить отзыв?')){
+                                        document.getElementById('delete-form').submit();
+                                    }">
+                                🗑️ Удалить
+                            </button>
+                        </div>
+                    </form>
+
+                    <form id="delete-form" method="post" action="{% url 'products:delete_review' review.id %}">
+                        {% csrf_token %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.rating-stars .btn-check:checked + .btn {
+    background: #ffc107;
+    color: #000;
+    border-color: #ffc107;
+}
+.rating-stars .btn {
+    font-size: 24px;
+    padding: 8px 15px;
+    min-width: 50px;
+}
+.rating-stars .btn:hover {
+    background: #ffed4a;
+}
+.rating-stars .btn-group {
+    display: flex;
+    gap: 5px;
+}
+</style>
+{% endblock %}

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'apps.cart',
     'apps.orders',
     'admin_panel',
+    'delivery',
 ]
 
 MIDDLEWARE = [
@@ -223,3 +224,47 @@ LOGGING = {
 if os.getenv('RUN_MIGRATIONS', 'False') == 'True':
     os.system('python manage.py migrate --noinput')
     os.system('python manage.py collectstatic --noinput')
+
+
+# ============ НАСТРОЙКИ ДОСТАВКИ ============
+
+# ============ НАСТРОЙКИ ЯНДЕКС МАРКЕТ ============
+YANDEX_MARKET_CLIENT_ID = 'f09d1d32d25e45a0b9dccf8ec851ecfa'
+YANDEX_MARKET_CLIENT_SECRET = '5ee190b18e3e416e97abffbb9a2f7a42'
+YANDEX_MARKET_OAUTH_TOKEN = 'y0__wgBEMvnoRcYldRHIJyk0NoYYZJVWS3hFcrEKypR4DXkceQTsi4'
+
+# ============ НАСТРОЙКИ DADATA ============
+DADATA_API_KEY = '45560e5654f1e3c242c97edb48996367ff1a9c40'  # Получить на dadata.ru
+DADATA_SECRET_KEY = '6d99388bb9c34e17b147ba998b3008dd6c5ee9aa'  # Тоже из кабинета
+
+# ВАШИ РЕАЛЬНЫЕ КЛЮЧИ СДЭК
+CDEK_CLIENT_ID = 'GYbe8QlTfyulXTyaTyNVFKcDgWI5VK5T'
+CDEK_CLIENT_SECRET = 'dC6wVstTd2YWkyXPOTaZRpRAXgkyV4eH'
+
+# ВАЖНО: Используем боевой режим (False), так как ключи работают только в боевом API
+CDEK_TEST_MODE = False
+
+# Яндекс Карты
+YANDEX_MAPS_API_KEY = '945266d5-9e2f-4e11-b600-99e446df15e6'
+
+# Город отправителя
+SHOP_CITY = 'Москва'
+SHOP_CITY_CODE = 44
+
+# Логирование для отладки API СДЭК
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'delivery.views': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

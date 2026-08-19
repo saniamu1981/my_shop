@@ -220,13 +220,63 @@
             <div class="lightbox-counter" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 16px; background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px; font-family: Arial, sans-serif; z-index: 10000;">1 / 10</div>
         </div>
 
+        <!-- Модальное окно предупреждения о доставке -->
+        <div class="modal fade" id="deliveryWarningModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">⚠️ Внимание!</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 48px; color: #ffc107;"></i>
+                        <h4 class="mt-3">Не выбран способ доставки!</h4>
+                        <p class="text-muted">Пожалуйста, выберите способ доставки перед оформлением заказа.</p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно выбора пункта выдачи -->
+        <div class="modal fade" id="deliveryPointsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">📍 Выберите пункт выдачи</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Выбран способ доставки: <strong id="selected-delivery-method">СДЭК</strong>
+                        </div>
+                        <div class="delivery-points-list" id="deliveryPointsList">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                                <p class="mt-2">Загрузка пунктов выдачи...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-success" id="confirmDeliveryPoint" disabled>Подтвердить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Кнопки -->
         <div class="col-md-6" style="width: 25%;">
             <div class="product-actions">
                 <!-- Блок размеров -->
                 <div class="size-block">
-                    <div class="size-trigger">
-                        <span class="size-label">📏 Выберите размер</span>
+                    <div class="size-trigger" id="size-trigger">
+                        <span class="size-label" id="size-label">📏 Выберите размер</span>
                         <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
                     </div>
                     <div class="size-dropdown">
@@ -252,10 +302,11 @@
                         {% endif %}
                     </div>
                 </div>
+
                 <!-- Блок доставки -->
                 <div class="delivery-block">
                     <div class="delivery-trigger">
-                        <span class="delivery-label">🚚 Выберите способ доставки</span>
+                        <span class="delivery-label" id="delivery-label">🚚 Выберите способ доставки</span>
                         <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
                     </div>
                     <div class="delivery-dropdown">
@@ -264,25 +315,83 @@
                             <label for="delivery-sdek">📦 СДЭК</label>
                         </div>
                         <div class="delivery-item">
-                            <input type="radio" name="delivery" id="delivery-yandex" value="yandex">
-                            <label for="delivery-yandex">🚚 Яндекс-доставка</label>
-                        </div>
-                        <div class="delivery-item">
-                            <input type="radio" name="delivery" id="delivery-5post" value="5post">
-                            <label for="delivery-5post">📮 5 Пост</label>
-                        </div>
-                        <div class="delivery-item">
-                            <input type="radio" name="delivery" id="delivery-boxberry" value="boxberry">
-                            <label for="delivery-boxberry">📦 Boxberry</label>
-                        </div>
-                        <div class="delivery-item">
-                            <input type="radio" name="delivery" id="delivery-courier" value="courier">
-                            <label for="delivery-courier">🚗 Курьерская доставка</label>
-                        </div>
-                        <div class="delivery-item">
                             <input type="radio" name="delivery" id="delivery-pickup" value="pickup">
                             <label for="delivery-pickup">🏪 Самовывоз</label>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Блок СДЭК с выбором области, города и поиском -->
+                <div id="cdek-widget-container" style="display: none; margin-top: 10px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px; background: #f8f9fa;">
+                    <div style="margin-bottom: 10px;">
+                        <strong style="font-size: 13px;">📍 Выберите пункт выдачи СДЭК</strong>
+                        <p class="text-muted small" style="font-size: 11px; margin-bottom: 0;">Выберите область и город, затем найдите пункт</p>
+                    </div>
+
+                    <!-- Выбор области -->
+                    <div style="margin-bottom: 6px;">
+                        <select id="cdek-region-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;">
+                            <option value="">-- Выберите область --</option>
+                        </select>
+                    </div>
+
+                    <!-- Выбор города -->
+                    <div style="margin-bottom: 6px;">
+                        <select id="cdek-city-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;" disabled>
+                            <option value="">-- Сначала выберите область --</option>
+                        </select>
+                    </div>
+
+                    <!-- Поиск пунктов выдачи -->
+                    <div style="margin-bottom: 6px;">
+                        <input type="text" id="cdek-search-input" class="form-control form-control-sm"
+                               placeholder="🔍 Поиск по адресу или названию..."
+                               style="font-size: 12px; padding: 4px 8px;" disabled>
+                    </div>
+
+                    <!-- Список пунктов выдачи -->
+                    <div id="cdek-points-list" style="max-height: 250px; overflow-y: auto; margin-top: 6px; display: none;">
+                        <div class="text-center py-2">
+                            <div class="spinner-border text-primary" style="width: 24px; height: 24px;" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                            <p class="mt-1" style="font-size: 12px;">Загрузка пунктов выдачи...</p>
+                        </div>
+                    </div>
+
+                    <!-- Выбранный пункт -->
+                    <div id="cdek-selected-point" style="margin-top: 6px; padding: 6px 10px; background: #d4edda; border-radius: 6px; display: none; border: 1px solid #c3e6cb; font-size: 12px;">
+                        <strong>✅ Выбран:</strong>
+                        <span id="cdek-point-address"></span>
+                        <input type="hidden" id="cdek-point-code" name="delivery_point_code">
+                        <input type="hidden" id="cdek-point-name" name="delivery_point_name">
+                        <input type="hidden" id="cdek-point-address-input" name="delivery_point_address">
+                        <input type="hidden" id="cdek-point-city" name="delivery_point_city">
+                        <input type="hidden" id="cdek-point-region" name="delivery_point_region">
+                    </div>
+                </div>
+
+                <!-- Блок Самовывоз -->
+                <div id="pickup-info-container" style="display: none; margin-top: 10px; border: 1px solid #28a745; border-radius: 12px; padding: 15px; background: #f8fff8;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="font-size: 20px;">🏪</span>
+                        <strong style="font-size: 15px; color: #28a745;">Самовывоз</strong>
+                    </div>
+                    <div style="padding: 10px; background: white; border-radius: 8px;">
+                        <p style="margin: 0 0 5px 0; font-size: 14px;">
+                            <strong>📍 Адрес:</strong>
+                            <span id="pickup-address-display">г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1</span>
+                        </p>
+                        <p style="margin: 0; font-size: 14px;">
+                            <strong>📞 Телефон:</strong>
+                            <span id="pickup-phone-display">+7 (921) 847-99-07</span>
+                        </p>
+                        <!-- Скрытые поля для самовывоза -->
+                        <input type="hidden" id="pickup-point-code" name="delivery_point_code" value="PICKUP">
+                        <input type="hidden" id="pickup-point-name" name="delivery_point_name" value="Самовывоз">
+                        <input type="hidden" id="pickup-point-address-input" name="delivery_point_address" value="г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1">
+                        <input type="hidden" id="pickup-point-city" name="delivery_point_city" value="Санкт-Петербург">
+                        <input type="hidden" id="pickup-point-region" name="delivery_point_region" value="Санкт-Петербург">
                     </div>
                 </div>
 
@@ -299,6 +408,7 @@
                                         🛒 В корзину
                                     </button>
                                 </form>
+
                                 {% if user.is_authenticated %}
                                     <button class="favorite-btn" data-product-id="{{ product.id }}"
                                             style="border: none; background: #f0f0f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0;">
@@ -309,13 +419,10 @@
                             </div>
 
                             <!-- Кнопка "Купить сейчас" -->
-                            <form action="{% url 'orders:buy_now' product.id %}" method="post" class="w-100">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-primary btn-lg w-100"
-                                        style="border-radius: 17px; padding: 8px 25px; background: linear-gradient(135deg, #ff6b00, #ff9a00); border: none; font-weight: 600;">
-                                    ⚡ Купить сейчас
-                                </button>
-                            </form>
+                            <button type="button" id="buyNowBtn" class="btn btn-primary btn-lg w-100"
+                                    style="border-radius: 17px; padding: 8px 25px; background: linear-gradient(135deg, #ff6b00, #ff9a00); border: none; font-weight: 600;">
+                                ⚡ Купить сейчас
+                            </button>
                         </div>
                     {% else %}
                         <div class="alert alert-warning mt-4">
@@ -333,15 +440,512 @@
         </div>
     </div>
 </div>
+<!-- ============ ОТЗЫВЫ ============ -->
+<div class="reviews-section mt-5 pt-3 border-top">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="mb-0">Отзывы</h4>
+            {% if reviews_count > 0 %}
+                <div class="d-flex align-items-center mt-1">
+                    <div class="text-warning">
+                        {% for i in "12345"|make_list %}
+                            {% if forloop.counter <= average_rating %}
+                                <i class="bi bi-star-fill"></i>
+                            {% elif forloop.counter <= average_rating|add:0.5 %}
+                                <i class="bi bi-star-half"></i>
+                            {% else %}
+                                <i class="bi bi-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <span class="ms-2 text-muted">{{ average_rating|floatformat:1 }} из 5</span>
+                    <span class="ms-2 text-muted">({{ reviews_count }} {{ reviews_count|pluralize:"отзыв,отзыва,отзывов" }})</span>
+                </div>
+            {% endif %}
+        </div>
+        {% if user.is_authenticated %}
+            {% if has_review %}
+                <!-- Если есть отзыв - кнопка Редактировать -->
+                <a href="{% url 'products:edit_review' product.id %}" class="btn btn-outline-warning btn-sm">
+                    ✏️ Редактировать отзыв
+                </a>
+            {% elif can_review %}
+                <!-- Если нет отзыва, но есть право - кнопка Оставить -->
+                <a href="{% url 'orders:add_review' %}?order_id={{ order.id }}" class="btn btn-outline-primary btn-sm">
+                    ⭐ Оставить отзыв
+                </a>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if reviews %}
+        <div class="reviews-list">
+            {% for review in reviews %}
+                <div class="review-item p-3 mb-3 bg-light rounded {% if user.is_authenticated and review.user == user %}border border-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ review.user.get_full_name|default:review.user.email }}</strong>
+                            {% if user.is_authenticated and review.user == user %}
+                                <span class="badge bg-warning text-dark ms-2">Ваш отзыв</span>
+                            {% endif %}
+                            <div class="text-warning small">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ review.created|date:"d.m.Y" }}</small>
+                    </div>
+                    <p class="mt-2 mb-0">{{ review.comment }}</p>
+                    {% if review.order %}
+                        <small class="text-muted">✅ Подтвержденный заказ</small>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.review-item {
+    transition: all 0.3s ease;
+}
+.review-item:hover {
+    background: #f0f0f0 !important;
+}
+.reviews-section .bi-star-fill,
+.reviews-section .bi-star-half,
+.reviews-section .bi-star {
+    font-size: 16px;
+}
+.reviews-section .bi-star-fill {
+    color: #ffc107;
+}
+.reviews-section .bi-star-half {
+    color: #ffc107;
+}
+.reviews-section .bi-star {
+    color: #ddd;
+}
+</style>
+
+<!-- Скрытая форма для "Купить сейчас" -->
+<form id="buyNowForm" action="{% url 'orders:buy_now' product.id %}" method="post" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="size" id="buyNowSize" value="">
+    <input type="hidden" name="delivery_method" id="buyNowDelivery" value="">
+    <input type="hidden" name="delivery_point" id="buyNowDeliveryPoint" value="">
+</form>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// ============ РАБОТА С ВЫБОРОМ ОБЛАСТИ, ГОРОДА И ПОИСКОМ ============
+let selectedRegion = null;
+let selectedCity = null;
+let allPoints = [];
+let searchTimeout = null;
+
+// ============ СДЭК ============
+
+// Загрузка областей для СДЭК
+function loadRegions() {
+    const regionSelect = document.getElementById('cdek-region-select');
+    if (!regionSelect) return;
+
+    regionSelect.innerHTML = '<option value="">-- Загрузка областей... --</option>';
+
+    fetch('/delivery/api/regions/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        regionSelect.innerHTML = '<option value="">-- Выберите область --</option>';
+
+        if (data.regions && data.regions.length > 0) {
+            data.regions.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region.name;
+                option.textContent = region.name;
+                regionSelect.appendChild(option);
+            });
+        } else {
+            regionSelect.innerHTML = '<option value="">-- Области не найдены --</option>';
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки областей:', error);
+        regionSelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
+    });
+}
+
+// Загрузка городов для СДЭК
+function loadCities(regionName) {
+    const citySelect = document.getElementById('cdek-city-select');
+    const searchInput = document.getElementById('cdek-search-input');
+    const pointsList = document.getElementById('cdek-points-list');
+
+    if (!citySelect) return;
+
+    citySelect.innerHTML = '<option value="">-- Загрузка городов... --</option>';
+    citySelect.disabled = true;
+
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.disabled = true;
+    }
+
+    if (pointsList) {
+        pointsList.style.display = 'none';
+        pointsList.innerHTML = '';
+    }
+
+    const selectedPoint = document.getElementById('cdek-selected-point');
+    if (selectedPoint) {
+        selectedPoint.style.display = 'none';
+    }
+
+    allPoints = [];
+
+    if (!regionName) {
+        citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
+        citySelect.disabled = false;
+        return;
+    }
+
+    console.log('Загрузка городов для области:', regionName);
+
+    fetch(`/delivery/api/cities/?region_name=${encodeURIComponent(regionName)}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Получены города:', data);
+
+        citySelect.innerHTML = '<option value="">-- Выберите город --</option>';
+        citySelect.disabled = false;
+
+        if (data.cities && data.cities.length > 0) {
+            data.cities.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.code;
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+            });
+            citySelect.disabled = false;
+        } else {
+            citySelect.innerHTML = '<option value="">-- Города не найдены --</option>';
+            citySelect.disabled = true;
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки городов:', error);
+        citySelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
+        citySelect.disabled = true;
+    });
+}
+
+// Загрузка пунктов СДЭК по городу
+function loadPointsByCity(cityName) {
+    const pointsList = document.getElementById('cdek-points-list');
+    const searchInput = document.getElementById('cdek-search-input');
+
+    if (!cityName) {
+        if (pointsList) pointsList.style.display = 'none';
+        if (searchInput) searchInput.disabled = true;
+        return;
+    }
+
+    if (pointsList) {
+        pointsList.style.display = 'block';
+        pointsList.innerHTML = `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+                <p class="mt-2">Загрузка пунктов выдачи...</p>
+            </div>
+        `;
+    }
+
+    if (searchInput) {
+        searchInput.disabled = true;
+        searchInput.value = '';
+    }
+
+    const selectedPoint = document.getElementById('cdek-selected-point');
+    if (selectedPoint) {
+        selectedPoint.style.display = 'none';
+    }
+
+    let url = `/delivery/api/cdek-points/?city_name=${encodeURIComponent(cityName)}`;
+
+    console.log('Загрузка пунктов:', url);
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Получены пункты:', data);
+
+        allPoints = [];
+
+        if (data.points && data.points.length > 0) {
+            console.log('Пример пункта (все поля):', data.points[0]);
+            console.log('Все поля пункта:', Object.keys(data.points[0]));
+
+            allPoints = data.points;
+            renderCdekPoints(allPoints);
+            if (searchInput) {
+                searchInput.disabled = false;
+                searchInput.placeholder = 'Введите адрес или название пункта...';
+            }
+        } else {
+            if (pointsList) {
+                pointsList.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-geo-alt" style="font-size: 32px;"></i>
+                        <p class="mt-2">Пункты выдачи не найдены</p>
+                        ${data.error ? `<p class="text-danger small">${data.error}</p>` : ''}
+                    </div>
+                `;
+            }
+            if (searchInput) {
+                searchInput.disabled = true;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки пунктов:', error);
+        if (pointsList) {
+            pointsList.innerHTML = `
+                <div class="text-center py-4 text-danger">
+                    <i class="bi bi-exclamation-circle" style="font-size: 32px;"></i>
+                    <p class="mt-2">Ошибка загрузки пунктов</p>
+                </div>
+            `;
+        }
+        if (searchInput) {
+            searchInput.disabled = true;
+        }
+    });
+}
+
+// Получение полного адреса из данных пункта
+function getFullAddress(point) {
+    let fullAddress = point.name || '';
+
+    if (fullAddress && fullAddress.includes(',')) {
+        const parts = fullAddress.split(',');
+        if (parts.length > 1) {
+            const addressParts = parts.slice(1).map(p => p.trim());
+            fullAddress = addressParts.join(', ');
+        }
+    }
+
+    if (point.address && point.address !== '' && !fullAddress.includes(point.address)) {
+        fullAddress = fullAddress ? `${fullAddress}, ${point.address}` : point.address;
+    }
+
+    if (point.full_address && point.full_address !== '' && !fullAddress.includes(point.full_address)) {
+        fullAddress = fullAddress ? `${fullAddress}, ${point.full_address}` : point.full_address;
+    }
+
+    return fullAddress || point.name || 'Адрес не указан';
+}
+
+function getPointName(point) {
+    let name = point.name || 'Пункт выдачи';
+
+    if (name && name.includes(',')) {
+        const parts = name.split(',');
+        if (parts.length > 1) {
+            name = parts[0].trim();
+        }
+    }
+
+    return name;
+}
+
+// Поиск пунктов СДЭК
+function searchPoints(query) {
+    const pointsList = document.getElementById('cdek-points-list');
+    if (!pointsList) return;
+
+    if (!query || query.trim() === '') {
+        renderCdekPoints(allPoints);
+        return;
+    }
+
+    const searchTerm = query.toLowerCase().trim();
+
+    const filteredPoints = allPoints.filter(point => {
+        const searchableText = [
+            point.name || '',
+            point.address || '',
+            point.full_address || '',
+            point.city || '',
+            point.region || '',
+            point.district || '',
+            point.sub_region || '',
+            point.code || '',
+            point.work_time || '',
+            point.phone || ''
+        ].join(' ').toLowerCase();
+
+        return searchableText.includes(searchTerm);
+    });
+
+    renderCdekPoints(filteredPoints);
+}
+
+// Рендер пунктов СДЭК
+function renderCdekPoints(points) {
+    const pointsList = document.getElementById('cdek-points-list');
+    if (!pointsList) return;
+
+    if (!Array.isArray(points)) {
+        points = [];
+    }
+
+    if (points.length === 0) {
+        pointsList.innerHTML = `
+            <div class="text-center py-2 text-muted" style="font-size: 12px;">
+                <i class="bi bi-search" style="font-size: 20px;"></i>
+                <p class="mt-1 mb-0">Ничего не найдено</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    points.forEach(point => {
+        const code = point.code || point.id || '';
+        const name = getPointName(point);
+        const fullAddress = getFullAddress(point);
+        const workTime = point.work_time || '';
+        const phone = point.phone || '';
+        const city = point.city || '';
+        const region = point.region || '';
+
+        html += `
+            <div class="cdek-point-item compact"
+                 data-code="${code}"
+                 data-name="${name}"
+                 data-address="${fullAddress}"
+                 data-city="${city}"
+                 data-region="${region}"
+                 onclick="selectCdekPoint(this)"
+                 style="padding: 5px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; display: flex; align-items: center; gap: 8px;">
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 13px; font-weight: 500; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${name}
+                    </div>
+                    <div style="font-size: 11px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${fullAddress}
+                    </div>
+                    ${workTime ? `<div style="font-size: 10px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🕐 ${workTime}</div>` : ''}
+                    ${phone ? `<div style="font-size: 10px; color: #999;">📞 ${phone}</div>` : ''}
+                </div>
+                <div style="flex-shrink: 0;">
+                    <input type="radio" name="cdek_point" value="${code}" id="cdek-${code}"
+                           style="width: 14px; height: 14px; accent-color: #007bff; cursor: pointer;">
+                </div>
+            </div>
+        `;
+    });
+    pointsList.innerHTML = html;
+}
+
+function selectCdekPoint(element) {
+    document.querySelectorAll('.cdek-point-item').forEach(item => {
+        item.style.background = '';
+        item.style.borderLeftColor = 'transparent';
+        item.classList.remove('selected');
+    });
+
+    element.style.background = '#e7f5ff';
+    element.style.borderLeftColor = '#007bff';
+    element.classList.add('selected');
+
+    const radio = element.querySelector('input[type="radio"]');
+    if (radio) {
+        radio.checked = true;
+    }
+
+    const selectedPointDiv = document.getElementById('cdek-selected-point');
+    const pointAddress = document.getElementById('cdek-point-address');
+    const pointCode = document.getElementById('cdek-point-code');
+    const pointName = document.getElementById('cdek-point-name');
+    const pointAddressInput = document.getElementById('cdek-point-address-input');
+    const pointCity = document.getElementById('cdek-point-city');
+    const pointRegion = document.getElementById('cdek-point-region');
+
+    if (selectedPointDiv) {
+        selectedPointDiv.style.display = 'block';
+    }
+
+    const fullAddress = element.dataset.address || '';
+    const city = element.dataset.city || '';
+    const region = element.dataset.region || '';
+    const name = element.dataset.name || '';
+
+    if (pointAddress) {
+        pointAddress.textContent = fullAddress;
+    }
+    if (pointCode) pointCode.value = element.dataset.code || '';
+    if (pointName) pointName.value = name;
+    if (pointAddressInput) pointAddressInput.value = fullAddress;
+    if (pointCity) pointCity.value = city;
+    if (pointRegion) pointRegion.value = region;
+}
+
+// ============ ОБЩИЕ ФУНКЦИИ ============
+
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('cdek-widget-container');
+    if (!container) return;
+
+    const oldNotice = container.querySelector('.cdek-notice');
+    if (oldNotice) oldNotice.remove();
+
+    const notice = document.createElement('div');
+    notice.className = `cdek-notice alert alert-${type} alert-sm mt-2`;
+    notice.style.fontSize = '12px';
+    notice.style.marginBottom = '0';
+    notice.innerHTML = message;
+    container.appendChild(notice);
+
+    setTimeout(() => {
+        if (notice.parentNode) {
+            notice.style.transition = 'opacity 0.5s';
+            notice.style.opacity = '0';
+            setTimeout(() => {
+                if (notice.parentNode) notice.remove();
+            }, 500);
+        }
+    }, 5000);
+}
+
+// ============ ГАЛЕРЕЯ ============
+function initGallery() {
     const mainImage = document.getElementById('mainImage');
     const mainVideo = document.getElementById('mainVideo');
     const videoSource = document.getElementById('videoSource');
     const thumbnails = document.querySelectorAll('.thumbnail-item');
 
-    // Функция для показа фото
     function showImage(src) {
         mainImage.style.display = 'block';
         mainVideo.style.display = 'none';
@@ -349,8 +953,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mainImage.src = src;
     }
 
-    // Функция для показа видео
-    function showVideo(src, thumbnail) {
+    function showVideo(src) {
         mainImage.style.display = 'none';
         mainVideo.style.display = 'block';
         videoSource.src = src;
@@ -358,7 +961,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mainVideo.play();
     }
 
-    // Обработка клика по миниатюрам
     thumbnails.forEach(item => {
         item.addEventListener('click', function() {
             thumbnails.forEach(t => {
@@ -372,161 +974,322 @@ document.addEventListener('DOMContentLoaded', function() {
             if (type === 'image') {
                 showImage(src);
             } else if (type === 'video') {
-                const thumbnail = this.dataset.thumbnail || '';
-                showVideo(src, thumbnail);
+                showVideo(src);
             }
         });
     });
 
-    // Если есть миниатюры, делаем первую активной
     const firstThumbnail = document.querySelector('.thumbnail-item');
     if (firstThumbnail) {
         firstThumbnail.style.borderColor = '#007bff';
     }
+}
 
-    // Функция для обновления счетчика избранного в шапке
-    function updateFavoriteBadge(count) {
-        // Ищем бейдж избранного - ищем по тексту "Избранное" или по ID
-        let badge = document.getElementById('favorites-badge');
+// ============ ИЗБРАННОЕ ============
+function updateFavoriteBadge(count) {
+    let badge = document.getElementById('favorites-badge');
 
-        // Если не нашли по ID, ищем через родительский элемент
-        if (!badge) {
-            // Ищем все пункты меню
-            const navItems = document.querySelectorAll('.nav-item');
-            for (let item of navItems) {
-                const label = item.querySelector('.nav-icon-label');
-                if (label && label.textContent.trim() === 'Избранное') {
-                    const wrapper = item.querySelector('.nav-icon-wrapper');
-                    if (wrapper) {
+    if (!badge) {
+        const navItems = document.querySelectorAll('.nav-item');
+        for (let item of navItems) {
+            const label = item.querySelector('.nav-icon-label');
+            if (label && label.textContent.trim() === 'Избранное') {
+                const wrapper = item.querySelector('.nav-icon-wrapper');
+                if (wrapper) {
+                    badge = wrapper.querySelector('.badge-icon');
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!badge) {
+        const heartIcons = document.querySelectorAll('.bi-heart');
+        for (let icon of heartIcons) {
+            const wrapper = icon.closest('.nav-icon-wrapper');
+            if (wrapper) {
+                const parentLink = wrapper.closest('.nav-link-custom');
+                if (parentLink) {
+                    const label = parentLink.querySelector('.nav-icon-label');
+                    if (label && label.textContent.trim() === 'Избранное') {
                         badge = wrapper.querySelector('.badge-icon');
                         break;
                     }
                 }
             }
         }
+    }
 
-        // Если все еще не нашли, ищем через иконку сердца
-        if (!badge) {
-            const heartIcons = document.querySelectorAll('.bi-heart');
-            for (let icon of heartIcons) {
-                const wrapper = icon.closest('.nav-icon-wrapper');
-                if (wrapper) {
-                    const parentLink = wrapper.closest('.nav-link-custom');
-                    if (parentLink) {
-                        const label = parentLink.querySelector('.nav-icon-label');
-                        if (label && label.textContent.trim() === 'Избранное') {
-                            badge = wrapper.querySelector('.badge-icon');
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+    if (badge) {
+        badge.style.cssText = '';
+        badge.className = 'badge-icon';
 
-        if (badge) {
-            // Очищаем все стили
-            badge.style.cssText = '';
-            badge.className = 'badge-icon';
-
-            if (count > 0) {
-                badge.textContent = count;
-                badge.style.display = 'flex';
-                badge.style.alignItems = 'center';
-                badge.style.justifyContent = 'center';
-                badge.style.backgroundColor = '#dc3545';
-                badge.style.color = 'white';
-                badge.style.borderRadius = '50%';
-                badge.style.minWidth = '18px';
-                badge.style.height = '18px';
-                badge.style.fontSize = '10px';
-                badge.style.fontWeight = '600';
-                badge.style.padding = '0 4px';
-                badge.style.border = '2px solid #212529';
-                badge.style.marginLeft = '5px';
-                badge.classList.remove('zero');
-            } else {
-                badge.textContent = '0';
-                badge.classList.add('zero');
-                badge.style.display = 'none';
-            }
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+            badge.style.alignItems = 'center';
+            badge.style.justifyContent = 'center';
+            badge.style.backgroundColor = '#dc3545';
+            badge.style.color = 'white';
+            badge.style.borderRadius = '50%';
+            badge.style.minWidth = '18px';
+            badge.style.height = '18px';
+            badge.style.fontSize = '10px';
+            badge.style.fontWeight = '600';
+            badge.style.padding = '0 4px';
+            badge.style.border = '2px solid #212529';
+            badge.style.marginLeft = '5px';
+            badge.classList.remove('zero');
         } else {
-            console.log('Бейдж избранного не найден!');
+            badge.textContent = '0';
+            badge.classList.add('zero');
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function initFavorite() {
+    const favoriteBtn = document.querySelector('.favorite-btn');
+    if (!favoriteBtn) return;
+
+    favoriteBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const productId = this.dataset.productId;
+        const icon = this.querySelector('i');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            return;
+        }
+
+        fetch(`/products/toggle-favorite/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.is_favorite) {
+                icon.classList.remove('bi-heart');
+                icon.classList.add('bi-heart-fill');
+                icon.style.color = '#dc3545';
+                this.style.background = '#fff5f5';
+                this.style.boxShadow = '0 2px 8px rgba(220, 53, 69, 0.2)';
+            } else {
+                icon.classList.remove('bi-heart-fill');
+                icon.classList.add('bi-heart');
+                icon.style.color = '#888';
+                this.style.background = '#f0f0f0';
+                this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+            }
+
+            updateFavoriteBadge(data.favorites_count);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+}
+
+// ============ ВЫБОР РАЗМЕРА ============
+function initSizeSelection() {
+    const sizeInputs = document.querySelectorAll('.size-item input[type="radio"]');
+    const selectedSizeInput = document.getElementById('selected-size');
+    const buyNowSizeInput = document.getElementById('buyNowSize');
+    const sizeLabel = document.getElementById('size-label');
+    const sizeTrigger = document.getElementById('size-trigger');
+
+    sizeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const selectedValue = this.value;
+            const label = this.closest('.size-item').querySelector('label');
+            const sizeName = label ? label.querySelector('.size-name')?.textContent || this.value : this.value;
+
+            if (selectedSizeInput) {
+                selectedSizeInput.value = selectedValue;
+            }
+            if (buyNowSizeInput) {
+                buyNowSizeInput.value = selectedValue;
+            }
+
+            if (sizeLabel) {
+                sizeLabel.textContent = `📏 ${sizeName}`;
+            }
+
+            if (sizeTrigger) {
+                sizeTrigger.style.borderColor = '#28a745';
+                sizeTrigger.style.background = '#f0fff4';
+            }
+        });
+    });
+}
+
+// ============ ДОСТАВКА ============
+let selectedDelivery = null;
+
+function initDelivery() {
+    const deliveryInputs = document.querySelectorAll('.delivery-item input[type="radio"]');
+    const deliveryLabel = document.getElementById('delivery-label');
+    const cdekContainer = document.getElementById('cdek-widget-container');
+    const pickupContainer = document.getElementById('pickup-info-container');
+
+    deliveryInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            selectedDelivery = this.value;
+            const label = this.closest('.delivery-item').querySelector('label');
+            if (deliveryLabel && label) {
+                deliveryLabel.textContent = '🚚 ' + label.textContent.trim();
+            }
+
+            // Скрываем все контейнеры
+            if (cdekContainer) cdekContainer.style.display = 'none';
+            if (pickupContainer) pickupContainer.style.display = 'none';
+
+            // Показываем нужный контейнер
+            if (this.value === 'sdek' && cdekContainer) {
+                cdekContainer.style.display = 'block';
+                if (!document.getElementById('cdek-region-select').options.length > 1) {
+                    loadRegions();
+                }
+            } else if (this.value === 'pickup' && pickupContainer) {
+                pickupContainer.style.display = 'block';
+                // Автоматически заполняем данные для самовывоза
+                setPickupData();
+            }
+        });
+    });
+
+    // Проверяем, что выбрано по умолчанию при загрузке страницы
+    const sdekRadio = document.getElementById('delivery-sdek');
+    if (sdekRadio && sdekRadio.checked) {
+        if (cdekContainer) cdekContainer.style.display = 'block';
+        if (!document.getElementById('cdek-region-select').options.length > 1) {
+            loadRegions();
         }
     }
 
-    // Обработка кнопки "В избранное"
-    const favoriteBtn = document.querySelector('.favorite-btn');
-    if (favoriteBtn) {
-        favoriteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const productId = this.dataset.productId;
-            const icon = this.querySelector('i');
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-
-            if (!csrfToken) {
-                console.error('CSRF token not found');
-                return;
-            }
-
-            fetch(`/products/toggle-favorite/${productId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.is_favorite) {
-                    icon.classList.remove('bi-heart');
-                    icon.classList.add('bi-heart-fill');
-                    icon.style.color = '#dc3545';
-                    this.style.background = '#fff5f5';
-                    this.style.boxShadow = '0 2px 8px rgba(220, 53, 69, 0.2)';
-                } else {
-                    icon.classList.remove('bi-heart-fill');
-                    icon.classList.add('bi-heart');
-                    icon.style.color = '#888';
-                    this.style.background = '#f0f0f0';
-                    this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                }
-
-                // Обновляем счетчик
-                updateFavoriteBadge(data.favorites_count);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        });
+    const pickupRadio = document.getElementById('delivery-pickup');
+    if (pickupRadio && pickupRadio.checked) {
+        if (pickupContainer) pickupContainer.style.display = 'block';
+        setPickupData();
     }
-});
+}
 
-// Обработка выбора размера
-document.querySelectorAll('.size-item input[type="radio"]').forEach(input => {
-    input.addEventListener('change', function() {
-        const selectedSize = document.getElementById('selected-size');
-        if (selectedSize) {
-            selectedSize.value = this.value;
+// ============ САМОВЫВОЗ ============
+function setPickupData() {
+    // Данные для самовывоза
+    const pickupAddress = 'г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1';
+    const pickupPhone = '+7 (921) 847-99-07';
+
+    // Заполняем скрытые поля для самовывоза
+    const pointCode = document.getElementById('pickup-point-code');
+    const pointName = document.getElementById('pickup-point-name');
+    const pointAddress = document.getElementById('pickup-point-address-input');
+
+    if (pointCode) pointCode.value = 'PICKUP';
+    if (pointName) pointName.value = 'Самовывоз';
+    if (pointAddress) pointAddress.value = pickupAddress;
+
+    // Отображаем адрес на странице
+    const addressDisplay = document.getElementById('pickup-address-display');
+    const phoneDisplay = document.getElementById('pickup-phone-display');
+
+    if (addressDisplay) addressDisplay.textContent = pickupAddress;
+    if (phoneDisplay) phoneDisplay.textContent = pickupPhone;
+}
+
+// ============ КУПИТЬ СЕЙЧАС ============
+function initBuyNow() {
+    const buyNowBtn = document.getElementById('buyNowBtn');
+    const buyNowForm = document.getElementById('buyNowForm');
+    const buyNowDeliveryInput = document.getElementById('buyNowDelivery');
+    const buyNowDeliveryPointInput = document.getElementById('buyNowDeliveryPoint');
+
+    if (!buyNowBtn) return;
+
+    buyNowBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        const buyNowSizeInput = document.getElementById('buyNowSize');
+        const selectedSize = buyNowSizeInput?.value;
+        if (!selectedSize) {
+            alert('Пожалуйста, выберите размер товара!');
+            return;
+        }
+
+        if (!selectedDelivery) {
+            const deliveryWarningModal = new bootstrap.Modal(document.getElementById('deliveryWarningModal'));
+            deliveryWarningModal.show();
+            return;
+        }
+
+        let pointCode = null;
+        let pointName = null;
+        let pointAddress = null;
+
+        if (selectedDelivery === 'sdek') {
+            pointCode = document.getElementById('cdek-point-code')?.value;
+            pointName = document.getElementById('cdek-point-name')?.value;
+            pointAddress = document.getElementById('cdek-point-address-input')?.value;
+        } else if (selectedDelivery === 'pickup') {
+            pointCode = document.getElementById('pickup-point-code')?.value;
+            pointName = document.getElementById('pickup-point-name')?.value;
+            pointAddress = document.getElementById('pickup-point-address-input')?.value;
+        }
+
+        if (!pointCode) {
+            const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
+            alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
+            const container = document.getElementById(selectedDelivery === 'sdek' ? 'cdek-widget-container' : 'pickup-info-container');
+            if (container) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                container.style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    container.style.borderColor = '#e0e0e0';
+                }, 3000);
+            }
+            return;
+        }
+
+        if (buyNowDeliveryInput) {
+            buyNowDeliveryInput.value = selectedDelivery;
+        }
+        if (buyNowDeliveryPointInput) {
+            const deliveryData = {
+                code: pointCode || '',
+                name: pointName || '',
+                address: pointAddress || ''
+            };
+            buyNowDeliveryPointInput.value = JSON.stringify(deliveryData);
+        }
+
+        if (buyNowForm) {
+            buyNowForm.submit();
         }
     });
-});
+}
 
-// Прокрутка миниатюр
-document.addEventListener('DOMContentLoaded', function() {
+// ============ ПРОКРУТКА МИНИАТЮР ============
+function initThumbnailScroll() {
     const container = document.querySelector('.thumbnails-container');
     const list = document.getElementById('thumbnailsList');
     const scrollUp = document.getElementById('scrollUp');
     const scrollDown = document.getElementById('scrollDown');
     const itemHeight = 98;
 
+    if (!container || !list) return;
+
     function updateScrollButtons() {
         const maxScroll = list.scrollHeight - container.clientHeight;
         const currentScroll = container.scrollTop;
-        scrollUp.style.display = currentScroll > 0 ? 'block' : 'none';
-        scrollDown.style.display = currentScroll < maxScroll - 1 ? 'block' : 'none';
+        if (scrollUp) scrollUp.style.display = currentScroll > 0 ? 'block' : 'none';
+        if (scrollDown) scrollDown.style.display = currentScroll < maxScroll - 1 ? 'block' : 'none';
     }
 
     function scrollThumbnails(direction) {
@@ -539,8 +1302,8 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateScrollButtons, 300);
     }
 
-    scrollUp.addEventListener('click', () => scrollThumbnails('up'));
-    scrollDown.addEventListener('click', () => scrollThumbnails('down'));
+    if (scrollUp) scrollUp.addEventListener('click', () => scrollThumbnails('up'));
+    if (scrollDown) scrollDown.addEventListener('click', () => scrollThumbnails('down'));
     setTimeout(updateScrollButtons, 100);
     window.addEventListener('resize', updateScrollButtons);
 
@@ -555,26 +1318,25 @@ document.addEventListener('DOMContentLoaded', function() {
         container.scrollTo({ top: newScroll, behavior: 'smooth' });
         setTimeout(updateScrollButtons, 300);
     });
-});
+}
 
-// ============ ЛАЙТБОКС ДЛЯ ФОТО ============
-document.addEventListener('DOMContentLoaded', function() {
+// ============ ЛАЙТБОКС ============
+function initLightbox() {
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightbox-img');
     const lightboxCounter = document.querySelector('.lightbox-counter');
     const closeBtn = document.querySelector('.lightbox-close');
     const prevBtn = document.querySelector('.lightbox-prev');
     const nextBtn = document.querySelector('.lightbox-next');
+    const mainImage = document.getElementById('mainImage');
 
-    // Собираем все фото товара
+    if (!lightbox) return;
+
     const images = [];
-
-    // Добавляем главное фото
     if (mainImage && mainImage.src && !mainImage.src.includes('placeholder')) {
         images.push(mainImage.src);
     }
 
-    // Добавляем фото из миниатюр
     document.querySelectorAll('.thumbnail-item[data-type="image"]').forEach(item => {
         const src = item.dataset.src;
         if (src && !images.includes(src)) {
@@ -584,7 +1346,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let currentIndex = 0;
 
-    // Функция открытия лайтбокса
     function openLightbox(index) {
         if (images.length === 0) return;
         currentIndex = index;
@@ -593,7 +1354,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = 'hidden';
     }
 
-    // Функция обновления изображения в лайтбоксе
     function updateLightboxImage() {
         if (images.length > 0 && images[currentIndex]) {
             lightboxImg.src = images[currentIndex];
@@ -601,36 +1361,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (lightboxCounter) {
                 lightboxCounter.textContent = (currentIndex + 1) + ' / ' + images.length;
             }
-            // Обновляем состояние кнопок
             if (prevBtn) prevBtn.style.display = currentIndex > 0 ? 'block' : 'none';
             if (nextBtn) nextBtn.style.display = currentIndex < images.length - 1 ? 'block' : 'none';
         }
     }
 
-    // Закрытие лайтбокса
     function closeLightbox() {
         lightbox.style.display = 'none';
         document.body.style.overflow = '';
     }
 
-    // Навигация
-    function prevImage(e) {
-        e.stopPropagation();
-        if (currentIndex > 0) {
-            currentIndex--;
-            updateLightboxImage();
-        }
-    }
-
-    function nextImage(e) {
-        e.stopPropagation();
-        if (currentIndex < images.length - 1) {
-            currentIndex++;
-            updateLightboxImage();
-        }
-    }
-
-    // Клик по главному фото для открытия
     if (mainImage) {
         mainImage.addEventListener('click', function(e) {
             if (mainImage.style.display !== 'none') {
@@ -639,19 +1379,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // События для кнопок
     if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
-    if (prevBtn) prevBtn.addEventListener('click', prevImage);
-    if (nextBtn) nextBtn.addEventListener('click', nextImage);
+    if (prevBtn) prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentIndex > 0) { currentIndex--; updateLightboxImage(); }
+    });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentIndex < images.length - 1) { currentIndex++; updateLightboxImage(); }
+    });
 
-    // Клик по фону для закрытия
     lightbox.addEventListener('click', function(e) {
         if (e.target === this) {
             closeLightbox();
         }
     });
 
-    // Клавиши на клавиатуре
     document.addEventListener('keydown', function(e) {
         if (lightbox.style.display === 'flex') {
             if (e.key === 'Escape') closeLightbox();
@@ -665,10 +1408,220 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+}
+
+// ============ ЗАГРУЗКА ПУНКТОВ СДЭК (для прямой загрузки) ============
+function loadCdekPoints() {
+    const pointsList = document.getElementById('cdek-points-list');
+    if (!pointsList) return;
+
+    pointsList.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка пунктов выдачи...</p>
+        </div>
+    `;
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+    fetch('/delivery/api/cdek-points/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken || '',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Ответ от сервера:', data);
+
+        let points = [];
+        if (data && data.points) {
+            if (Array.isArray(data.points)) {
+                points = data.points;
+            } else if (typeof data.points === 'object' && data.points !== null) {
+                if (data.points.results) {
+                    points = data.points.results;
+                } else {
+                    points = Object.values(data.points);
+                }
+            }
+        }
+
+        if (points && points.length > 0) {
+            renderCdekPoints(points);
+            if (data.is_real_data) {
+                console.log('✅ Используются РЕАЛЬНЫЕ данные СДЭК');
+                showNotification('Пункты выдачи СДЭК загружены', 'success');
+            } else {
+                console.log('ℹ️ Используются ТЕСТОВЫЕ данные СДЭК');
+                if (data.error) {
+                    console.warn('Ошибка:', data.error);
+                }
+                showNotification('Используются тестовые пункты выдачи', 'warning');
+            }
+        } else {
+            pointsList.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-geo-alt" style="font-size: 32px;"></i>
+                    <p class="mt-2">Пункты выдачи не найдены</p>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadCdekPoints()">
+                        🔄 Попробовать снова
+                    </button>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки пунктов СДЭК:', error);
+        pointsList.innerHTML = `
+            <div class="text-center py-4 text-danger">
+                <i class="bi bi-exclamation-circle" style="font-size: 32px;"></i>
+                <p class="mt-2">Ошибка загрузки пунктов выдачи</p>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadCdekPoints()">
+                    🔄 Попробовать снова
+                </button>
+            </div>
+        `;
+    });
+}
+
+// ============ ИНИЦИАЛИЗАЦИЯ ============
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM загружен, инициализация...');
+
+    // Загружаем области для СДЭК
+    loadRegions();
+
+    // ============ Обработчики для СДЭК ============
+    const regionSelect = document.getElementById('cdek-region-select');
+    const citySelect = document.getElementById('cdek-city-select');
+    const searchInput = document.getElementById('cdek-search-input');
+
+    if (regionSelect) {
+        regionSelect.addEventListener('change', function() {
+            const regionName = this.value;
+            console.log('Выбрана область СДЭК:', regionName);
+            if (regionName) {
+                loadCities(regionName);
+            } else {
+                if (citySelect) {
+                    citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
+                    citySelect.disabled = true;
+                }
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.disabled = true;
+                }
+                const pointsList = document.getElementById('cdek-points-list');
+                if (pointsList) {
+                    pointsList.style.display = 'none';
+                    pointsList.innerHTML = '';
+                }
+                allPoints = [];
+            }
+        });
+    }
+
+    if (citySelect) {
+        citySelect.addEventListener('change', function() {
+            const cityName = this.value;
+            console.log('Выбран город СДЭК:', cityName);
+            if (cityName) {
+                loadPointsByCity(cityName);
+            } else {
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.disabled = true;
+                }
+                const pointsList = document.getElementById('cdek-points-list');
+                if (pointsList) {
+                    pointsList.style.display = 'none';
+                    pointsList.innerHTML = '';
+                }
+                allPoints = [];
+            }
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            searchTimeout = setTimeout(() => {
+                const query = this.value;
+                console.log('Поиск СДЭК:', query);
+                searchPoints(query);
+            }, 300);
+        });
+
+        searchInput.addEventListener('focus', function() {
+            if (allPoints.length > 0 && this.value === '') {
+                renderCdekPoints(allPoints);
+            }
+        });
+    }
+
+    // Инициализация остальных компонентов
+    initGallery();
+    initFavorite();
+    initSizeSelection();
+    initDelivery();
+    initBuyNow();
+    initThumbnailScroll();
+    initLightbox();
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Показать все отзывы
+    const showAllBtn = document.getElementById('showAllReviewsBtn');
+    if (showAllBtn) {
+        showAllBtn.addEventListener('click', function() {
+            const productId = {{ product.id }};
+            fetch(`/products/reviews/${productId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.reviews) {
+                        const container = document.querySelector('.reviews-list');
+                        container.innerHTML = '';
+                        data.reviews.forEach(review => {
+                            const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+                            container.innerHTML += `
+                                <div class="review-item p-3 mb-3 bg-light rounded">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>${review.user}</strong>
+                                            <div class="text-warning small">${stars}</div>
+                                        </div>
+                                        <small class="text-muted">${review.date}</small>
+                                    </div>
+                                    <p class="mt-2 mb-0">${review.comment}</p>
+                                    ${review.is_verified ? '<small class="text-muted">✅ Подтвержденный заказ</small>' : ''}
+                                </div>
+                            `;
+                        });
+                        this.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error loading reviews:', error));
+        });
+    }
 });
 </script>
 
 <style>
+/* ... все существующие стили ... */
 .gallery-container {
     display: flex;
     gap: 8px;
@@ -893,60 +1846,6 @@ document.addEventListener('DOMContentLoaded', function() {
     color: #dc3545;
 }
 
-/* Адаптивность для мобильных */
-@media (max-width: 768px) {
-    .main-image-wrapper {
-        max-width: 350px;
-        min-height: 350px;
-    }
-    .main-image-wrapper img {
-        max-height: 350px;
-    }
-    .main-image-wrapper video {
-        max-height: 350px;
-    }
-    .thumbnails-wrapper {
-        height: 350px;
-    }
-    .thumbnail-item {
-        flex: 0 0 70px;
-    }
-    .thumbnail-item img {
-        height: 70px;
-    }
-    .col-md-6 {
-        margin-left: 0 !important;
-    }
-    .favorite-btn {
-        width: 40px;
-        height: 40px;
-    }
-    .favorite-btn i {
-        font-size: 18px;
-    }
-}
-
-@media (max-width: 576px) {
-    .breadcrumb-item {
-        font-size: 12px;
-    }
-    .breadcrumb-item + .breadcrumb-item::before {
-        padding: 0 4px;
-        font-size: 14px;
-    }
-    .breadcrumb-link svg {
-        width: 14px;
-        height: 14px;
-    }
-    .favorite-btn {
-        width: 36px;
-        height: 36px;
-    }
-    .favorite-btn i {
-        font-size: 16px;
-    }
-}
-
 /* Стили для выпадающего списка доставки */
 .delivery-block {
     position: relative;
@@ -1043,176 +1942,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .delivery-item:hover label {
     color: #007bff;
-}
-
-/* Адаптивность для мобильных */
-@media (max-width: 768px) {
-    .delivery-dropdown {
-        min-width: unset;
-        width: 100%;
-    }
-}
-
-.btn-buy-now {
-    background: linear-gradient(135deg, #ff6b00, #ff9a00);
-    color: white;
-    border: none;
-    border-radius: 17px;
-    padding: 8px 25px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.btn-buy-now:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(255, 107, 0, 0.4);
-    color: white;
-}
-
-.btn-buy-now:active {
-    transform: translateY(0);
-}
-
-.product-actions {
-    margin: 0;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 16px;
-    border: 1px solid #e9ecef;
-    max-width: 100%;
-}
-
-/* Характеристики товара */
-.product-specs {
-    background: #f8f9fa;
-    border-radius: 16px;
-    padding: 20px;
-    border: 1px solid #e9ecef;
-}
-
-.specs-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #e9ecef;
-}
-
-.specs-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 24px;
-}
-
-.spec-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.spec-item:last-child {
-    border-bottom: none;
-}
-
-.spec-full {
-    grid-column: 1 / -1;
-}
-
-.spec-label {
-    color: #6c757d;
-    font-size: 14px;
-    font-weight: 400;
-}
-
-.spec-value {
-    color: #212529;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: right;
-    word-break: break-word;
-}
-
-.color-dot {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid #ddd;
-    margin-right: 6px;
-    vertical-align: middle;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .specs-grid {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-
-    .spec-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-        padding: 10px 0;
-    }
-
-    .spec-value {
-        text-align: left;
-    }
-
-    .product-specs {
-        padding: 15px;
-    }
-}
-
-@media (max-width: 576px) {
-    .d-flex.flex-wrap {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 8px !important;
-    }
-
-    .text-primary {
-        font-size: 26px !important;
-    }
-}
-
-/* Лайтбокс */
-.lightbox {
-    animation: fadeIn 0.3s ease;
-}
-
-.lightbox-close:hover {
-    transform: rotate(90deg);
-    color: #ff6b6b;
-}
-
-.lightbox-prev:hover,
-.lightbox-next:hover {
-    background: rgba(255,255,255,0.3);
-    transform: translateY(-50%) scale(1.1);
-}
-
-.lightbox-prev:active,
-.lightbox-next:active {
-    transform: translateY(-50%) scale(0.95);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Стили для главного фото - добавляем курсор увеличительного стекла */
-#mainImage {
-    cursor: pointer !important;
-}
-
-.thumbnail-item[data-type="image"] {
-    cursor: pointer !important;
 }
 
 /* Стили для выпадающего списка размеров */
@@ -1323,6 +2052,339 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .size-availability.out {
     color: #dc3545;
+}
+
+.btn-buy-now {
+    background: linear-gradient(135deg, #ff6b00, #ff9a00);
+    color: white;
+    border: none;
+    border-radius: 17px;
+    padding: 8px 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-buy-now:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(255, 107, 0, 0.4);
+    color: white;
+}
+
+.btn-buy-now:active {
+    transform: translateY(0);
+}
+
+.product-actions {
+    margin: 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 16px;
+    border: 1px solid #e9ecef;
+    max-width: 100%;
+}
+
+/* Характеристики товара */
+.product-specs {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.specs-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+}
+
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.spec-item:last-child {
+    border-bottom: none;
+}
+
+.spec-full {
+    grid-column: 1 / -1;
+}
+
+.spec-label {
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.spec-value {
+    color: #212529;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+}
+
+.color-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.lightbox {
+    animation: fadeIn 0.3s ease;
+}
+
+.lightbox-close:hover {
+    transform: rotate(90deg);
+    color: #ff6b6b;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.lightbox-prev:active,
+.lightbox-next:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#mainImage {
+    cursor: pointer !important;
+}
+
+.thumbnail-item[data-type="image"] {
+    cursor: pointer !important;
+}
+
+.delivery-point-item {
+    transition: all 0.3s ease;
+}
+.delivery-point-item:hover {
+    background: #f8f9fa;
+}
+.delivery-point-item.selected {
+    background: #e7f5ff;
+    border-left: 4px solid #007bff;
+}
+
+@media (max-width: 768px) {
+    .main-image-wrapper {
+        max-width: 350px;
+        min-height: 350px;
+    }
+    .main-image-wrapper img {
+        max-height: 350px;
+    }
+    .main-image-wrapper video {
+        max-height: 350px;
+    }
+    .thumbnails-wrapper {
+        height: 350px;
+    }
+    .thumbnail-item {
+        flex: 0 0 70px;
+    }
+    .thumbnail-item img {
+        height: 70px;
+    }
+    .col-md-6 {
+        margin-left: 0 !important;
+    }
+    .favorite-btn {
+        width: 40px;
+        height: 40px;
+    }
+    .favorite-btn i {
+        font-size: 18px;
+    }
+    .delivery-dropdown {
+        min-width: unset;
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .breadcrumb-item {
+        font-size: 12px;
+    }
+    .breadcrumb-item + .breadcrumb-item::before {
+        padding: 0 4px;
+        font-size: 14px;
+    }
+    .breadcrumb-link svg {
+        width: 14px;
+        height: 14px;
+    }
+    .favorite-btn {
+        width: 36px;
+    }
+    .favorite-btn i {
+        font-size: 16px;
+    }
+    .text-primary {
+        font-size: 26px !important;
+    }
+    .specs-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .spec-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 10px 0;
+    }
+    .spec-value {
+        text-align: left;
+    }
+    .product-specs {
+        padding: 15px;
+    }
+}
+
+.cdek-point-item {
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+.cdek-point-item:hover {
+    background: #f8f9fa !important;
+    transform: translateX(5px);
+}
+.cdek-point-item.selected {
+    background: #e7f5ff;
+    border-left-color: #007bff;
+}
+#cdek-points-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+#cdek-points-list::-webkit-scrollbar {
+    width: 6px;
+}
+#cdek-points-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+#cdek-points-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+#cdek-points-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Компактные стили для пунктов СДЭК */
+.cdek-point-item.compact {
+    padding: 5px 10px !important;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cdek-point-item.compact:hover {
+    background: #e9ecef !important;
+}
+
+.cdek-point-item.compact.selected {
+    background: #e7f5ff !important;
+    border-left: 3px solid #007bff !important;
+}
+
+.cdek-point-item.compact .point-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cdek-point-item.compact .point-address {
+    font-size: 11px;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cdek-point-item.compact .point-detail {
+    font-size: 10px;
+    color: #999;
+}
+
+#cdek-points-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+#cdek-points-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#cdek-points-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+#cdek-points-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
+
+#cdek-points-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Стили для выпадающих списков */
+#cdek-region-select,
+#cdek-city-select,
+#cdek-search-input {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    height: auto !important;
+    min-height: 30px !important;
+}
+
+/* Стили для выбранного размера */
+.size-trigger.selected {
+    border-color: #28a745 !important;
+    background: #f0fff4 !important;
+}
+
+.size-trigger .size-label.selected {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* Анимация для размера */
+.size-trigger {
+    transition: all 0.3s ease;
 }
 </style>
 {% endblock %}

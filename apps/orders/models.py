@@ -12,6 +12,15 @@ class Order(models.Model):
         ('cancelled', 'Отменен'),
     )
 
+    DELIVERY_CHOICES = (
+        ('sdek', 'СДЭК'),
+        ('yandex', 'Яндекс-доставка'),
+        ('5post', '5 Пост'),
+        ('boxberry', 'Boxberry'),
+        ('courier', 'Курьерская доставка'),
+        ('pickup', 'Самовывоз'),
+    )
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
     first_name = models.CharField('Имя', max_length=50)
     last_name = models.CharField('Фамилия', max_length=50)
@@ -25,6 +34,14 @@ class Order(models.Model):
     total_price = models.DecimalField('Итоговая сумма', max_digits=10, decimal_places=2, default=0)
     payment_id = models.CharField('ID платежа', max_length=100, blank=True, null=True)
 
+    # Поля для доставки
+    delivery_method = models.CharField('Способ доставки', max_length=20, choices=DELIVERY_CHOICES, blank=True,
+                                       null=True)
+    delivery_point_code = models.CharField('Код пункта выдачи', max_length=50, blank=True, null=True)
+    delivery_point_address = models.CharField('Адрес пункта выдачи', max_length=500, blank=True, null=True)
+    delivery_point_name = models.CharField('Название пункта выдачи', max_length=200, blank=True, null=True)
+    delivery_price = models.DecimalField('Стоимость доставки', max_digits=10, decimal_places=2, default=0)
+
     class Meta:
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'
@@ -34,11 +51,9 @@ class Order(models.Model):
         return f'Заказ №{self.id} от {self.user.email}'
 
     def can_cancel(self):
-        """Проверяет, можно ли отменить заказ"""
         return self.status in ['created', 'paid'] and not self.status == 'cancelled'
 
     def cancel(self):
-        """Отменяет заказ"""
         if self.can_cancel():
             self.status = 'cancelled'
             self.save()

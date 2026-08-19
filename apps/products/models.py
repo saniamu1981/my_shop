@@ -253,3 +253,24 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f'{self.user.email} - {self.product.name}'
+
+
+class Review(models.Model):
+    """Модель для отзывов на товары"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
+    order = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
+    rating = models.PositiveSmallIntegerField('Оценка', choices=[(i, i) for i in range(1, 6)])
+    comment = models.TextField('Комментарий')
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    is_approved = models.BooleanField('Одобрено', default=True)
+
+    class Meta:
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
+        ordering = ('-created',)
+        unique_together = ('product', 'user', 'order')
+
+    def __str__(self):
+        return f'{self.user.email} - {self.product.name} - {self.rating}⭐'
