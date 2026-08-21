@@ -296,8 +296,8 @@ if USE_S3:
     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
 
     # URL для доступа к файлам
-    MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.twcstorage.ru/'
-    STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.twcstorage.ru/static/'
+    MEDIA_URL = f'https://s3.twcstorage.{AWS_STORAGE_BUCKET_NAME}.ru/'
+    STATIC_URL = f'https://s3.twcstorage.{AWS_STORAGE_BUCKET_NAME}.ru/static/'
 else:
     # Локальное хранилище
     MEDIA_URL = '/media/'
