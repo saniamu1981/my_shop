@@ -8,27 +8,14 @@ from django.conf import settings
 
 
 def product_image_upload_path(instance, filename):
-    """
-    Сохраняет изображения товаров в папку products/{product_slug}/
-    """
-    # Получаем товар
     if hasattr(instance, 'product') and instance.product:
         product = instance.product
     else:
         product = instance
 
-    # Используем slug или генерируем из названия
-    if product.slug:
-        folder_name = product.slug
-    else:
-        from django.utils.text import slugify
-        folder_name = slugify(product.name) if product.name else f'product_{product.id}'
-
-    # Убираем возможные дублирования
-    if filename.startswith(f'products/{folder_name}/'):
-        return filename
-
-    return f'products/{folder_name}/{filename}'
+    # Используем slug, заменяя дефисы на подчёркивания
+    folder = product.slug.replace('-', '_') if product.slug else f'product_{product.id}'
+    return f'products/{folder}/{filename}'
 
 
 class Category(models.Model):
