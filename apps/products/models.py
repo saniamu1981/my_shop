@@ -9,24 +9,24 @@ from django.conf import settings
 
 def product_image_upload_path(instance, filename):
     """
-    Сохраняет изображения товаров в ту же структуру папок, что и локально.
-    Использует локальный путь файла для сохранения на сервере.
+    Сохраняет изображения товаров в папку products/{product_slug}/
     """
-    # Если у файла есть локальный путь, используем его
-    if hasattr(instance, '_local_path') and instance._local_path:
-        return instance._local_path
-
-    # Иначе используем стандартную логику
+    # Получаем товар
     if hasattr(instance, 'product') and instance.product:
         product = instance.product
     else:
         product = instance
 
+    # Используем slug или генерируем из названия
     if product.slug:
         folder_name = product.slug
     else:
         from django.utils.text import slugify
         folder_name = slugify(product.name) if product.name else f'product_{product.id}'
+
+    # Убираем возможные дублирования
+    if filename.startswith(f'products/{folder_name}/'):
+        return filename
 
     return f'products/{folder_name}/{filename}'
 
@@ -95,21 +95,10 @@ class Product(models.Model):
         return self.videos.all()
 
     def save(self, *args, **kwargs):
-        # Генерируем slug, если его нет
-        if not self.slug:
+        # Только генерируем slug, НЕ трогаем путь к изображению
+        if not self.slug and self.name:
+            from django.utils.text import slugify
             self.slug = slugify(self.name)
-
-        # Если есть изображение, обновляем его путь
-        if self.image and self.image.name:
-            old_name = self.image.name
-            # Проверяем, что путь правильный
-            if not old_name.startswith(f'products/{self.slug}/'):
-                # Получаем имя файла
-                file_name = old_name.split('/')[-1]
-                # Создаем новый путь
-                new_name = f'products/{self.slug}/{file_name}'
-                self.image.name = new_name
-
         super().save(*args, **kwargs)
 
 
