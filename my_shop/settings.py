@@ -303,3 +303,14 @@ else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     STATIC_URL = '/static/'
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+USE_S3_STATIC = os.getenv('USE_S3_STATIC', 'False') == 'True'
+
+if USE_S3_STATIC:
+    STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.twcstorage.ru/static/'
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+else:
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
