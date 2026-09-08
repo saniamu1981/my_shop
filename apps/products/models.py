@@ -2,8 +2,33 @@ import os
 import subprocess
 from django.db import models
 from django.core.files import File
+from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.conf import settings
+
+
+def product_image_upload_path(instance, filename):
+    """
+    Сохраняет изображения товаров в ту же структуру папок, что и локально.
+    Использует локальный путь файла для сохранения на сервере.
+    """
+    # Если у файла есть локальный путь, используем его
+    if hasattr(instance, '_local_path') and instance._local_path:
+        return instance._local_path
+
+    # Иначе используем стандартную логику
+    if hasattr(instance, 'product') and instance.product:
+        product = instance.product
+    else:
+        product = instance
+
+    if product.slug:
+        folder_name = product.slug
+    else:
+        from django.utils.text import slugify
+        folder_name = slugify(product.name) if product.name else f'product_{product.id}'
+
+    return f'products/{folder_name}/{filename}'
 
 
 class Category(models.Model):
@@ -29,7 +54,7 @@ class Product(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField('Описание')
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
-    image = models.ImageField('Главное фото', upload_to='products/', blank=True, null=True)
+    image = models.ImageField('Главное фото', upload_to=product_image_upload_path, blank=True, null=True)
     available = models.BooleanField('В наличии', default=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -69,10 +94,28 @@ class Product(models.Model):
     def get_videos(self):
         return self.videos.all()
 
+    def save(self, *args, **kwargs):
+        # Генерируем slug, если его нет
+        if not self.slug:
+            self.slug = slugify(self.name)
+
+        # Если есть изображение, обновляем его путь
+        if self.image and self.image.name:
+            old_name = self.image.name
+            # Проверяем, что путь правильный
+            if not old_name.startswith(f'products/{self.slug}/'):
+                # Получаем имя файла
+                file_name = old_name.split('/')[-1]
+                # Создаем новый путь
+                new_name = f'products/{self.slug}/{file_name}'
+                self.image.name = new_name
+
+        super().save(*args, **kwargs)
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField('Изображение', upload_to='products/')
+    image = models.ImageField('Изображение', upload_to=product_image_upload_path)
     is_main = models.BooleanField('Основное изображение', default=False)
     order = models.PositiveIntegerField('Порядок', default=0)
     created = models.DateTimeField(auto_now_add=True)
@@ -274,3 +317,22 @@ class Review(models.Model):
 
     def __str__(self):
         return f'{self.user.email} - {self.product.name} - {self.rating}⭐'
+
+
+# apps/products/models.py (добавьте в конец файла)
+
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
+@receiver(pre_save, sender=ProductImage)
+def set_image_local_path(sender, instance, **kwargs):
+    """Сохраняет изображение по локальному пути, если он указан"""
+    if hasattr(instance, 'local_path') and instance.local_path:
+        # Если указан локальный путь, используем его
+        instance._local_path = instance.local_path
+    elif instance.image and instance.image.name:
+        # Если путь уже правильный, оставляем
+        if instance.product and instance.product.slug:
+            correct_path = f'products/{instance.product.slug}/{instance.image.name.split("/")[-1]}'
+            if instance.image.name != correct_path:
+                instance.image.name = correct_path

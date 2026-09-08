@@ -271,16 +271,21 @@ LOGGING = {
 }
 
 # ============ S3 ХРАНИЛИЩЕ ============
-# Используем S3 для хранения медиа
+import os
+from dotenv import load_dotenv
+
+# Загружаем .env
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+
 USE_S3 = os.getenv('USE_S3', 'False') == 'True'
 
 if USE_S3:
     # Настройки для Timeweb S3
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'maidlingerie-media')
-
-    # ВАЖНО! Используйте правильный эндпоинт из панели Timeweb
     AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', 'https://s3.twcstorage.ru')
     AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ru-1')
 
@@ -291,18 +296,13 @@ if USE_S3:
         'CacheControl': 'max-age=86400',
     }
 
-    # Хранилище для медиа и статики
+    # Хранилище для медиа
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
-    # URL для доступа к файлам (ПРАВИЛЬНЫЙ ФОРМАТ!)
-    MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.twcstorage.ru/'
-    STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.twcstorage.ru/static/'
+    MEDIA_URL = f'https://s3.twcstorage.ru/{AWS_STORAGE_BUCKET_NAME}/'
 else:
     # Локальное хранилище
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    STATIC_URL = '/static/'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
 USE_S3_STATIC = os.getenv('USE_S3_STATIC', 'False') == 'True'
