@@ -271,23 +271,16 @@ LOGGING = {
 }
 
 # ============ S3 ХРАНИЛИЩЕ ============
-import os
-from dotenv import load_dotenv
-
-# Загружаем .env
-env_path = BASE_DIR / '.env'
-if env_path.exists():
-    load_dotenv(env_path)
-
-USE_S3 = os.getenv('USE_S3', 'False') == 'True'
+# ВРЕМЕННО: принудительно включаем S3
+USE_S3 = True
 
 if USE_S3:
     # Настройки для Timeweb S3
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'maidlingerie-media')
-    AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', 'https://s3.twcstorage.ru')
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ru-1')
+    AWS_ACCESS_KEY_ID = '9MC7POCEPPMNTOVHY3D0'
+    AWS_SECRET_ACCESS_KEY = 'ev9HDDRq8vD1WyHGei0s1JpBhDRSsORxKdR44D2u'
+    AWS_STORAGE_BUCKET_NAME = 'maidlingerie-media'
+    AWS_S3_ENDPOINT_URL = 'https://s3.twcstorage.ru'
+    AWS_S3_REGION_NAME = 'ru-1'
 
     # Настройки для публичного доступа
     AWS_DEFAULT_ACL = 'public-read'
@@ -303,6 +296,16 @@ else:
     # Локальное хранилище
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+USE_S3_STATIC = False
+
+if USE_S3_STATIC:
+    STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.twcstorage.ru/static/'
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+else:
+    STATIC_URL = '/static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 USE_S3_STATIC = os.getenv('USE_S3_STATIC', 'False') == 'True'
