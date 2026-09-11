@@ -98,16 +98,19 @@ def product_detail(request, category_slug, product_slug):
     })
 
 def product_sizes_api(request, product_id):
-    """Возвращает список размеров товара для каталога."""
+    """Возвращает размеры товара и флаги для каталога/избранного."""
     product = get_object_or_404(Product, id=product_id)
-    sizes = list(
+
+    sizes_in_stock = list(
         product.sizes.filter(quantity__gt=0).values('id', 'size', 'quantity')
     )
+
     return JsonResponse({
         'product_id': product.id,
         'product_name': product.name,
-        'has_sizes': len(sizes) > 0,
-        'sizes': sizes,
+        'has_any_sizes': product.sizes.exists(),
+        'has_sizes_in_stock': len(sizes_in_stock) > 0,
+        'sizes': sizes_in_stock,
     })
 
 @login_required
