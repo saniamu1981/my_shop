@@ -209,6 +209,47 @@
                 </div>
             </div>
             {% endif %}
+
+            {% if product.quality_document or product.care_instructions %}
+            <!-- Документы качества -->
+            <div class="quality-documents mt-4">
+                <h5 class="specs-title">📄 Документы качества</h5>
+                <div class="quality-list">
+                    {% if product.quality_document %}
+                        <div class="quality-item">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-file-earmark-check" style="font-size: 24px; color: #28a745;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; font-size: 14px;">
+                                        {{ product.quality_document_name|default:"Сертификат качества" }}
+                                    </div>
+                                    <div style="font-size: 12px; color: #6c757d;">
+                                        Нажмите, чтобы посмотреть документ
+                                    </div>
+                                </div>
+                                <a href="{{ product.quality_document }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-eye"></i> Открыть
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if product.care_instructions %}
+                        <div class="quality-item" style="margin-top: 12px;">
+                            <div class="d-flex align-items-start gap-2">
+                                <i class="bi bi-info-circle" style="font-size: 24px; color: #007bff; margin-top: 2px;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; font-size: 14px;">Уход за вещами</div>
+                                    <div style="font-size: 13px; color: #6c757d;">
+                                        {{ product.care_instructions|linebreaks }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Модальное окно для просмотра фото -->
@@ -2385,6 +2426,37 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Анимация для размера */
 .size-trigger {
     transition: all 0.3s ease;
+}
+
+    /* Документы качества */
+.quality-documents {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.quality-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.quality-item {
+    padding: 12px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.quality-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-color: #28a745;
+}
+
+.quality-item .btn {
+    white-space: nowrap;
 }
 </style>
 {% endblock %}

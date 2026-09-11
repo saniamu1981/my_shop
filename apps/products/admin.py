@@ -89,6 +89,10 @@ class ProductAdmin(admin.ModelAdmin):
             ),
             'classes': ('collapse',)
         }),
+        ('Документы качества', {  # <-- НОВЫЙ БЛОК
+            'fields': ('quality_document_name', 'quality_document'),
+            'description': 'Добавьте ссылку на сертификат или документ качества товара'
+        }),
         ('Даты', {
             'fields': ('created', 'updated'),
             'classes': ('collapse',)

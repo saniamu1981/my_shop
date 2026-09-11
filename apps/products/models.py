@@ -63,6 +63,20 @@ class Product(models.Model):
     sleeve = models.CharField('Рукав', max_length=100, blank=True, null=True)
     set_composition = models.CharField('Состав комплекта', max_length=200, blank=True, null=True)
     care_instructions = models.TextField('Уход за вещами', blank=True, null=True)
+    quality_document = models.URLField(
+        'Ссылка на документ качества',
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text='Вставьте ссылку на сертификат или документ качества (например, из S3)'
+    )
+    quality_document_name = models.CharField(
+        'Название документа',
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text='Например: Сертификат соответствия'
+    )
 
     class Meta:
         verbose_name = 'Товар'
