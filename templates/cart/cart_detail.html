@@ -90,7 +90,12 @@
                 <a href="{% url 'products:product_list' %}" class="btn btn-secondary">Продолжить покупки</a>
             </div>
             <div class="col-md-6 text-end">
-                <a href="{% url 'orders:create_order' %}" class="btn btn-success btn-lg">Оформить заказ</a>
+                <a href="{% url 'orders:create_order' %}"
+                   class="btn btn-success btn-lg"
+                   id="checkoutBtn"
+                   data-checkout-url="{% url 'orders:create_order' %}">
+                    Оформить заказ
+                </a>
             </div>
         </div>
     {% else %}
@@ -100,6 +105,33 @@
             <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">Перейти в каталог</a>
         </div>
     {% endif %}
+</div>
+
+<!-- Модалка оферты -->
+<div class="modal fade" id="offerWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">⚠️ Внимание!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-file-earmark-text" style="font-size: 48px; color: #ffc107;"></i>
+                <h4 class="mt-3">Необходимо принять оферту</h4>
+                <p class="text-muted mb-0">
+                    Для оформления заказа нужно ознакомиться и принять условия оферты.
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <a href="#" id="offerGoBtn" class="btn btn-primary">
+                    📄 Перейти к оферте
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -128,4 +160,75 @@
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (!checkoutBtn) return;
+
+    const offerWarningModalEl = document.getElementById('offerWarningModal');
+    const offerWarningModal = offerWarningModalEl ? new bootstrap.Modal(offerWarningModalEl) : null;
+    const offerGoBtn = document.getElementById('offerGoBtn');
+
+    checkoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        const url = this.dataset.checkoutUrl;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+        // Делаем GET на create_order, чтобы получить ответ без POST:
+        // при AJAX view вернёт JSON с offer_required или редирект
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken || '',
+            },
+            redirect: 'manual',
+        })
+        .then(response => {
+            // Если сервер вернул редирект (нет оферты), response.type будет 'opaqueredirect'
+            // но обычно Django возвращает 200 с JSON — обрабатываем JSON
+            if (response.status === 200) {
+                return response.json().then(data => ({ type: 'json', data }));
+            }
+            return { type: 'other', status: response.status };
+        })
+        .then(result => {
+            if (result.type === 'json') {
+                const data = result.data;
+
+                // ==== Оферта не принята ====
+                if (data.offer_required) {
+                    if (offerWarningModal) {
+                        if (offerGoBtn && data.offer_url) {
+                            offerGoBtn.href = data.offer_url;
+                        }
+                        offerWarningModal.show();
+                    } else {
+                        alert(data.message || 'Необходимо принять оферту');
+                        if (data.offer_url) window.location.href = data.offer_url;
+                    }
+                    return;
+                }
+
+                // ==== Успех (если view вернул redirect_url) ====
+                if (data.success && data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                    return;
+                }
+            }
+
+            // ==== Fallback: обычный переход по ссылке ====
+            // Сработает, если ответ не JSON, а обычный редирект/страница
+            window.location.href = url;
+        })
+        .catch(error => {
+            console.error('Ошибка проверки оферты:', error);
+            // Если что-то пошло не так — просто идём по ссылке как раньше
+            window.location.href = url;
+        });
+    });
+});
+</script>
 {% endblock %}

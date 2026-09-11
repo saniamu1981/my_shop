@@ -1,5 +1,6 @@
 import stripe
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
@@ -41,11 +42,28 @@ def order_list(request):
 def create_order(request):
     cart = CartManager(request)
 
-    # Используем метод is_empty() вместо проверки cart.cart
     if cart.is_empty():
         messages.warning(request, 'Корзина пуста')
         return redirect('products:product_list')
 
+    # ===== Проверка принятия активной оферты =====
+    from apps.accounts.models import Offer
+    active_offer = Offer.objects.filter(is_active=True).first()
+
+    if active_offer and request.user.offer_accepted_id != active_offer.id:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            from django.urls import reverse
+            return JsonResponse({
+                'success': False,
+                'offer_required': True,
+                'offer_url': reverse('accounts:offer_detail', args=[active_offer.id]),
+                'profile_url': reverse('accounts:profile'),
+                'message': 'Для оформления заказа необходимо принять оферту.',
+            })
+        messages.warning(request, 'Для оформления заказа необходимо принять оферту.')
+        return redirect('accounts:profile')
+
+    # ===== Дальше существующая логика =====
     if request.method == 'POST':
         order = Order.objects.create(
             user=request.user,
@@ -66,6 +84,16 @@ def create_order(request):
             )
 
         cart.clear()
+
+        # Если AJAX — возвращаем URL, чтобы JS сам перешёл
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            from django.urls import reverse
+            return JsonResponse({
+                'success': True,
+                'order_id': order.id,
+                'redirect_url': reverse('orders:payment_process', args=[order.id]),
+            })
+
         messages.success(request, f'Заказ №{order.id} успешно создан')
         return redirect('orders:payment_process', order_id=order.id)
 
@@ -164,6 +192,30 @@ def buy_now(request, product_id):
     product = get_object_or_404(Product, id=product_id, available=True)
 
     if request.method == 'POST':
+        # ===== Проверка принятия активной оферты =====
+        from apps.accounts.models import Offer
+        active_offer = Offer.objects.filter(is_active=True).first()
+
+        if active_offer and request.user.offer_accepted_id != active_offer.id:
+            # Если AJAX — вернём JSON, чтобы фронт показал модал
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                from django.urls import reverse
+                return JsonResponse({
+                    'success': False,
+                    'offer_required': True,
+                    'offer_url': reverse('accounts:offer_detail', args=[active_offer.id]),
+                    'profile_url': reverse('accounts:profile'),
+                    'message': 'Для оформления заказа необходимо принять оферту.',
+                }, status=200)
+
+            # Если обычный POST — редирект на профиль с сообщением
+            messages.warning(
+                request,
+                'Для оформления заказа необходимо принять оферту.'
+            )
+            return redirect('accounts:profile')
+
+        # ===== Дальше — существующая логика =====
         size = request.POST.get('size', '')
         delivery_method = request.POST.get('delivery_method', '')
         delivery_point = request.POST.get('delivery_point', '{}')
@@ -171,17 +223,15 @@ def buy_now(request, product_id):
         try:
             import json
             point_data = json.loads(delivery_point) if delivery_point else {}
-        except:
+        except Exception:
             point_data = {}
 
-        # Получаем телефон пользователя, если есть
         user_phone = ''
         if hasattr(request.user, 'phone') and request.user.phone:
             user_phone = request.user.phone
         elif hasattr(request.user, 'profile') and hasattr(request.user.profile, 'phone'):
             user_phone = request.user.profile.phone
 
-        # Если телефона нет, используем заглушку
         if not user_phone:
             user_phone = 'Не указан'
 
@@ -191,7 +241,7 @@ def buy_now(request, product_id):
             last_name=request.user.last_name or '',
             email=request.user.email,
             address=point_data.get('address', 'Адрес не указан'),
-            phone=user_phone,  # <-- Важно: передаем телефон
+            phone=user_phone,
             total_price=product.price,
             delivery_method=delivery_method,
             delivery_point_code=point_data.get('code', ''),
@@ -206,10 +256,23 @@ def buy_now(request, product_id):
             quantity=1
         )
 
+        # Если AJAX — вернём URL для редиректа, чтобы фронт сам перешёл
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            from django.urls import reverse
+            return JsonResponse({
+                'success': True,
+                'order_id': order.id,
+                'redirect_url': reverse('orders:payment_process', args=[order.id]),
+            })
+
         messages.success(request, f'Заказ №{order.id} успешно создан для товара "{product.name}"')
         return redirect('orders:payment_process', order_id=order.id)
 
-    return redirect('products:product_detail', category_slug=product.category.slug, product_slug=product.slug)
+    return redirect(
+        'products:product_detail',
+        category_slug=product.category.slug,
+        product_slug=product.slug
+    )
 
 @login_required
 def add_review(request):

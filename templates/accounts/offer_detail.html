@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <nav aria-label="Breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'accounts:profile' %}">Личный кабинет</a>
+            </li>
+            <li class="breadcrumb-item active">Оферта</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-body">
+            <h1 class="h4 mb-1">
+                {{ offer.title }}
+                {% if offer.version %}<small class="text-muted">({{ offer.version }})</small>{% endif %}
+            </h1>
+            <p class="text-muted small">
+                {% if offer.updated %}Обновлено: {{ offer.updated|date:"d.m.Y H:i" }}{% endif %}
+            </p>
+
+            <hr>
+
+            <div class="offer-text" style="white-space: pre-line; line-height: 1.6; font-size: 15px;">
+                {{ offer.text }}
+            </div>
+        </div>
+
+        <div class="card-footer d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                {% if already_accepted %}
+                    <span class="badge bg-success" style="font-size: 13px; padding: 6px 14px; border-radius: 20px;">
+                        ✅ Оферта принята
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary" style="font-size: 13px; padding: 6px 14px; border-radius: 20px;">
+                        ❌ Оферта не принята
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                    Назад
+                </a>
+
+                {% if not already_accepted %}
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                            ✅ Принять оферту
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

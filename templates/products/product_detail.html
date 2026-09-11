@@ -287,6 +287,33 @@
             </div>
         </div>
 
+        <!-- Модалка оферты -->
+        <div class="modal fade" id="offerWarningModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">⚠️ Внимание!</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi bi-file-earmark-text" style="font-size: 48px; color: #ffc107;"></i>
+                        <h4 class="mt-3">Необходимо принять оферту</h4>
+                        <p class="text-muted mb-0">
+                            Для оформления заказа нужно ознакомиться и принять условия оферты.
+                        </p>
+                    </div>
+                    <div class="modal-footer justify-content-center gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Отмена
+                        </button>
+                        <a href="#" id="offerGoBtn" class="btn btn-primary">
+                            📄 Перейти в личный кабинет
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Кнопки -->
         <div class="col-md-6" style="width: 25%;">
             <div class="product-actions">
@@ -1290,28 +1317,28 @@ function initBuyNow() {
 
     if (!buyNowBtn) return;
 
-    // Модалки (создаём один раз)
+    // Модалки
     const sizeWarningModalEl = document.getElementById('sizeWarningModal');
     const pointWarningModalEl = document.getElementById('pointWarningModal');
+    const offerWarningModalEl = document.getElementById('offerWarningModal');
+
     const sizeWarningModal = sizeWarningModalEl ? new bootstrap.Modal(sizeWarningModalEl) : null;
     const pointWarningModal = pointWarningModalEl ? new bootstrap.Modal(pointWarningModalEl) : null;
+    const offerWarningModal = offerWarningModalEl ? new bootstrap.Modal(offerWarningModalEl) : null;
+
     const pointWarningText = document.getElementById('pointWarningText');
+    const offerGoBtn = document.getElementById('offerGoBtn');
 
     buyNowBtn.addEventListener('click', function (e) {
         e.preventDefault();
 
-        // ===== Проверка размера =====
+        // ===== 1. Проверка размера =====
         const buyNowSizeInput = document.getElementById('buyNowSize');
         const selectedSize = buyNowSizeInput?.value;
-
         if (!selectedSize) {
-            if (sizeWarningModal) {
-                sizeWarningModal.show();
-            } else {
-                // fallback, если модал не найден
-                alert('Пожалуйста, выберите размер товара!');
-            }
-            // Подсветим триггер размера, чтобы пользователь понял, куда смотреть
+            if (sizeWarningModal) sizeWarningModal.show();
+            else alert('Пожалуйста, выберите размер товара!');
+
             const sizeTrigger = document.getElementById('size-trigger');
             if (sizeTrigger) {
                 sizeTrigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1325,18 +1352,15 @@ function initBuyNow() {
             return;
         }
 
-        // ===== Проверка способа доставки =====
+        // ===== 2. Проверка способа доставки =====
         if (!selectedDelivery) {
             const deliveryWarningModal = new bootstrap.Modal(document.getElementById('deliveryWarningModal'));
             deliveryWarningModal.show();
             return;
         }
 
-        // ===== Собираем данные пункта выдачи =====
-        let pointCode = null;
-        let pointName = null;
-        let pointAddress = null;
-
+        // ===== 3. Собираем пункт выдачи =====
+        let pointCode = null, pointName = null, pointAddress = null;
         if (selectedDelivery === 'sdek') {
             pointCode = document.getElementById('cdek-point-code')?.value;
             pointName = document.getElementById('cdek-point-name')?.value;
@@ -1349,15 +1373,12 @@ function initBuyNow() {
 
         if (!pointCode) {
             const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
-
             if (pointWarningModal && pointWarningText) {
                 pointWarningText.textContent = `Пожалуйста, выберите пункт выдачи ${deliveryName} перед оформлением заказа.`;
                 pointWarningModal.show();
             } else {
                 alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
             }
-
-            // Подсветим контейнер пункта
             const container = document.getElementById(
                 selectedDelivery === 'sdek' ? 'cdek-widget-container' : 'pickup-info-container'
             );
@@ -1371,22 +1392,57 @@ function initBuyNow() {
             return;
         }
 
-        // ===== Всё выбрано — сабмитим форму =====
-        if (buyNowDeliveryInput) {
-            buyNowDeliveryInput.value = selectedDelivery;
-        }
+        // ===== 4. Заполняем скрытую форму =====
+        if (buyNowDeliveryInput) buyNowDeliveryInput.value = selectedDelivery;
         if (buyNowDeliveryPointInput) {
-            const deliveryData = {
+            buyNowDeliveryPointInput.value = JSON.stringify({
                 code: pointCode || '',
                 name: pointName || '',
-                address: pointAddress || ''
-            };
-            buyNowDeliveryPointInput.value = JSON.stringify(deliveryData);
+                address: pointAddress || '',
+            });
         }
 
-        if (buyNowForm) {
-            buyNowForm.submit();
-        }
+        // ===== 5. Отправляем AJAX-запрос =====
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        const formData = new FormData(buyNowForm);
+
+        fetch(buyNowForm.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            // ==== Оферта не принята — показываем модал ====
+            if (data.offer_required) {
+                if (offerWarningModal) {
+                    if (offerGoBtn && data.profile_url) {
+                        offerGoBtn.href = data.profile_url;
+                    }
+                    offerWarningModal.show();
+                } else {
+                    alert(data.message || 'Необходимо принять оферту');
+                    if (data.profile_url) window.location.href = data.profile_url;
+                }
+                return;
+            }
+
+            // ==== Успешно — переходим к оплате ====
+            if (data.success && data.redirect_url) {
+                window.location.href = data.redirect_url;
+                return;
+            }
+
+            // ==== Непредвиденный ответ ====
+            alert(data.message || 'Не удалось создать заказ');
+        })
+        .catch(error => {
+            console.error('Ошибка buy_now:', error);
+            alert('Ошибка сети. Попробуйте еще раз.');
+        });
     });
 }
 
