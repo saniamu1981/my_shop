@@ -132,6 +132,16 @@ class Product(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    @property
+    def has_any_sizes(self):
+        """Есть ли у товара хоть один размер, добавленный в админке."""
+        return self.sizes.exists()
+
+    @property
+    def has_sizes_in_stock(self):
+        """Есть ли хотя бы один размер с quantity > 0."""
+        return self.sizes.filter(quantity__gt=0).exists()
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')

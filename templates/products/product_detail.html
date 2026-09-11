@@ -290,14 +290,17 @@
         <!-- Кнопки -->
         <div class="col-md-6" style="width: 25%;">
             <div class="product-actions">
-                <!-- Блок размеров -->
-                <div class="size-block">
-                    <div class="size-trigger" id="size-trigger">
-                        <span class="size-label" id="size-label">📏 Выберите размер</span>
-                        <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
-                    </div>
-                    <div class="size-dropdown">
-                        {% if product.sizes.all %}
+
+                {% if product.available and product.has_sizes_in_stock %}
+                    {# ====== Есть хотя бы один размер в наличии — показываем всё как раньше ====== #}
+
+                    <!-- Блок размеров -->
+                    <div class="size-block">
+                        <div class="size-trigger" id="size-trigger">
+                            <span class="size-label" id="size-label">📏 Выберите размер</span>
+                            <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
+                        </div>
+                        <div class="size-dropdown">
                             {% for size in product.sizes.all %}
                                 <div class="size-item">
                                     <input type="radio" name="size" id="size-{{ size.id }}" value="{{ size.size }}"
@@ -312,111 +315,98 @@
                                     </label>
                                 </div>
                             {% endfor %}
-                        {% else %}
-                            <div class="size-item" style="padding: 10px 16px; color: #999; font-size: 14px;">
-                                Размеры не добавлены
+                        </div>
+                    </div>
+
+                    <!-- Блок доставки -->
+                    <div class="delivery-block">
+                        <div class="delivery-trigger">
+                            <span class="delivery-label" id="delivery-label">🚚 Выберите способ доставки</span>
+                            <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
+                        </div>
+                        <div class="delivery-dropdown">
+                            <div class="delivery-item">
+                                <input type="radio" name="delivery" id="delivery-sdek" value="sdek">
+                                <label for="delivery-sdek">📦 СДЭК</label>
                             </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Блок доставки -->
-                <div class="delivery-block">
-                    <div class="delivery-trigger">
-                        <span class="delivery-label" id="delivery-label">🚚 Выберите способ доставки</span>
-                        <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
-                    </div>
-                    <div class="delivery-dropdown">
-                        <div class="delivery-item">
-                            <input type="radio" name="delivery" id="delivery-sdek" value="sdek">
-                            <label for="delivery-sdek">📦 СДЭК</label>
-                        </div>
-                        <div class="delivery-item">
-                            <input type="radio" name="delivery" id="delivery-pickup" value="pickup">
-                            <label for="delivery-pickup">🏪 Самовывоз</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Блок СДЭК с выбором области, города и поиском -->
-                <div id="cdek-widget-container" style="display: none; margin-top: 10px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px; background: #f8f9fa;">
-                    <div style="margin-bottom: 10px;">
-                        <strong style="font-size: 13px;">📍 Выберите пункт выдачи СДЭК</strong>
-                        <p class="text-muted small" style="font-size: 11px; margin-bottom: 0;">Выберите область и город, затем найдите пункт</p>
-                    </div>
-
-                    <!-- Выбор области -->
-                    <div style="margin-bottom: 6px;">
-                        <select id="cdek-region-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;">
-                            <option value="">-- Выберите область --</option>
-                        </select>
-                    </div>
-
-                    <!-- Выбор города -->
-                    <div style="margin-bottom: 6px;">
-                        <select id="cdek-city-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;" disabled>
-                            <option value="">-- Сначала выберите область --</option>
-                        </select>
-                    </div>
-
-                    <!-- Поиск пунктов выдачи -->
-                    <div style="margin-bottom: 6px;">
-                        <input type="text" id="cdek-search-input" class="form-control form-control-sm"
-                               placeholder="🔍 Поиск по адресу или названию..."
-                               style="font-size: 12px; padding: 4px 8px;" disabled>
-                    </div>
-
-                    <!-- Список пунктов выдачи -->
-                    <div id="cdek-points-list" style="max-height: 250px; overflow-y: auto; margin-top: 6px; display: none;">
-                        <div class="text-center py-2">
-                            <div class="spinner-border text-primary" style="width: 24px; height: 24px;" role="status">
-                                <span class="visually-hidden">Загрузка...</span>
+                            <div class="delivery-item">
+                                <input type="radio" name="delivery" id="delivery-pickup" value="pickup">
+                                <label for="delivery-pickup">🏪 Самовывоз</label>
                             </div>
-                            <p class="mt-1" style="font-size: 12px;">Загрузка пунктов выдачи...</p>
                         </div>
                     </div>
 
-                    <!-- Выбранный пункт -->
-                    <div id="cdek-selected-point" style="margin-top: 6px; padding: 6px 10px; background: #d4edda; border-radius: 6px; display: none; border: 1px solid #c3e6cb; font-size: 12px;">
-                        <strong>✅ Выбран:</strong>
-                        <span id="cdek-point-address"></span>
-                        <input type="hidden" id="cdek-point-code" name="delivery_point_code">
-                        <input type="hidden" id="cdek-point-name" name="delivery_point_name">
-                        <input type="hidden" id="cdek-point-address-input" name="delivery_point_address">
-                        <input type="hidden" id="cdek-point-city" name="delivery_point_city">
-                        <input type="hidden" id="cdek-point-region" name="delivery_point_region">
-                    </div>
-                </div>
+                    <!-- Блок СДЭК -->
+                    <div id="cdek-widget-container" style="display: none; margin-top: 10px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px; background: #f8f9fa;">
+                        <div style="margin-bottom: 10px;">
+                            <strong style="font-size: 13px;">📍 Выберите пункт выдачи СДЭК</strong>
+                            <p class="text-muted small" style="font-size: 11px; margin-bottom: 0;">Выберите область и город, затем найдите пункт</p>
+                        </div>
 
-                <!-- Блок Самовывоз -->
-                <div id="pickup-info-container" style="display: none; margin-top: 10px; border: 1px solid #28a745; border-radius: 12px; padding: 15px; background: #f8fff8;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="font-size: 20px;">🏪</span>
-                        <strong style="font-size: 15px; color: #28a745;">Самовывоз</strong>
-                    </div>
-                    <div style="padding: 10px; background: white; border-radius: 8px;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px;">
-                            <strong>📍 Адрес:</strong>
-                            <span id="pickup-address-display">г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1</span>
-                        </p>
-                        <p style="margin: 0; font-size: 14px;">
-                            <strong>📞 Телефон:</strong>
-                            <span id="pickup-phone-display">+7 (921) 847-99-07</span>
-                        </p>
-                        <!-- Скрытые поля для самовывоза -->
-                        <input type="hidden" id="pickup-point-code" name="delivery_point_code" value="PICKUP">
-                        <input type="hidden" id="pickup-point-name" name="delivery_point_name" value="Самовывоз">
-                        <input type="hidden" id="pickup-point-address-input" name="delivery_point_address" value="г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1">
-                        <input type="hidden" id="pickup-point-city" name="delivery_point_city" value="Санкт-Петербург">
-                        <input type="hidden" id="pickup-point-region" name="delivery_point_region" value="Санкт-Петербург">
-                    </div>
-                </div>
+                        <div style="margin-bottom: 6px;">
+                            <select id="cdek-region-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;">
+                                <option value="">-- Выберите область --</option>
+                            </select>
+                        </div>
 
-                <!-- Кнопки -->
-                <div style="margin-top: 10px;">
-                    {% if product.available %}
+                        <div style="margin-bottom: 6px;">
+                            <select id="cdek-city-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;" disabled>
+                                <option value="">-- Сначала выберите область --</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 6px;">
+                            <input type="text" id="cdek-search-input" class="form-control form-control-sm"
+                                   placeholder="🔍 Поиск по адресу или названию..."
+                                   style="font-size: 12px; padding: 4px 8px;" disabled>
+                        </div>
+
+                        <div id="cdek-points-list" style="max-height: 250px; overflow-y: auto; margin-top: 6px; display: none;">
+                            <div class="text-center py-2">
+                                <div class="spinner-border text-primary" style="width: 24px; height: 24px;" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                                <p class="mt-1" style="font-size: 12px;">Загрузка пунктов выдачи...</p>
+                            </div>
+                        </div>
+
+                        <div id="cdek-selected-point" style="margin-top: 6px; padding: 6px 10px; background: #d4edda; border-radius: 6px; display: none; border: 1px solid #c3e6cb; font-size: 12px;">
+                            <strong>✅ Выбран:</strong>
+                            <span id="cdek-point-address"></span>
+                            <input type="hidden" id="cdek-point-code" name="delivery_point_code">
+                            <input type="hidden" id="cdek-point-name" name="delivery_point_name">
+                            <input type="hidden" id="cdek-point-address-input" name="delivery_point_address">
+                            <input type="hidden" id="cdek-point-city" name="delivery_point_city">
+                            <input type="hidden" id="cdek-point-region" name="delivery_point_region">
+                        </div>
+                    </div>
+
+                    <!-- Блок Самовывоз -->
+                    <div id="pickup-info-container" style="display: none; margin-top: 10px; border: 1px solid #28a745; border-radius: 12px; padding: 15px; background: #f8fff8;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 20px;">🏪</span>
+                            <strong style="font-size: 15px; color: #28a745;">Самовывоз</strong>
+                        </div>
+                        <div style="padding: 10px; background: white; border-radius: 8px;">
+                            <p style="margin: 0 0 5px 0; font-size: 14px;">
+                                <strong>📍 Адрес:</strong>
+                                <span id="pickup-address-display">г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1</span>
+                            </p>
+                            <p style="margin: 0; font-size: 14px;">
+                                <strong>📞 Телефон:</strong>
+                                <span id="pickup-phone-display">+7 (921) 847-99-07</span>
+                            </p>
+                            <input type="hidden" id="pickup-point-code" name="delivery_point_code" value="PICKUP">
+                            <input type="hidden" id="pickup-point-name" name="delivery_point_name" value="Самовывоз">
+                            <input type="hidden" id="pickup-point-address-input" name="delivery_point_address" value="г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1">
+                            <input type="hidden" id="pickup-point-city" name="delivery_point_city" value="Санкт-Петербург">
+                            <input type="hidden" id="pickup-point-region" name="delivery_point_region" value="Санкт-Петербург">
+                        </div>
+                    </div>
+
+                    <!-- Кнопки -->
+                    <div style="margin-top: 10px;">
                         <div class="d-flex flex-column gap-2">
-                            <!-- Кнопка "В корзину" и "Избранное" -->
                             <div class="d-flex gap-2 align-items-center justify-content-center">
                                 <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-inline" id="addToCartForm" style="flex: 1;">
                                     {% csrf_token %}
@@ -435,19 +425,36 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Кнопка "Купить сейчас" -->
                             <button type="button" id="buyNowBtn" class="btn btn-primary btn-lg w-100"
                                     style="border-radius: 17px; padding: 8px 25px; background: linear-gradient(135deg, #ff6b00, #ff9a00); border: none; font-weight: 600;">
                                 ⚡ Купить сейчас
                             </button>
                         </div>
-                    {% else %}
-                        <div class="alert alert-warning mt-4">
-                            <h5>⚠️ Товар временно отсутствует</h5>
-                            <p class="mb-0">Но вы можете посмотреть его описание и фото. Ожидайте поступления!</p>
-                        </div>
-                    {% endif %}
-                </div>
+                    </div>
+
+                {% else %}
+                    {# ====== Нет размеров в наличии (или товар снят с продажи) — только плашка ====== #}
+
+                    <div class="out-of-stock-block">
+                        <div class="out-of-stock-icon">😔</div>
+                        <h4 class="out-of-stock-title">Нет в наличии</h4>
+                        <p class="out-of-stock-text">
+                            К сожалению, все размеры этого товара закончились.<br>
+                            Попробуйте посмотреть похожие модели или загляните позже.
+                        </p>
+
+                        {% if user.is_authenticated %}
+                            <button class="favorite-btn out-of-stock-fav" data-product-id="{{ product.id }}"
+                                    style="border: none; background: #f0f0f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin: 12px auto 0;">
+                                <i class="bi bi-heart{% if is_favorite %}-fill{% endif %}"
+                                   style="font-size: 22px; color: {% if is_favorite %}#dc3545{% else %}#888{% endif %}; transition: all 0.3s ease; line-height: 1;"></i>
+                            </button>
+                            <p class="out-of-stock-hint">Добавить в избранное — узнаете о поступлении</p>
+                        {% endif %}
+                    </div>
+
+                {% endif %}
+
             </div>
         </div>
 
@@ -2763,6 +2770,52 @@ document.addEventListener('DOMContentLoaded', function() {
     .specs-grid { grid-template-columns: 1fr; gap: 8px; }
     .spec-item { flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 0; }
     .spec-value { text-align: left; }
+}
+
+/* Плашка «Нет в наличии» в блоке действий */
+.out-of-stock-block {
+    text-align: center;
+    padding: 40px 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+    border: 1px dashed #f5c2c7;
+}
+
+.out-of-stock-icon {
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: 12px;
+    filter: grayscale(0.3);
+}
+
+.out-of-stock-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #b02a37;
+    margin: 0 0 12px 0;
+}
+
+.out-of-stock-text {
+    font-size: 14px;
+    color: #6c757d;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.out-of-stock-fav:hover {
+    transform: scale(1.05);
+    background: #f8f8f8;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.out-of-stock-fav:active {
+    transform: scale(0.95);
+}
+
+.out-of-stock-hint {
+    font-size: 12px;
+    color: #999;
+    margin: 8px 0 0 0;
 }
 </style>
 {% endblock %}
