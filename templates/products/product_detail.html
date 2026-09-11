@@ -217,6 +217,26 @@
             <div class="lightbox-counter" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 16px; background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px; font-family: Arial, sans-serif; z-index: 10000;">1 / 10</div>
         </div>
 
+        <!-- Модальное окно предупреждения о размере -->
+        <div class="modal fade" id="sizeWarningModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">⚠️ Внимание!</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi bi-rulers" style="font-size: 48px; color: #ffc107;"></i>
+                        <h4 class="mt-3">Не выбран размер</h4>
+                        <p class="text-muted">Пожалуйста, выберите размер товара перед оформлением заказа.</p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Модальное окно предупреждения о доставке -->
         <div class="modal fade" id="deliveryWarningModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -398,10 +418,10 @@
                         <div class="d-flex flex-column gap-2">
                             <!-- Кнопка "В корзину" и "Избранное" -->
                             <div class="d-flex gap-2 align-items-center justify-content-center">
-                                <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-inline" style="flex: 1;">
+                                <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-inline" id="addToCartForm" style="flex: 1;">
                                     {% csrf_token %}
                                     <input type="hidden" name="size" id="selected-size" value="">
-                                    <button type="submit" class="btn btn-success btn-lg w-100" style="border-radius: 17px; padding: 8px 25px;">
+                                    <button type="submit" class="btn btn-success btn-lg w-100" style="border-radius: 17px; padding: 8px 25px;" id="addToCartBtn">
                                         🛒 В корзину
                                     </button>
                                 </form>
@@ -1201,7 +1221,60 @@ function setPickupData() {
     if (phoneDisplay) phoneDisplay.textContent = pickupPhone;
 }
 
-// ============ КУПИТЬ СЕЙЧАС ============
+// ============ В КОРЗИНУ С ПРОВЕРКОЙ РАЗМЕРА ============
+function initAddToCart() {
+    const form = document.getElementById('addToCartForm');
+    const btn = document.getElementById('addToCartBtn');
+    const sizeInput = document.getElementById('selected-size');
+    const sizeWarningModalEl = document.getElementById('sizeWarningModal');
+
+    if (!form || !btn || !sizeWarningModalEl) return;
+
+    function showWarningModal() {
+        // Скрываем все открытые модалки и убираем backdrop'и, если остались
+        document.querySelectorAll('.modal.show').forEach(m => {
+            const inst = bootstrap.Modal.getInstance(m);
+            if (inst) inst.hide();
+        });
+        // На всякий случай убираем backdrop вручную
+        setTimeout(() => {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }, 150);
+
+        const modal = bootstrap.Modal.getOrCreateInstance(sizeWarningModalEl);
+        modal.show();
+    }
+
+    form.addEventListener('submit', function (e) {
+        const hasSizes = document.querySelector('.size-item input[type="radio"]') !== null;
+
+        if (hasSizes) {
+            const selectedSize = sizeInput?.value;
+            if (!selectedSize) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                showWarningModal();
+
+                const sizeTrigger = document.getElementById('size-trigger');
+                if (sizeTrigger) {
+                    sizeTrigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    sizeTrigger.style.borderColor = '#dc3545';
+                    sizeTrigger.style.background = '#fff5f5';
+                    setTimeout(() => {
+                        sizeTrigger.style.borderColor = '';
+                        sizeTrigger.style.background = '';
+                    }, 3000);
+                }
+                return false;
+            }
+        }
+    });
+}
+
 function initBuyNow() {
     const buyNowBtn = document.getElementById('buyNowBtn');
     const buyNowForm = document.getElementById('buyNowForm');
@@ -1210,22 +1283,49 @@ function initBuyNow() {
 
     if (!buyNowBtn) return;
 
-    buyNowBtn.addEventListener('click', function(e) {
+    // Модалки (создаём один раз)
+    const sizeWarningModalEl = document.getElementById('sizeWarningModal');
+    const pointWarningModalEl = document.getElementById('pointWarningModal');
+    const sizeWarningModal = sizeWarningModalEl ? new bootstrap.Modal(sizeWarningModalEl) : null;
+    const pointWarningModal = pointWarningModalEl ? new bootstrap.Modal(pointWarningModalEl) : null;
+    const pointWarningText = document.getElementById('pointWarningText');
+
+    buyNowBtn.addEventListener('click', function (e) {
         e.preventDefault();
 
+        // ===== Проверка размера =====
         const buyNowSizeInput = document.getElementById('buyNowSize');
         const selectedSize = buyNowSizeInput?.value;
+
         if (!selectedSize) {
-            alert('Пожалуйста, выберите размер товара!');
+            if (sizeWarningModal) {
+                sizeWarningModal.show();
+            } else {
+                // fallback, если модал не найден
+                alert('Пожалуйста, выберите размер товара!');
+            }
+            // Подсветим триггер размера, чтобы пользователь понял, куда смотреть
+            const sizeTrigger = document.getElementById('size-trigger');
+            if (sizeTrigger) {
+                sizeTrigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sizeTrigger.style.borderColor = '#dc3545';
+                sizeTrigger.style.background = '#fff5f5';
+                setTimeout(() => {
+                    sizeTrigger.style.borderColor = '';
+                    sizeTrigger.style.background = '';
+                }, 3000);
+            }
             return;
         }
 
+        // ===== Проверка способа доставки =====
         if (!selectedDelivery) {
             const deliveryWarningModal = new bootstrap.Modal(document.getElementById('deliveryWarningModal'));
             deliveryWarningModal.show();
             return;
         }
 
+        // ===== Собираем данные пункта выдачи =====
         let pointCode = null;
         let pointName = null;
         let pointAddress = null;
@@ -1242,8 +1342,18 @@ function initBuyNow() {
 
         if (!pointCode) {
             const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
-            alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
-            const container = document.getElementById(selectedDelivery === 'sdek' ? 'cdek-widget-container' : 'pickup-info-container');
+
+            if (pointWarningModal && pointWarningText) {
+                pointWarningText.textContent = `Пожалуйста, выберите пункт выдачи ${deliveryName} перед оформлением заказа.`;
+                pointWarningModal.show();
+            } else {
+                alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
+            }
+
+            // Подсветим контейнер пункта
+            const container = document.getElementById(
+                selectedDelivery === 'sdek' ? 'cdek-widget-container' : 'pickup-info-container'
+            );
             if (container) {
                 container.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 container.style.borderColor = '#dc3545';
@@ -1254,6 +1364,7 @@ function initBuyNow() {
             return;
         }
 
+        // ===== Всё выбрано — сабмитим форму =====
         if (buyNowDeliveryInput) {
             buyNowDeliveryInput.value = selectedDelivery;
         }
@@ -1676,6 +1787,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initFavorite();
     initSizeSelection();
     initDelivery();
+    initAddToCart();
     initBuyNow();
     initThumbnailScroll();
     initLightbox();
