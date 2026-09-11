@@ -181,31 +181,6 @@
                 </div>
             </div>
             {% endif %}
-
-            <!-- Документы качества -->
-            {% if product.quality_document %}
-            <div class="quality-documents mt-4">
-                <h5 class="specs-title">📄 Документы качества</h5>
-                <div class="quality-list">
-                        <div class="quality-item">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-file-earmark-check" style="font-size: 24px; color: #28a745;"></i>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500; font-size: 14px;">
-                                        {{ product.quality_document_name|default:"Сертификат качества" }}
-                                    </div>
-                                    <div style="font-size: 12px; color: #6c757d;">
-                                        Нажмите, чтобы посмотреть документ
-                                    </div>
-                                </div>
-                                <a href="{{ product.quality_document }}" target="_blank" class="btn btn-sm btn-outline-success">
-                                    <i class="bi bi-eye"></i> Открыть
-                                </a>
-                            </div>
-                        </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Модальное окно для просмотра фото -->
@@ -323,7 +298,7 @@
 
                     <!-- Блок размеров -->
                     <div class="size-block">
-                        <div class="size-trigger" id="size-trigger">
+                        <div class="size-trigger" id="size-trigger" style="margin-top: -10px;">
                             <span class="size-label" id="size-label">📏 Выберите размер</span>
                             <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
                         </div>
@@ -346,7 +321,7 @@
                     </div>
 
                     <!-- Блок доставки -->
-                    <div class="delivery-block">
+                    <div class="delivery-block" style="margin-top: -10px;">
                         <div class="delivery-trigger">
                             <span class="delivery-label" id="delivery-label">🚚 Выберите способ доставки</span>
                             <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
@@ -483,6 +458,32 @@
                 {% endif %}
 
             </div>
+
+            <!-- Документы качества -->
+            {% if product.quality_document and product.has_sizes_in_stock %}
+            <div class="quality-documents mt-4">
+                <h5 class="specs-title">📄 Документы качества</h5>
+                <div class="quality-list">
+                    <a href="{{ product.quality_document }}"
+                       target="_blank"
+                       rel="noopener"
+                       class="quality-item quality-item-link">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-check" style="font-size: 24px; color: #28a745; flex-shrink: 0;"></i>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500; font-size: 14px; color: #212529;">
+                                    {{ product.quality_document_name|default:"Сертификат качества" }}
+                                </div>
+                                <div style="font-size: 12px; color: #6c757d;">
+                                    Нажмите, чтобы посмотреть документ
+                                </div>
+                            </div>
+                            <i class="bi bi-box-arrow-up-right" style="font-size: 16px; color: #28a745; flex-shrink: 0;"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <div class="mb-4" style="margin-top: 25px;">
@@ -2872,6 +2873,40 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 12px;
     color: #999;
     margin: 8px 0 0 0;
+}
+
+/* Кликабельная карточка документа качества */
+.quality-item-link,
+.quality-item-link:hover,
+.quality-item-link:focus,
+.quality-item-link:active,
+.quality-item-link:visited {
+    display: block;
+    text-decoration: none !important;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* Внутренние элементы тоже без подчёркивания */
+.quality-item-link *,
+.quality-item-link:hover *,
+.quality-item-link:focus * {
+    text-decoration: none !important;
+}
+
+.quality-item-link:hover {
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+    border-color: #28a745;
+    background: #f6fff8;
+}
+
+.quality-item-link:hover .bi-box-arrow-up-right {
+    transform: translate(2px, -2px);
+    transition: transform 0.2s ease;
+}
+
+.quality-item-link:active {
+    transform: scale(0.995);
 }
 </style>
 {% endblock %}
