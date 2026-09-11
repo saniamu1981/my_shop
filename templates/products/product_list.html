@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container">
     <h1 class="mb-4">
         {% if category %}
@@ -57,10 +58,14 @@
                                     <h5 class="card-title" style="font-size: 14px; min-height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ product.name }}</h5>
                                     <p class="card-text mt-auto" style="font-size: 16px; font-weight: bold; color: #007bff;">{{ product.price }} ₽</p>
                                     <div class="mt-2">
-                                        <form action="{% url 'cart:cart_add' product.id %}" method="post" onclick="event.stopPropagation();">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-success btn-sm w-100" style="font-size: 13px; padding: 6px 0;">В корзину</button>
-                                        </form>
+                                        <button type="button"
+                                                class="btn btn-success btn-sm w-100 add-to-cart-btn"
+                                                data-product-id="{{ product.id }}"
+                                                data-cart-url="{% url 'cart:cart_add' product.id %}"
+                                                style="font-size: 13px; padding: 6px 0;"
+                                                onclick="event.stopPropagation(); event.preventDefault();">
+                                            В корзину
+                                        </button>
                                     </div>
                                 </div>
                             </a>
@@ -107,61 +112,303 @@
     </div>
 </div>
 
+<!-- Модальное окно выбора размера -->
+<div class="modal fade" id="sizeSelectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Выберите размер</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3" id="sizeModalProductName"></p>
+                <div id="sizeModalSizesList" class="d-flex flex-wrap gap-2"></div>
+                <div id="sizeModalError" class="text-danger small mt-2" style="display:none;">
+                    Пожалуйста, выберите размер
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="sizeModalConfirmBtn" disabled>
+                    Добавить в корзину
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const favoriteBtns = document.querySelectorAll('.favorite-btn');
+document.addEventListener('DOMContentLoaded', function () {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
 
-    if (!csrfToken) {
-        console.error('CSRF token not found');
-        return;
+    // ============ ИЗБРАННОЕ ============
+    const favoriteBtns = document.querySelectorAll('.favorite-btn');
+
+    if (csrfToken) {
+        favoriteBtns.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const productId = this.dataset.productId;
+                const icon = this.querySelector('i');
+
+                fetch(`/products/toggle-favorite/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.is_favorite) {
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                        icon.style.color = '#dc3545';
+                    } else {
+                        icon.classList.remove('bi-heart-fill');
+                        icon.classList.add('bi-heart');
+                        icon.style.color = '#666';
+                    }
+
+                    const badge = document.querySelector('.nav-link-custom .bi-heart + .badge-icon');
+                    if (badge) {
+                        if (data.favorites_count > 0) {
+                            badge.textContent = data.favorites_count;
+                            badge.classList.remove('zero');
+                        } else {
+                            badge.textContent = '0';
+                            badge.classList.add('zero');
+                        }
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
     }
 
-    favoriteBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
+    // ============ ДОБАВЛЕНИЕ В КОРЗИНУ С ПРОВЕРКОЙ РАЗМЕРОВ ============
+    const sizeModalEl = document.getElementById('sizeSelectModal');
+    const sizeModal = sizeModalEl ? new bootstrap.Modal(sizeModalEl) : null;
+    const sizesListEl = document.getElementById('sizeModalSizesList');
+    const productNameEl = document.getElementById('sizeModalProductName');
+    const confirmBtn = document.getElementById('sizeModalConfirmBtn');
+    const errorEl = document.getElementById('sizeModalError');
+
+    let currentProduct = null;   // { id, cartUrl }
+    let selectedSizeId = null;
+
+    // Универсальная функция: POST в корзину
+    function addToCart(cartUrl, size) {
+        const body = new FormData();
+        body.append('size', size || '');
+        if (csrfToken) body.append('csrfmiddlewaretoken', csrfToken);
+
+        return fetch(cartUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: body,
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка сети: ' + response.status);
+            return response.json();
+        })
+        .then(data => {
+            // Обновляем бейдж корзины в шапке
+            if (data && typeof data.cart_count !== 'undefined') {
+                updateCartBadge(data.cart_count);
+            }
+            return data;
+        });
+    }
+
+    // Обновление бейджа корзины в шапке
+    function updateCartBadge(count) {
+        // Ищем ссылку на корзину в navbar
+        const cartLink = document.querySelector('a.nav-link-custom[href*="/cart/"]');
+        if (!cartLink) {
+            console.warn('[cart-badge] ссылка на корзину не найдена');
+            return;
+        }
+
+        let badge = cartLink.querySelector('.badge-icon');
+        if (!badge) {
+            console.warn('[cart-badge] бейдж не найден');
+            return;
+        }
+
+        if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('zero');
+            badge.style.display = 'flex';
+        } else {
+            badge.textContent = '0';
+            badge.classList.add('zero');
+            badge.style.display = 'none';
+        }
+    }
+
+    // Обработчик клика по «В корзину»
+    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
             const productId = this.dataset.productId;
-            const icon = this.querySelector('i');
+            const cartUrl = this.dataset.cartUrl;
 
-            fetch(`/products/toggle-favorite/${productId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                },
+            currentProduct = { id: productId, cartUrl: cartUrl };
+
+            // Запрашиваем размеры
+            fetch(`/products/sizes/${productId}/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
             })
             .then(response => response.json())
             .then(data => {
-                if (data.is_favorite) {
-                    icon.classList.remove('bi-heart');
-                    icon.classList.add('bi-heart-fill');
-                    icon.style.color = '#dc3545';
-                } else {
-                    icon.classList.remove('bi-heart-fill');
-                    icon.classList.add('bi-heart');
-                    icon.style.color = '#666';
+                const sizes = data.sizes || [];
+
+                // 0 размеров — сразу в корзину
+                if (sizes.length === 0) {
+                    addToCart(cartUrl, '')
+                        .then(() => showToast('Товар добавлен в корзину', 'success'))
+                        .catch(err => {
+                            console.error(err);
+                            showToast('Не удалось добавить товар', 'danger');
+                        });
+                    return;
                 }
 
-                // Обновляем счетчик в шапке
-                const badge = document.querySelector('.nav-link-custom .bi-heart + .badge-icon');
-                if (badge) {
-                    if (data.favorites_count > 0) {
-                        badge.textContent = data.favorites_count;
-                        badge.classList.remove('zero');
-                    } else {
-                        badge.textContent = '0';
-                        badge.classList.add('zero');
-                    }
+                // 1 размер — в корзину с ним
+                if (sizes.length === 1) {
+                    addToCart(cartUrl, sizes[0].size)
+                        .then(() => showToast('Товар добавлен в корзину', 'success'))
+                        .catch(err => {
+                            console.error(err);
+                            showToast('Не удалось добавить товар', 'danger');
+                        });
+                    return;
                 }
+
+                // 2+ размеров — показываем модал
+                openSizeModal(data.product_name, sizes, cartUrl);
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Ошибка получения размеров:', error);
+                showToast('Не удалось получить размеры', 'danger');
             });
         });
     });
+
+    // Открытие модала с размерами
+    function openSizeModal(productName, sizes, cartUrl) {
+        if (!sizeModal) return;
+
+        selectedSizeId = null;
+        confirmBtn.disabled = true;
+        errorEl.style.display = 'none';
+        productNameEl.textContent = productName;
+        sizesListEl.innerHTML = '';
+
+        sizes.forEach(size => {
+            const label = document.createElement('label');
+            label.className = 'size-option';
+            label.style.cssText = `
+                display: inline-flex; align-items: center; justify-content: center;
+                min-width: 60px; padding: 8px 14px;
+                border: 1px solid #dee2e6; border-radius: 8px;
+                cursor: pointer; font-size: 14px; font-weight: 500;
+                background: #fff; color: #333;
+                transition: all 0.2s;
+                user-select: none;
+            `;
+            label.innerHTML = `
+                <input type="radio" name="modal-size" value="${size.size}"
+                       data-size-id="${size.id}" style="display:none;">
+                ${size.size}
+            `;
+
+            label.addEventListener('click', () => {
+                sizesListEl.querySelectorAll('label').forEach(l => {
+                    l.style.background = '#fff';
+                    l.style.borderColor = '#dee2e6';
+                    l.style.color = '#333';
+                });
+                label.style.background = '#e7f5ff';
+                label.style.borderColor = '#007bff';
+                label.style.color = '#007bff';
+
+                label.querySelector('input').checked = true;
+                selectedSizeId = size.size;
+                confirmBtn.disabled = false;
+                errorEl.style.display = 'none';
+            });
+
+            sizesListEl.appendChild(label);
+        });
+
+        // Сохраняем URL для подтверждения
+        confirmBtn.dataset.cartUrl = cartUrl;
+
+        sizeModal.show();
+    }
+
+    // Подтверждение выбора размера
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+            if (!selectedSizeId) {
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            const cartUrl = this.dataset.cartUrl;
+            addToCart(cartUrl, selectedSizeId)
+                .then(() => {
+                    sizeModal.hide();
+                    showToast('Товар добавлен в корзину', 'success');
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('Не удалось добавить товар', 'danger');
+                });
+        });
+    }
+
+    // ============ ПРОСТОЙ ТОСТ ============
+    function showToast(message, type = 'success') {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.style.cssText = `
+                position: fixed; top: 20px; right: 20px; z-index: 10000;
+                display: flex; flex-direction: column; gap: 8px;
+            `;
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        const bg = type === 'success' ? '#28a745' : '#dc3545';
+        toast.style.cssText = `
+            background: ${bg}; color: #fff;
+            padding: 10px 18px; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 14px; font-weight: 500;
+            animation: fadeIn 0.3s ease;
+        `;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.4s';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 400);
+        }, 2200);
+    }
 });
 </script>
 {% endblock %}

@@ -10,6 +10,7 @@ urlpatterns = [
     path('reviews/<int:product_id>/', views.get_product_reviews, name='get_product_reviews'),
     path('edit-review/<int:product_id>/', views.edit_review, name='edit_review'),
     path('delete-review/<int:review_id>/', views.delete_review, name='delete_review'),
+    path('sizes/<int:product_id>/', views.product_sizes_api, name='product_sizes_api'),
 
     # Общие пути
     path('', views.product_list, name='product_list'),

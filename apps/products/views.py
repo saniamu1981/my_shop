@@ -97,6 +97,19 @@ def product_detail(request, category_slug, product_slug):
         'YANDEX_MAPS_API_KEY': settings.YANDEX_MAPS_API_KEY,
     })
 
+def product_sizes_api(request, product_id):
+    """Возвращает список размеров товара для каталога."""
+    product = get_object_or_404(Product, id=product_id)
+    sizes = list(
+        product.sizes.filter(quantity__gt=0).values('id', 'size', 'quantity')
+    )
+    return JsonResponse({
+        'product_id': product.id,
+        'product_name': product.name,
+        'has_sizes': len(sizes) > 0,
+        'sizes': sizes,
+    })
+
 @login_required
 def toggle_favorite(request, product_id):
     product = get_object_or_404(Product, id=product_id)
