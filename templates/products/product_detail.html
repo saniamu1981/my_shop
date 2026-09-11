@@ -122,90 +122,62 @@
 
             <!-- Характеристики товара -->
             {% if product.sku or product.material or product.composition or product.color or product.russian_size or product.country %}
-            <div class="product-specs mt-4">
-                <h5 class="specs-title">📋 Характеристики</h5>
-                <div class="specs-grid">
-                    {% if product.material %}
-                    <div class="spec-item">
-                        <span class="spec-label">Материал</span>
-                        <span class="spec-value">{{ product.material }}</span>
+            <div class="product-specs mt-4" id="productSpecs">
+                <div class="specs-header">
+                    <h5 class="specs-title">📋 Характеристики</h5>
+                    <button type="button" class="specs-toggle-link" id="specsToggleBtn">Развернуть</button>
+                </div>
+
+                <div class="specs-grid-wrapper" id="specsGridWrapper">
+                    <div class="specs-grid" id="specsGrid">
+                        {% if product.material %}
+                        <div class="spec-item"><span class="spec-label">Материал</span><span class="spec-value">{{ product.material }}</span></div>
+                        {% endif %}
+                        {% if product.composition %}
+                        <div class="spec-item"><span class="spec-label">Состав материала</span><span class="spec-value">{{ product.composition }}</span></div>
+                        {% endif %}
+                        {% if product.size_on_model %}
+                        <div class="spec-item"><span class="spec-label">Размер на модели</span><span class="spec-value">{{ product.size_on_model }}</span></div>
+                        {% endif %}
+                        {% if product.height_on_model %}
+                        <div class="spec-item"><span class="spec-label">Рост на модели</span><span class="spec-value">{{ product.height_on_model }}</span></div>
+                        {% endif %}
+                        {% if product.model_params %}
+                        <div class="spec-item"><span class="spec-label">Параметры модели</span><span class="spec-value">{{ product.model_params }}</span></div>
+                        {% endif %}
+                        {% if product.color %}
+                        <div class="spec-item"><span class="spec-label">Цвет</span><span class="spec-value"><span class="color-dot" style="background-color: {{ product.get_color_hex }};"></span>{{ product.color }}</span></div>
+                        {% endif %}
+                        {% if product.russian_size %}
+                        <div class="spec-item"><span class="spec-label">Российский размер</span><span class="spec-value">{{ product.russian_size }}</span></div>
+                        {% endif %}
+                        {% if product.country %}
+                        <div class="spec-item"><span class="spec-label">Страна-изготовитель</span><span class="spec-value">{{ product.country }}</span></div>
+                        {% endif %}
+                        {% if product.lining_material %}
+                        <div class="spec-item"><span class="spec-label">Материал подкладки</span><span class="spec-value">{{ product.lining_material }}</span></div>
+                        {% endif %}
+                        {% if product.fastener_type %}
+                        <div class="spec-item"><span class="spec-label">Вид застежки</span><span class="spec-value">{{ product.fastener_type }}</span></div>
+                        {% endif %}
+                        {% if product.sleeve %}
+                        <div class="spec-item"><span class="spec-label">Рукав</span><span class="spec-value">{{ product.sleeve }}</span></div>
+                        {% endif %}
+                        {% if product.set_composition %}
+                        <div class="spec-item"><span class="spec-label">Состав комплекта</span><span class="spec-value">{{ product.set_composition }}</span></div>
+                        {% endif %}
+                        {% if product.care_instructions %}
+                        <div class="spec-item spec-full"><span class="spec-label">Уход за вещами</span><span class="spec-value">{{ product.care_instructions|linebreaks }}</span></div>
+                        {% endif %}
                     </div>
-                    {% endif %}
-                    {% if product.composition %}
-                    <div class="spec-item">
-                        <span class="spec-label">Состав материала</span>
-                        <span class="spec-value">{{ product.composition }}</span>
+
+                    <!-- Рваный нижний край (показывается только когда блок свёрнут) -->
+                    <div class="torn-edge" aria-hidden="true">
+                        <svg viewBox="0 0 400 20" preserveAspectRatio="none" width="100%" height="20">
+                            <path d="M0,0 L0,8 L12,14 L22,6 L35,16 L48,4 L60,12 L75,3 L88,15 L102,7 L115,13 L130,5 L145,14 L158,6 L172,15 L188,4 L200,12 L215,3 L228,14 L242,6 L256,13 L270,5 L284,15 L298,7 L312,12 L326,4 L340,14 L354,6 L368,13 L382,5 L394,12 L400,8 L400,0 Z"
+                                  fill="#f8f9fa"/>
+                        </svg>
                     </div>
-                    {% endif %}
-                    {% if product.size_on_model %}
-                    <div class="spec-item">
-                        <span class="spec-label">Размер на модели</span>
-                        <span class="spec-value">{{ product.size_on_model }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.height_on_model %}
-                    <div class="spec-item">
-                        <span class="spec-label">Рост на модели</span>
-                        <span class="spec-value">{{ product.height_on_model }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.model_params %}
-                    <div class="spec-item">
-                        <span class="spec-label">Параметры модели</span>
-                        <span class="spec-value">{{ product.model_params }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.color %}
-                    <div class="spec-item">
-                        <span class="spec-label">Цвет</span>
-                        <span class="spec-value">
-                            <span class="color-dot" style="background-color: {{ product.color|lower }};"></span>
-                            {{ product.color }}
-                        </span>
-                    </div>
-                    {% endif %}
-                    {% if product.russian_size %}
-                    <div class="spec-item">
-                        <span class="spec-label">Российский размер</span>
-                        <span class="spec-value">{{ product.russian_size }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.country %}
-                    <div class="spec-item">
-                        <span class="spec-label">Страна-изготовитель</span>
-                        <span class="spec-value">{{ product.country }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.lining_material %}
-                    <div class="spec-item">
-                        <span class="spec-label">Материал подкладки</span>
-                        <span class="spec-value">{{ product.lining_material }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.fastener_type %}
-                    <div class="spec-item">
-                        <span class="spec-label">Вид застежки</span>
-                        <span class="spec-value">{{ product.fastener_type }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.sleeve %}
-                    <div class="spec-item">
-                        <span class="spec-label">Рукав</span>
-                        <span class="spec-value">{{ product.sleeve }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.set_composition %}
-                    <div class="spec-item">
-                        <span class="spec-label">Состав комплекта</span>
-                        <span class="spec-value">{{ product.set_composition }}</span>
-                    </div>
-                    {% endif %}
-                    {% if product.care_instructions %}
-                    <div class="spec-item spec-full">
-                        <span class="spec-label">Уход за вещами</span>
-                        <span class="spec-value">{{ product.care_instructions|linebreaks }}</span>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -459,7 +431,7 @@
             </div>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-4" style="margin-top: 25px;">
             <h5>Описание</h5>
             <p>{{ product.description|linebreaks }}</p>
         </div>
@@ -1345,6 +1317,108 @@ function initThumbnailScroll() {
     });
 }
 
+function initSpecsCut() {
+    const specsBlock = document.getElementById('productSpecs');
+    const specsWrapper = document.getElementById('specsGridWrapper');
+    const specsGrid = document.getElementById('specsGrid');
+    const mainImage = document.getElementById('mainImage');
+    const mainImageWrapper = document.querySelector('.main-image-wrapper');
+    const toggleBtn = document.getElementById('specsToggleBtn');
+
+    if (!specsBlock || !specsWrapper || !specsGrid || !mainImageWrapper) {
+        console.warn('[specs-cut] не найдены нужные элементы');
+        return;
+    }
+
+    // Флаг: сейчас блок в развёрнутом состоянии пользователем?
+    let userExpanded = false;
+
+    function computeCut() {
+        // Реальная высота блока характеристик без обрезки
+        specsBlock.classList.remove('collapsed', 'expanded');
+        specsWrapper.style.maxHeight = 'none';
+
+        const specsRect = specsBlock.getBoundingClientRect();
+        const photoRect = mainImageWrapper.getBoundingClientRect();
+
+        // Насколько нижний край фото ниже верхнего края блока характеристик
+        let cut = photoRect.bottom - specsRect.top;
+
+        // Учитываем padding самого блока сверху
+        const styles = getComputedStyle(specsBlock);
+        const paddingTop = parseFloat(styles.paddingTop) || 0;
+        cut -= paddingTop;
+
+        // Уменьшаем обрезку — блок заканчивается выше низа фото
+        const OFFSET = 70;
+        cut -= OFFSET;
+
+        // Не меньше 100px — защита от бессмыслицы
+        if (cut < 100) cut = 100;
+
+        // Записываем в CSS-переменную
+        specsBlock.style.setProperty('--specs-cut', cut + 'px');
+
+        // Смотрим: реальная высота сетки больше обрезки?
+        const gridHeight = specsGrid.getBoundingClientRect().height;
+
+        console.log('[specs-cut] cut =', cut, 'grid height =', gridHeight);
+
+        if (gridHeight > cut) {
+            // Есть что обрезать — показываем кнопку
+            toggleBtn.style.display = '';
+
+            // Если пользователь развернул — возвращаем развёрнутое состояние
+            if (userExpanded) {
+                specsBlock.classList.add('expanded');
+                toggleBtn.textContent = 'Свернуть';
+            } else {
+                specsBlock.classList.add('collapsed');
+                toggleBtn.textContent = 'Развернуть';
+            }
+        } else {
+            // Характеристик мало — обрезать нечего, кнопка не нужна
+            toggleBtn.style.display = 'none';
+        }
+
+        specsWrapper.style.maxHeight = '';
+    }
+
+    // ============ ОБРАБОТЧИК КЛИКА ПО КНОПКЕ ============
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+            if (specsBlock.classList.contains('collapsed')) {
+                // Разворачиваем
+                specsBlock.classList.remove('collapsed');
+                specsBlock.classList.add('expanded');
+                toggleBtn.textContent = 'Свернуть';
+                userExpanded = true;
+            } else {
+                // Сворачиваем
+                specsBlock.classList.remove('expanded');
+                specsBlock.classList.add('collapsed');
+                toggleBtn.textContent = 'Развернуть';
+                userExpanded = false;
+            }
+        });
+    }
+
+    // Пересчёт при ресайзе
+    let t;
+    window.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = setTimeout(computeCut, 120);
+    });
+
+    // Ждём, пока загрузится фото — от его высоты зависит обрезка
+    if (mainImage && !mainImage.complete) {
+        mainImage.addEventListener('load', computeCut, { once: true });
+    }
+
+    // И через rAF на случай, если шрифты/картинки ещё подгружаются
+    requestAnimationFrame(() => requestAnimationFrame(computeCut));
+}
+
 // ============ ЛАЙТБОКС ============
 function initLightbox() {
     const lightbox = document.getElementById('lightbox');
@@ -1605,6 +1679,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initBuyNow();
     initThumbnailScroll();
     initLightbox();
+    initSpecsCut();
 });
 
 
@@ -2115,6 +2190,9 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 16px;
     padding: 20px;
     border: 1px solid #e9ecef;
+    position: relative;
+    /* --specs-cut задаётся из JS: высота обрезки */
+    --specs-cut: 450px;
 }
 
 .specs-title {
@@ -2441,6 +2519,138 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .quality-item .btn {
     white-space: nowrap;
+}
+
+.specs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.specs-header .specs-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    border-bottom: none;
+}
+
+/* Кнопка Развернуть/Свернуть — пилюля с шевроном */
+.specs-toggle-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 6px 12px;
+    color: #007bff;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    line-height: 1;
+}
+
+/* Шеврон — через псевдоэлемент, чтобы не менять HTML */
+.specs-toggle-link::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.3s ease;
+    margin-left: 2px;
+}
+
+.specs-toggle-link:hover {
+    background: #eaf4ff;
+    border-color: #cfe6ff;
+    color: #0056b3;
+}
+
+.specs-toggle-link:active {
+    background: #dceaff;
+}
+
+.specs-toggle-link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Когда блок развёрнут — шеврон крутится вверх */
+.product-specs.expanded .specs-toggle-link::after {
+    transform: rotate(-135deg) translateY(-2px);
+}
+
+/* Обёртка сетки — её и обрезаем */
+.specs-grid-wrapper {
+    position: relative;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+/* Свёрнутое состояние: max-height = переменная из JS */
+.product-specs.collapsed .specs-grid-wrapper {
+    max-height: var(--specs-cut);
+}
+
+/* Развёрнутое состояние — показываем всё */
+.product-specs.expanded .specs-grid-wrapper {
+    max-height: 5000px;
+}
+
+/* Рваный край — виден только когда свёрнуто */
+.torn-edge {
+    display: none;
+    position: absolute;
+    left: -20px;         /* компенсируем padding .product-specs */
+    right: -20px;
+    bottom: 0;
+    height: 20px;
+    pointer-events: none;
+    line-height: 0;
+}
+.torn-edge svg { display: block; width: 100%; height: 20px; }
+
+.product-specs.collapsed .torn-edge { display: block; }
+
+/* В развёрнутом — прячем */
+.product-specs.expanded .torn-edge { display: none; }
+
+/* Сетка */
+.specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+}
+.spec-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.spec-item:last-child { border-bottom: none; }
+.spec-full { grid-column: 1 / -1; }
+.spec-label { color: #6c757d; font-size: 14px; }
+.spec-value { color: #212529; font-size: 14px; font-weight: 500; text-align: right; word-break: break-word; }
+.color-dot {
+    display: inline-block; width: 16px; height: 16px;
+    border-radius: 50%; border: 1px solid #ddd;
+    margin-right: 6px; vertical-align: middle;
+}
+
+@media (max-width: 576px) {
+    .specs-grid { grid-template-columns: 1fr; gap: 8px; }
+    .spec-item { flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 0; }
+    .spec-value { text-align: left; }
 }
 </style>
 {% endblock %}

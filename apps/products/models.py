@@ -95,6 +95,36 @@ class Product(models.Model):
     def get_videos(self):
         return self.videos.all()
 
+    def get_color_hex(self):
+        """Возвращает HEX-код для CSS по названию цвета."""
+        colors = {
+            'красный': '#e53935',
+            'синий': '#1e88e5',
+            'зелёный': '#43a047',
+            'черный': '#212121',
+            'чёрный': '#212121',
+            'белый': '#ffffff',
+            'серый': '#9e9e9e',
+            'бежевый': '#d7ccc8',
+            'коричневый': '#6d4c41',
+            'розовый': '#ec407a',
+            'голубой': '#4fc3f7',
+            'желтый': '#fdd835',
+            'жёлтый': '#fdd835',
+            'оранжевый': '#fb8c00',
+            'фиолетовый': '#8e24aa',
+            'бордовый': '#7b1e28',
+            'молочный': '#faf6f0',
+            'хаки': '#8b8b52',
+            'золотой': '#d4af37',
+            'серебряный': '#c0c0c0',
+        }
+        if not self.color:
+            return '#ccc'
+        # Приводим к нижнему регистру и убираем пробелы по краям
+        key = self.color.strip().lower()
+        return colors.get(key, '#ccc')
+
     def save(self, *args, **kwargs):
         # Только генерируем slug, НЕ трогаем путь к изображению
         if not self.slug and self.name:
