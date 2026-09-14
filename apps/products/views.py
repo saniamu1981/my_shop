@@ -1,8 +1,10 @@
+import datetime
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .models import Category, Product, Favorite, Review
 from django.conf import settings
 from apps.orders.models import Order
@@ -298,3 +300,97 @@ def delete_review(request, review_id):
         return redirect('products:product_detail', category_slug=product.category.slug, product_slug=product.slug)
 
     return redirect('products:product_detail', category_slug=product.category.slug, product_slug=product.slug)
+
+
+def yandex_feed(request):
+    products = Product.objects.filter(available=True).select_related('category')
+    categories = Category.objects.all()
+
+    # Формируем XML
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<!DOCTYPE yml_catalog SYSTEM "shops.dtd">\n'
+    xml += '<yml_catalog date="{}">\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+    xml += '  <shop>\n'
+    xml += '    <name>Maidlingerie</name>\n'  # Название магазина, до 23 символов [citation:10]
+    xml += '    <company>Maidlingerie</company>\n'
+    xml += '    <url>https://ваш-сайт.ru</url>\n'
+    xml += '    <currencies>\n'
+    xml += '      <currency id="RUB" rate="1"/>\n'
+    xml += '    </currencies>\n'
+
+    # Категории
+    xml += '    <categories>\n'
+    for cat in categories:
+        xml += f'      <category id="{cat.id}">{cat.name}</category>\n'
+    xml += '    </categories>\n'
+
+    # Товары (Офферы)
+    xml += '    <offers>\n'
+    for product in products:
+        xml += f'      <offer id="{product.id}" available="true">\n'
+        xml += f'        <url>https://ваш-сайт.ru{product.get_absolute_url()}</url>\n'
+        xml += f'        <price>{int(product.price)}</price>\n'
+        xml += f'        <currencyId>RUB</currencyId>\n'
+        xml += f'        <categoryId>{product.category.id}</categoryId>\n'
+        if product.image:
+            xml += f'        <picture>https://ваш-сайт.ru{product.image.url}</picture>\n'
+        xml += f'        <name>{product.name[:150]}</name>\n'  # Лимит 150 символов [citation:11]
+        xml += f'        <description><![CDATA[{product.description[:3000]}]]></description>\n'
+        xml += f'        <vendor>Maidlingerie</vendor>\n'
+        xml += f'        <country_of_origin>{product.country or "Россия"}</country_of_origin>\n'
+
+        # Параметры для одежды (обязательно для Яндекс.Товаров) [citation:5]
+        if product.russian_size:
+            xml += f'        <param name="Размер">{product.russian_size}</param>\n'
+        if product.color:
+            xml += f'        <param name="Цвет">{product.color}</param>\n'
+
+        xml += '      </offer>\n'
+    xml += '    </offers>\n'
+    xml += '  </shop>\n'
+    xml += '</yml_catalog>'
+
+    return HttpResponse(xml, content_type='application/xml')
+
+
+# apps/products/views.py
+def google_merchant_feed(request):
+    products = Product.objects.filter(available=True).select_related('category')
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n'
+    xml += '<channel>\n'
+    xml += '  <title>Maidlingerie</title>\n'
+    xml += '  <link>https://ваш-сайт.ru</link>\n'
+    xml += '  <description>Женская одежда, белье, костюмы</description>\n'
+
+    for product in products:
+        # Определяем наличие
+        availability = 'in_stock' if product.has_sizes_in_stock or not product.has_any_sizes else 'out_of_stock'
+
+        xml += '  <item>\n'
+        xml += f'    <g:id>{product.id}</g:id>\n'
+        xml += f'    <g:title>{product.name[:150]}</g:title>\n'  # Лимит 150 [citation:8][citation:11]
+        xml += f'    <g:description><![CDATA[{product.description[:5000]}]]></g:description>\n'  # Лимит 5000 [citation:11]
+        xml += f'    <g:link>https://ваш-сайт.ru{product.get_absolute_url()}</g:link>\n'
+        if product.image:
+            xml += f'    <g:image_link>https://ваш-сайт.ru{product.image.url}</g:image_link>\n'
+        xml += f'    <g:price>{product.price} RUB</g:price>\n'  # Валюта ISO 4217 [citation:11]
+        xml += f'    <g:availability>{availability}</g:availability>\n'  # Только 4 значения [citation:11]
+        xml += f'    <g:condition>new</g:condition>\n'
+        xml += f'    <g:brand>Maidlingerie</g:brand>\n'
+        xml += f'    <g:google_product_category>Apparel &amp; Accessories</g:google_product_category>\n'
+
+        # Для одежды обязательны цвет и размер [citation:8]
+        if product.color:
+            xml += f'    <g:color>{product.color}</g:color>\n'
+        if product.russian_size:
+            xml += f'    <g:size>{product.russian_size}</g:size>\n'
+        xml += f'    <g:gender>female</g:gender>\n'
+        xml += f'    <g:age_group>adult</g:age_group>\n'
+
+        xml += '  </item>\n'
+    xml += '</channel>\n'
+    xml += '</rss>'
+
+    return HttpResponse(xml, content_type='application/xml')
