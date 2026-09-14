@@ -11,15 +11,6 @@
 
 <div class="row mt-4">
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h3>🛒</h3>
-                <h5>Ассортимент</h5>
-                <p>Тысячи товаров в различных категориях</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
         <div class="card delivery-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#deliveryInfoModal">
             <div class="card-body text-center">
                 <h3>🚚</h3>
@@ -32,11 +23,26 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
+        <div class="card return-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#returnInfoModal">
+            <div class="card-body text-center">
+                <h3>🔄</h3>
+                <h5>Возврат</h5>
+                <p class="mb-0">14 дней на возврат товара</p>
+                <small class="text-primary mt-2 d-inline-block">
+                    Подробнее →
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card payment-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#paymentInfoModal">
             <div class="card-body text-center">
                 <h3>💳</h3>
                 <h5>Оплата</h5>
-                <p>Различные способы оплаты</p>
+                <p class="mb-0">Удобные способы оплаты</p>
+                <small class="text-primary mt-2 d-inline-block">
+                    Подробнее →
+                </small>
             </div>
         </div>
     </div>
@@ -132,6 +138,170 @@
     </div>
 </div>
 
+<!-- Модальное окно «Возврат» -->
+<div class="modal fade" id="returnInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🔄 Возврат товара</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="alert alert-info mb-4">
+                    <strong>14 дней</strong> на возврат товара надлежащего качества
+                    с момента получения заказа.
+                </div>
+
+                <!-- Условия возврата -->
+                <h6 class="fw-bold mb-3">📋 Условия возврата</h6>
+                <ul class="delivery-list mb-4">
+                    <li>Товар не был в использовании, сохранены его потребительские свойства.</li>
+                    <li>Сохранена оригинальная упаковка, ярлыки и бирки.</li>
+                    <li>Есть подтверждение покупки (номер заказа в личном кабинете).</li>
+                    <li>Возврат осуществляется по адресу: <strong>г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1</strong>.</li>
+                </ul>
+
+                <hr>
+
+                <!-- Что нельзя вернуть -->
+                <h6 class="fw-bold mb-3">🚫 Товары, не подлежащие возврату</h6>
+                <ul class="delivery-list mb-4">
+                    <li>Нижнее бельё и чулочно-носочные изделия (согласно Постановлению Правительства РФ №2463).</li>
+                    <li>Товары, изготовленные по индивидуальному заказу.</li>
+                    <li>Товары с повреждённой упаковкой или следами использования.</li>
+                </ul>
+
+                <hr>
+
+                <!-- Как оформить возврат -->
+                <h6 class="fw-bold mb-3">🛠 Как оформить возврат</h6>
+                <ol class="delivery-list mb-4" style="padding-left: 22px;">
+                    <li>Напишите нам на почту или в мессенджер, указав номер заказа и причину возврата.</li>
+                    <li>Мы согласуем способ передачи товара: самовывоз, СДЭК или почта России.</li>
+                    <li>Отправьте товар по согласованному адресу.</li>
+                    <li>После проверки товара мы вернём деньги в течение <strong>10 календарных дней</strong> тем же способом, которым была произведена оплата.</li>
+                </ol>
+
+                <hr>
+
+                <!-- Возврат денег -->
+                <h6 class="fw-bold mb-3">💰 Возврат денежных средств</h6>
+                <ul class="delivery-list mb-4">
+                    <li>Срок возврата — до 10 календарных дней с момента получения товара на наш склад.</li>
+                    <li>Стоимость доставки возврату не подлежит (кроме случаев брака или ошибки магазина).</li>
+                    <li>При возврате товара ненадлежащего качества расходы на пересылку берёт на себя магазин.</li>
+                </ul>
+
+                <hr>
+
+                <!-- Контакты -->
+                <h6 class="fw-bold mb-3">📞 Контакты для связи</h6>
+                <p class="mb-1">
+                    По вопросам возврата: <strong>+7 (921) 847-99-07</strong>
+                </p>
+                <p class="mb-0 text-muted small">
+                    Ежедневно с 10:00 до 20:00
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно «Оплата» -->
+<div class="modal fade" id="paymentInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">💳 Оплата</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- Способы оплаты -->
+                <h6 class="fw-bold mb-3">💳 Доступные способы оплаты</h6>
+
+                <div class="delivery-option mb-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="delivery-option-icon">💳</div>
+                        <div>
+                            <div class="fw-semibold">Банковская карта онлайн</div>
+                            <div class="text-muted small">
+                                Оплата картами Visa, MasterCard, МИР и UnionPay прямо на сайте
+                                сразу после оформления заказа. Платёж проходит через защищённое
+                                соединение, данные карты не сохраняются.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="delivery-option mb-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="delivery-option-icon">📦</div>
+                        <div>
+                            <div class="fw-semibold">Оплата при получении (наложенный платёж)</div>
+                            <div class="text-muted small">
+                                Оплатите заказ при получении в пункте выдачи СДЭК или курьеру.
+                                Можно осмотреть и примерить товар перед оплатой [citation:4][citation:7].
+                                Доступно при выборе доставки СДЭК.
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <strong>Важно:</strong> сумма наложенного платежа не может превышать
+                                стоимость заказа. Комиссию за перевод оплачивает покупатель [citation:2].
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="delivery-option mb-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="delivery-option-icon">🏪</div>
+                        <div>
+                            <div class="fw-semibold">Оплата при самовывозе</div>
+                            <div class="text-muted small">
+                                Наличными или банковской картой в пункте самовывоза по адресу:
+                                <strong>г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1</strong>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Безопасность -->
+                <h6 class="fw-bold mb-3">🔒 Безопасность платежей</h6>
+                <ul class="delivery-list mb-4">
+                    <li>Онлайн-оплата проходит через сертифицированный платёжный шлюз.</li>
+                    <li>Данные банковской карты передаются по защищённому соединению (HTTPS/SSL).</li>
+                    <li>Магазин не получает и не хранит данные вашей карты.</li>
+                    <li>После успешной оплаты вы получаете электронный чек на указанную почту.</li>
+                </ul>
+
+                <hr>
+
+                <!-- Контакты -->
+                <h6 class="fw-bold mb-3">📞 Контакты</h6>
+                <p class="mb-1">
+                    По вопросам оплаты: <strong>+7 (921) 847-99-07</strong>
+                </p>
+                <p class="mb-0 text-muted small">
+                    Ежедневно с 10:00 до 20:00
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .delivery-card {
     cursor: pointer;
@@ -166,6 +336,45 @@
     margin-bottom: 6px;
     font-size: 14px;
     color: #495057;
+}
+
+.delivery-card,
+.return-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.delivery-card:hover,
+.return-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.delivery-card:focus,
+.return-card:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.25);
+}
+
+.delivery-card,
+.return-card,
+.payment-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.delivery-card:hover,
+.return-card:hover,
+.payment-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.delivery-card:focus,
+.return-card:focus,
+.payment-card:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.25);
 }
 </style>
 
