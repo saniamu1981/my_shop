@@ -63,13 +63,14 @@
                                     <a href="{% url 'cart:cart_remove' item.product.id %}?size={{ item.size|default:'' }}" class="btn btn-sm btn-danger">Удалить</a>
 
                                     <!-- Кнопка "Купить сейчас" для каждого товара -->
-                                    <form action="{% url 'orders:buy_now' item.product.id %}" method="post" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-warning"
-                                                style="background: linear-gradient(135deg, #ff6b00, #ff9a00); color: white; border: none; font-weight: 600; width: 100%;">
-                                            ⚡ Купить
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-sm btn-warning buy-now-btn"
+                                            data-product-id="{{ item.product.id }}"
+                                            data-size="{{ item.size|default:'' }}"
+                                            data-buy-url="{% url 'orders:buy_now' item.product.id %}"
+                                            style="background: linear-gradient(135deg, #ff6b00, #ff9a00); color: white; border: none; font-weight: 600; width: 100%;">
+                                        ⚡ Купить
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -90,12 +91,12 @@
                 <a href="{% url 'products:product_list' %}" class="btn btn-secondary">Продолжить покупки</a>
             </div>
             <div class="col-md-6 text-end">
-                <a href="{% url 'orders:create_order' %}"
-                   class="btn btn-success btn-lg"
-                   id="checkoutBtn"
-                   data-checkout-url="{% url 'orders:create_order' %}">
+                <button type="button"
+                        class="btn btn-success btn-lg"
+                        id="checkoutBtn"
+                        data-checkout-url="{% url 'orders:create_order' %}">
                     Оформить заказ
-                </a>
+                </button>
             </div>
         </div>
     {% else %}
@@ -105,6 +106,87 @@
             <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">Перейти в каталог</a>
         </div>
     {% endif %}
+</div>
+
+<!-- Модалка выбора способа доставки -->
+<div class="modal fade" id="deliverySelectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🚚 Выберите способ доставки</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3" id="deliveryModalProductName"></p>
+
+                <!-- Способ доставки -->
+                <div class="delivery-methods d-flex flex-wrap gap-2 mb-3">
+                    <label class="delivery-method-option">
+                        <input type="radio" name="modal_delivery" value="sdek" style="display:none;">
+                        <span class="dm-content">
+                            <i class="bi bi-box-seam"></i>
+                            <span>📦 СДЭК</span>
+                        </span>
+                    </label>
+                    <label class="delivery-method-option">
+                        <input type="radio" name="modal_delivery" value="pickup" style="display:none;">
+                        <span class="dm-content">
+                            <i class="bi bi-shop"></i>
+                            <span>🏪 Самовывоз</span>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- СДЭК: выбор области/города/пункта -->
+                <div id="modal-cdek-container" style="display:none;">
+                    <div style="margin-bottom:6px;">
+                        <select id="modal-cdek-region" class="form-select form-select-sm">
+                            <option value="">-- Выберите область --</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:6px;">
+                        <select id="modal-cdek-city" class="form-select form-select-sm" disabled>
+                            <option value="">-- Сначала выберите область --</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:6px;">
+                        <input type="text" id="modal-cdek-search" class="form-control form-control-sm"
+                               placeholder="🔍 Поиск по адресу или названию..." disabled>
+                    </div>
+                    <div id="modal-cdek-points" style="max-height:220px; overflow-y:auto; display:none;
+                                border:1px solid #e0e0e0; border-radius:8px; background:#fff;"></div>
+                    <div id="modal-cdek-selected" style="margin-top:8px; padding:8px 12px; background:#d4edda;
+                                border:1px solid #c3e6cb; border-radius:6px; font-size:13px; display:none;">
+                        <strong>✅ Выбран:</strong> <span id="modal-cdek-selected-addr"></span>
+                    </div>
+                </div>
+
+                <!-- Самовывоз -->
+                <div id="modal-pickup-container" style="display:none;">
+                    <div style="padding:12px; background:#f8fff8; border:1px solid #28a745; border-radius:8px;">
+                        <p class="mb-1" style="font-size:14px;">
+                            <strong>📍 Адрес:</strong>
+                            г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1
+                        </p>
+                        <p class="mb-0" style="font-size:14px;">
+                            <strong>📞 Телефон:</strong>
+                            +7 (921) 847-99-07
+                        </p>
+                    </div>
+                </div>
+
+                <div class="text-danger small mt-3" id="deliveryModalError" style="display:none;">
+                    Пожалуйста, выберите способ доставки и пункт выдачи.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="deliveryModalConfirm" disabled>
+                    Продолжить
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Модалка оферты -->
@@ -135,6 +217,45 @@
 </div>
 
 <style>
+.delivery-method-option {
+    cursor: pointer;
+    display: inline-block;
+    flex: 1 0 140px;
+}
+.delivery-method-option input[type="radio"]:checked + .dm-content {
+    background: #e7f5ff;
+    border-color: #007bff;
+    color: #007bff;
+}
+.dm-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    background: #fff;
+}
+.dm-content:hover {
+    border-color: #007bff;
+}
+.modal-cdek-point-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.modal-cdek-point-item:hover { background: #f8f9fa; }
+.modal-cdek-point-item.selected { background: #e7f5ff; border-left: 3px solid #007bff; }
+.modal-cdek-point-item .name { font-size: 13px; font-weight: 500; color: #333; }
+.modal-cdek-point-item .addr { font-size: 11px; color: #666; }
+</style>
+
+<style>
 @media (max-width: 768px) {
     .table-responsive .d-flex {
         flex-direction: column;
@@ -163,72 +284,382 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    if (!checkoutBtn) return;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
 
+    // ============ ЭЛЕМЕНТЫ МОДАЛА ============
+    const deliveryModalEl = document.getElementById('deliverySelectModal');
+    const deliveryModal = deliveryModalEl ? new bootstrap.Modal(deliveryModalEl) : null;
+
+    const productNameEl = document.getElementById('deliveryModalProductName');
+    const cdekContainer = document.getElementById('modal-cdek-container');
+    const pickupContainer = document.getElementById('modal-pickup-container');
+    const errorEl = document.getElementById('deliveryModalError');
+    const confirmBtn = document.getElementById('deliveryModalConfirm');
+
+    const regionSelect = document.getElementById('modal-cdek-region');
+    const citySelect = document.getElementById('modal-cdek-city');
+    const searchInput = document.getElementById('modal-cdek-search');
+    const pointsList = document.getElementById('modal-cdek-points');
+    const selectedBox = document.getElementById('modal-cdek-selected');
+    const selectedAddr = document.getElementById('modal-cdek-selected-addr');
+
+    // Модал оферты
     const offerWarningModalEl = document.getElementById('offerWarningModal');
     const offerWarningModal = offerWarningModalEl ? new bootstrap.Modal(offerWarningModalEl) : null;
     const offerGoBtn = document.getElementById('offerGoBtn');
 
-    checkoutBtn.addEventListener('click', function (e) {
-        e.preventDefault();
+    // ============ СОСТОЯНИЕ ============
+    let currentAction = null; // { type: 'buy', productId, size, buyUrl } | { type: 'checkout', checkoutUrl }
+    let selectedDelivery = null;
+    let selectedCdekPoint = null;
+    let modalAllPoints = [];
 
-        const url = this.dataset.checkoutUrl;
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    // ============ ОТКРЫТИЕ МОДАЛА ============
+    function openDeliveryModal(action, productName) {
+        currentAction = action;
+        selectedDelivery = null;
+        selectedCdekPoint = null;
+        modalAllPoints = [];
 
-        // Делаем GET на create_order, чтобы получить ответ без POST:
-        // при AJAX view вернёт JSON с offer_required или редирект
-        fetch(url, {
+        productNameEl.textContent = productName || '';
+        cdekContainer.style.display = 'none';
+        pickupContainer.style.display = 'none';
+        errorEl.style.display = 'none';
+        selectedBox.style.display = 'none';
+        pointsList.style.display = 'none';
+        pointsList.innerHTML = '';
+        confirmBtn.disabled = true;
+
+        // Сброс radio
+        document.querySelectorAll('input[name="modal_delivery"]').forEach(r => r.checked = false);
+
+        // Один раз загружаем области
+        if (regionSelect.options.length <= 1) {
+            loadModalRegions();
+        }
+
+        deliveryModal.show();
+    }
+
+    // «⚡ Купить»
+    document.querySelectorAll('.buy-now-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            openDeliveryModal({
+                type: 'buy',
+                productId: this.dataset.productId,
+                size: this.dataset.size || '',
+                buyUrl: this.dataset.buyUrl,
+            }, 'Товар: ' + (this.closest('tr')?.querySelector('a.fw-medium')?.textContent.trim() || ''));
+        });
+    });
+
+    // «Оформить заказ»
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', function () {
+            openDeliveryModal({
+                type: 'checkout',
+                checkoutUrl: this.dataset.checkoutUrl,
+            }, 'Оформление заказа из корзины');
+        });
+    }
+
+    // ============ ВЫБОР СПОСОБА ДОСТАВКИ ============
+    document.querySelectorAll('input[name="modal_delivery"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            selectedDelivery = this.value;
+            selectedCdekPoint = null;
+            errorEl.style.display = 'none';
+
+            if (this.value === 'sdek') {
+                cdekContainer.style.display = 'block';
+                pickupContainer.style.display = 'none';
+                confirmBtn.disabled = true;
+            } else if (this.value === 'pickup') {
+                pickupContainer.style.display = 'block';
+                cdekContainer.style.display = 'none';
+                confirmBtn.disabled = false;
+            }
+        });
+    });
+
+    // ============ СДЭК: ЗАГРУЗКА ОБЛАСТЕЙ / ГОРОДОВ / ПУНКТОВ ============
+    function loadModalRegions() {
+        fetch('/delivery/api/regions/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            regionSelect.innerHTML = '<option value="">-- Выберите область --</option>';
+            (data.regions || []).forEach(reg => {
+                const opt = document.createElement('option');
+                opt.value = reg.name;
+                opt.textContent = reg.name;
+                regionSelect.appendChild(opt);
+            });
+        })
+        .catch(err => {
+            console.error('regions:', err);
+            regionSelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
+        });
+    }
+
+    regionSelect.addEventListener('change', function () {
+        const regionName = this.value;
+        selectedCdekPoint = null;
+        selectedBox.style.display = 'none';
+        confirmBtn.disabled = true;
+        pointsList.style.display = 'none';
+        pointsList.innerHTML = '';
+        searchInput.value = '';
+        searchInput.disabled = true;
+
+        if (!regionName) {
+            citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
+            citySelect.disabled = true;
+            return;
+        }
+
+        citySelect.innerHTML = '<option value="">-- Загрузка... --</option>';
+        citySelect.disabled = true;
+
+        fetch(`/delivery/api/cities/?region_name=${encodeURIComponent(regionName)}`,
+              { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            citySelect.innerHTML = '<option value="">-- Выберите город --</option>';
+            (data.cities || []).forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city.name;
+                opt.textContent = city.name;
+                citySelect.appendChild(opt);
+            });
+            citySelect.disabled = (data.cities || []).length === 0;
+        })
+        .catch(err => {
+            console.error('cities:', err);
+            citySelect.innerHTML = '<option value="">-- Ошибка --</option>';
+        });
+    });
+
+    citySelect.addEventListener('change', function () {
+        const cityName = this.value;
+        selectedCdekPoint = null;
+        selectedBox.style.display = 'none';
+        confirmBtn.disabled = true;
+
+        if (!cityName) {
+            pointsList.style.display = 'none';
+            searchInput.disabled = true;
+            return;
+        }
+
+        pointsList.style.display = 'block';
+        pointsList.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>';
+        searchInput.disabled = true;
+        searchInput.value = '';
+
+        fetch(`/delivery/api/cdek-points/?city_name=${encodeURIComponent(cityName)}`,
+              { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            modalAllPoints = data.points || [];
+            renderModalPoints(modalAllPoints);
+            searchInput.disabled = false;
+        })
+        .catch(err => {
+            console.error('points:', err);
+            pointsList.innerHTML = '<div class="text-center py-3 text-danger">Ошибка загрузки</div>';
+        });
+    });
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.toLowerCase().trim();
+        if (!q) {
+            renderModalPoints(modalAllPoints);
+            return;
+        }
+        const filtered = modalAllPoints.filter(p => {
+            const txt = [
+                p.name || '', p.address || '', p.full_address || '',
+                p.city || '', p.region || '', p.work_time || '', p.phone || ''
+            ].join(' ').toLowerCase();
+            return txt.includes(q);
+        });
+        renderModalPoints(filtered);
+    });
+
+    function renderModalPoints(points) {
+        if (!points.length) {
+            pointsList.innerHTML = '<div class="text-center py-3 text-muted">Ничего не найдено</div>';
+            return;
+        }
+        pointsList.innerHTML = '';
+        points.forEach(p => {
+            const code = p.code || p.id || '';
+            const name = (p.name || '').split(',')[0].trim() || 'Пункт выдачи';
+            const addr = p.full_address || p.address || p.name || '';
+            const div = document.createElement('div');
+            div.className = 'modal-cdek-point-item';
+            div.dataset.code = code;
+            div.dataset.name = name;
+            div.dataset.address = addr;
+            div.innerHTML = `
+                <div class="name">${name}</div>
+                <div class="addr">${addr}</div>
+                ${p.work_time ? `<div class="addr">🕐 ${p.work_time}</div>` : ''}
+            `;
+            div.addEventListener('click', () => {
+                pointsList.querySelectorAll('.modal-cdek-point-item').forEach(el => el.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedCdekPoint = {
+                    code: code, name: name, address: addr,
+                };
+                selectedAddr.textContent = addr;
+                selectedBox.style.display = 'block';
+                confirmBtn.disabled = false;
+                errorEl.style.display = 'none';
+            });
+            pointsList.appendChild(div);
+        });
+    }
+
+    // ============ ПОДТВЕРЖДЕНИЕ ============
+    confirmBtn.addEventListener('click', function () {
+        if (!currentAction) return;
+
+        // Валидация
+        if (!selectedDelivery) {
+            errorEl.textContent = 'Пожалуйста, выберите способ доставки.';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (selectedDelivery === 'sdek' && !selectedCdekPoint) {
+            errorEl.textContent = 'Пожалуйста, выберите пункт выдачи СДЭК.';
+            errorEl.style.display = 'block';
+            return;
+        }
+        errorEl.style.display = 'none';
+
+        // Собираем данные пункта
+        let pointData;
+        if (selectedDelivery === 'pickup') {
+            pointData = {
+                code: 'PICKUP',
+                name: 'Самовывоз',
+                address: 'г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1',
+            };
+        } else {
+            pointData = selectedCdekPoint;
+        }
+
+        deliveryModal.hide();
+
+        if (currentAction.type === 'buy') {
+            submitBuyNow(currentAction, selectedDelivery, pointData);
+        } else if (currentAction.type === 'checkout') {
+            submitCheckout(currentAction, selectedDelivery, pointData);
+        }
+    });
+
+    // ============ BUY NOW ============
+    function submitBuyNow(action, delivery, point) {
+        // Сначала проверяем оферту — тот же GET на create_order или на buy_now
+        const formData = new FormData();
+        formData.append('size', action.size);
+        formData.append('delivery_method', delivery);
+        formData.append('delivery_point', JSON.stringify(point));
+        if (csrfToken) formData.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch(action.buyUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.offer_required) {
+                if (offerWarningModal) {
+                    if (offerGoBtn && data.offer_url) offerGoBtn.href = data.offer_url;
+                    offerWarningModal.show();
+                } else {
+                    alert(data.message || 'Необходимо принять оферту');
+                    if (data.offer_url) window.location.href = data.offer_url;
+                }
+                return;
+            }
+            if (data.success && data.redirect_url) {
+                if (typeof data.cart_count !== 'undefined') {
+                    updateCartBadge(data.cart_count);
+                }
+                window.location.href = data.redirect_url;
+                return;
+            }
+            window.location.href = action.buyUrl;
+        })
+        .catch(err => {
+            console.error('buy_now error:', err);
+            alert('Ошибка сети. Попробуйте еще раз.');
+        });
+    }
+
+    function updateCartBadge(count) {
+        const cartLink = document.querySelector('a.nav-link-custom[href*="/cart/"]');
+        if (!cartLink) return;
+        const badge = cartLink.querySelector('.badge-icon');
+        if (!badge) return;
+
+        if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('zero');
+            badge.style.display = 'flex';
+        } else {
+            badge.textContent = '0';
+            badge.classList.add('zero');
+            badge.style.display = 'none';
+        }
+    }
+
+    // ============ CHECKOUT ============
+    function submitCheckout(action, delivery, point) {
+        // Сохраним данные в sessionStorage и перейдём на create_order
+        // create_order подхватит их при рендере/создании заказа
+        sessionStorage.setItem('checkout_delivery_method', delivery);
+        sessionStorage.setItem('checkout_delivery_point', JSON.stringify(point));
+
+        // Сначала проверим оферту через AJAX
+        fetch(action.checkoutUrl, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRFToken': csrfToken || '',
             },
-            redirect: 'manual',
         })
-        .then(response => {
-            // Если сервер вернул редирект (нет оферты), response.type будет 'opaqueredirect'
-            // но обычно Django возвращает 200 с JSON — обрабатываем JSON
-            if (response.status === 200) {
-                return response.json().then(data => ({ type: 'json', data }));
-            }
-            return { type: 'other', status: response.status };
-        })
-        .then(result => {
-            if (result.type === 'json') {
-                const data = result.data;
-
-                // ==== Оферта не принята ====
-                if (data.offer_required) {
-                    if (offerWarningModal) {
-                        if (offerGoBtn && data.offer_url) {
-                            offerGoBtn.href = data.offer_url;
-                        }
-                        offerWarningModal.show();
-                    } else {
-                        alert(data.message || 'Необходимо принять оферту');
-                        if (data.offer_url) window.location.href = data.offer_url;
-                    }
-                    return;
+        .then(r => r.json())
+        .then(data => {
+            if (data.offer_required) {
+                if (offerWarningModal) {
+                    if (offerGoBtn && data.offer_url) offerGoBtn.href = data.offer_url;
+                    offerWarningModal.show();
+                } else {
+                    alert(data.message || 'Необходимо принять оферту');
+                    if (data.offer_url) window.location.href = data.offer_url;
                 }
-
-                // ==== Успех (если view вернул redirect_url) ====
-                if (data.success && data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                    return;
-                }
+                return;
             }
-
-            // ==== Fallback: обычный переход по ссылке ====
-            // Сработает, если ответ не JSON, а обычный редирект/страница
-            window.location.href = url;
+            if (data.empty_cart) {
+                window.location.href = data.redirect_url || '/products/';
+                return;
+            }
+            // Идём на страницу оформления
+            window.location.href = data.redirect_url || action.checkoutUrl;
         })
-        .catch(error => {
-            console.error('Ошибка проверки оферты:', error);
-            // Если что-то пошло не так — просто идём по ссылке как раньше
-            window.location.href = url;
+        .catch(err => {
+            console.error('checkout error:', err);
+            window.location.href = action.checkoutUrl;
         });
-    });
+    }
 });
 </script>
 {% endblock %}

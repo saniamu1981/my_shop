@@ -7,17 +7,30 @@ from django.utils import timezone
 
 from apps.accounts.models import Offer
 from apps.orders.models import Order
+from apps.products.models import Review
 
 
 @login_required
 def profile(request):
     orders = Order.objects.filter(user=request.user).order_by('-created')
-    active_offer = Offer.objects.filter(is_active=True).first()
 
-    # Принята ли активная оферта?
-    offer_accepted = False
-    if active_offer and request.user.offer_accepted_id == active_offer.id:
-        offer_accepted = True
+    for order in orders:
+        order_product_ids = set(order.items.values_list('product_id', flat=True))
+
+        reviewed_ids_in_order = set(
+            Review.objects.filter(
+                user=request.user,
+                order=order,
+                product_id__in=order_product_ids
+            ).values_list('product_id', flat=True)
+        )
+
+        order.has_unreviewed_items = bool(order_product_ids - reviewed_ids_in_order)
+
+    active_offer = Offer.objects.filter(is_active=True).first()
+    offer_accepted = bool(
+        active_offer and request.user.offer_accepted_id == active_offer.id
+    )
 
     return render(request, 'accounts/profile.html', {
         'orders': orders,

@@ -56,4 +56,15 @@
         </div>
     </div>
 </div>
+
+<input type="hidden" name="delivery_method" id="checkout_delivery_method">
+<input type="hidden" name="delivery_point" id="checkout_delivery_point">
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const m = sessionStorage.getItem('checkout_delivery_method') || '';
+    const p = sessionStorage.getItem('checkout_delivery_point') || '{}';
+    document.getElementById('checkout_delivery_method').value = m;
+    document.getElementById('checkout_delivery_point').value = p;
+});
+</script>
 {% endblock %}

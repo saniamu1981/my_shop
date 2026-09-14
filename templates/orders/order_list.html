@@ -80,22 +80,17 @@
 
                                     <!-- Отзывы для доставленных заказов -->
                                     {% if order.status == 'delivered' %}
-                                        {% for item in order.items.all %}
-                                            {% if item|has_user_review:user %}
-                                                <!-- НЕ КЛИКАБЕЛЬНАЯ надпись - такого же размера как кнопки -->
-                                                <span class="btn btn-sm btn-success" style="cursor: default; user-select: none; pointer-events: none; opacity: 0.8;">
-                                                    ✅ Отзыв оставлен
-                                                </span>
-                                            {% else %}
-                                                <!-- КЛИКАБЕЛЬНАЯ кнопка -->
-                                                <a href="{% url 'orders:add_review' %}?order_id={{ order.id }}"
-                                                   class="btn btn-sm btn-warning">
-                                                    ⭐ Оставить отзыв
-                                                </a>
-                                            {% endif %}
-                                        {% empty %}
-                                            <span class="text-muted small">Нет товаров</span>
-                                        {% endfor %}
+                                        {% if order.has_unreviewed_items %}
+                                            <a href="{% url 'orders:add_review' %}?order_id={{ order.id }}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                ⭐ Оставить отзыв
+                                            </a>
+                                        {% else %}
+                                            <span class="badge bg-success"
+                                                  style="font-size: 14px; font-weight: 400; padding: 7px 10px; border-radius: 4px;">
+                                                ✅ Отзыв оставлен
+                                            </span>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </td>
