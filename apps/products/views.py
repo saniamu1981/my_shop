@@ -313,7 +313,7 @@ def yandex_feed(request):
     xml += '  <shop>\n'
     xml += '    <name>Maidlingerie</name>\n'  # Название магазина, до 23 символов [citation:10]
     xml += '    <company>Maidlingerie</company>\n'
-    xml += '    <url>https://ваш-сайт.ru</url>\n'
+    xml += '    <url>https://maidlingerie.ru</url>\n'
     xml += '    <currencies>\n'
     xml += '      <currency id="RUB" rate="1"/>\n'
     xml += '    </currencies>\n'
@@ -328,12 +328,12 @@ def yandex_feed(request):
     xml += '    <offers>\n'
     for product in products:
         xml += f'      <offer id="{product.id}" available="true">\n'
-        xml += f'        <url>https://ваш-сайт.ru{product.get_absolute_url()}</url>\n'
+        xml += f'        <url>https://maidlingerie.ru{product.get_absolute_url()}</url>\n'
         xml += f'        <price>{int(product.price)}</price>\n'
         xml += f'        <currencyId>RUB</currencyId>\n'
         xml += f'        <categoryId>{product.category.id}</categoryId>\n'
         if product.image:
-            xml += f'        <picture>https://ваш-сайт.ru{product.image.url}</picture>\n'
+            xml += f'        <picture>https://maidlingerie.ru{product.image.url}</picture>\n'
         xml += f'        <name>{product.name[:150]}</name>\n'  # Лимит 150 символов [citation:11]
         xml += f'        <description><![CDATA[{product.description[:3000]}]]></description>\n'
         xml += f'        <vendor>Maidlingerie</vendor>\n'
@@ -361,7 +361,7 @@ def google_merchant_feed(request):
     xml += '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n'
     xml += '<channel>\n'
     xml += '  <title>Maidlingerie</title>\n'
-    xml += '  <link>https://ваш-сайт.ru</link>\n'
+    xml += '  <link>https://maidlingerie.ru</link>\n'
     xml += '  <description>Женская одежда, белье, костюмы</description>\n'
 
     for product in products:
@@ -372,9 +372,9 @@ def google_merchant_feed(request):
         xml += f'    <g:id>{product.id}</g:id>\n'
         xml += f'    <g:title>{product.name[:150]}</g:title>\n'  # Лимит 150 [citation:8][citation:11]
         xml += f'    <g:description><![CDATA[{product.description[:5000]}]]></g:description>\n'  # Лимит 5000 [citation:11]
-        xml += f'    <g:link>https://ваш-сайт.ru{product.get_absolute_url()}</g:link>\n'
+        xml += f'    <g:link>https://maidlingerie.ru{product.get_absolute_url()}</g:link>\n'
         if product.image:
-            xml += f'    <g:image_link>https://ваш-сайт.ru{product.image.url}</g:image_link>\n'
+            xml += f'    <g:image_link>https://maidlingerie.ru{product.image.url}</g:image_link>\n'
         xml += f'    <g:price>{product.price} RUB</g:price>\n'  # Валюта ISO 4217 [citation:11]
         xml += f'    <g:availability>{availability}</g:availability>\n'  # Только 4 значения [citation:11]
         xml += f'    <g:condition>new</g:condition>\n'
