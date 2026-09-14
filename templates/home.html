@@ -14,17 +14,20 @@
         <div class="card">
             <div class="card-body text-center">
                 <h3>🛒</h3>
-                <h5>Широкий ассортимент</h5>
+                <h5>Ассортимент</h5>
                 <p>Тысячи товаров в различных категориях</p>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
+        <div class="card delivery-card" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#deliveryInfoModal">
             <div class="card-body text-center">
                 <h3>🚚</h3>
-                <h5>Быстрая доставка</h5>
-                <p>Доставляем по всей стране</p>
+                <h5>Доставка</h5>
+                <p class="mb-0">Доставляем по всей стране</p>
+                <small class="text-primary mt-2 d-inline-block">
+                    Подробнее →
+                </small>
             </div>
         </div>
     </div>
@@ -32,10 +35,150 @@
         <div class="card">
             <div class="card-body text-center">
                 <h3>💳</h3>
-                <h5>Безопасная оплата</h5>
+                <h5>Оплата</h5>
                 <p>Различные способы оплаты</p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Модальное окно «Доставка» -->
+<div class="modal fade" id="deliveryInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🚚 Доставка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- Способы доставки -->
+                <h6 class="fw-bold mb-3">📦 Способы доставки</h6>
+
+                <div class="delivery-option mb-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="delivery-option-icon">📦</div>
+                        <div>
+                            <div class="fw-semibold">СДЭК — доставка до пункта выдачи</div>
+                            <div class="text-muted small">
+                                Доставка по всей России в удобный для вас пункт выдачи СДЭК.
+                                Выбираете пункт прямо при оформлении заказа.
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <strong>Срок:</strong> 3–7 рабочих дней в зависимости от региона.<br>
+                                <strong>Стоимость:</strong> рассчитывается при оформлении в зависимости от региона.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="delivery-option mb-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="delivery-option-icon">🏪</div>
+                        <div>
+                            <div class="fw-semibold">Самовывоз</div>
+                            <div class="text-muted small">
+                                Забрать заказ самостоятельно по адресу:
+                                <strong>г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1</strong>.
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <strong>Срок:</strong> от 1 рабочего дня после подтверждения заказа.<br>
+                                <strong>Стоимость:</strong> бесплатно.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Сроки -->
+                <h6 class="fw-bold mb-3">⏱ Сроки доставки</h6>
+                <ul class="delivery-list">
+                    <li><strong>Санкт-Петербург и ЛО:</strong> 1–2 рабочих дня</li>
+                    <li><strong>Москва и МО:</strong> 2–3 рабочих дня</li>
+                    <li><strong>Центральная Россия:</strong> 3–5 рабочих дней</li>
+                    <li><strong>Урал, Сибирь, Дальний Восток:</strong> 5–10 рабочих дней</li>
+                </ul>
+
+                <hr>
+
+                <!-- Условия -->
+                <h6 class="fw-bold mb-3">📋 Условия доставки</h6>
+                <ul class="delivery-list">
+                    <li>Заказы отправляются после подтверждения оплаты.</li>
+                    <li>Отправка производится в рабочие дни (пн–пт), кроме праздничных.</li>
+                    <li>После отправки вы получите трек-номер для отслеживания в личном кабинете.</li>
+                    <li>При получении обязательно проверьте целостность упаковки и наличие всех позиций.</li>
+                    <li>Стоимость доставки рассчитывается индивидуально в зависимости от веса, габаритов и региона.</li>
+                </ul>
+
+                <hr>
+
+                <!-- Контакты -->
+                <h6 class="fw-bold mb-3">📞 Контакты</h6>
+                <p class="mb-1">
+                    По вопросам доставки: <strong>+7 (921) 847-99-07</strong>
+                </p>
+                <p class="mb-0 text-muted small">
+                    Ежедневно с 10:00 до 20:00
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.delivery-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.delivery-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.delivery-card:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.25);
+}
+
+/* Иконки способов доставки в модалке */
+.delivery-option-icon {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 40px;
+    text-align: center;
+}
+
+/* Списки в модалке */
+.delivery-list {
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+.delivery-list li {
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #495057;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[role="button"][data-bs-toggle="modal"]').forEach(el => {
+        el.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
