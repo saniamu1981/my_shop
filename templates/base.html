@@ -232,6 +232,117 @@
                 max-width: 100%;
             }
         }
+
+    /* Зона загрузки файлов */
+    .media-upload-zone {
+        display: block;
+        width: 100%;
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 24px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s ease, background 0.2s ease;
+        background: #f8fafc;
+    }
+
+    .media-upload-zone:hover {
+        border-color: #007bff;
+        background: #eef6ff;
+    }
+
+    .media-upload-zone.dragover {
+        border-color: #007bff;
+        background: #e0efff;
+        transform: scale(1.01);
+    }
+
+    .media-upload-inner {
+        pointer-events: none;
+    }
+
+    .media-upload-icon {
+        font-size: 32px;
+        line-height: 1;
+        margin-bottom: 8px;
+    }
+
+    .media-upload-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: #334155;
+        margin-bottom: 4px;
+    }
+
+    .media-upload-hint {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+
+    /* Превью выбранных файлов */
+    .media-preview-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .media-preview-item {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background: #f1f5f9;
+    }
+
+    .media-preview-item img,
+    .media-preview-item video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Бейдж "видео" на превью */
+    .media-preview-item .media-badge {
+        position: absolute;
+        bottom: 4px;
+        left: 4px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        line-height: 1;
+    }
+
+    /* Кнопка удаления */
+    .media-preview-item .media-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(220, 53, 69, 0.9);
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .media-preview-item .media-remove:hover {
+        background: #dc3545;
+        transform: scale(1.1);
+    }
     </style>
 </head>
 <body>
@@ -362,3 +473,122 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('media-input');
+    const zone = document.getElementById('mediaUploadZone');
+    const preview = document.getElementById('mediaPreview');
+
+    if (!input || !zone || !preview) return;
+
+    // Храним выбранные файлы в отдельном массиве, чтобы удалять из него
+    let selectedFiles = [];
+
+    function syncInputFiles() {
+        // Пересоздаём DataTransfer, чтобы input отдал на сервер ровно то, что в selectedFiles
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        input.files = dt.files;
+    }
+
+    function renderPreviews() {
+        preview.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'media-preview-item';
+
+            const url = URL.createObjectURL(file);
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = file.name;
+                img.onload = () => URL.revokeObjectURL(url);
+                item.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.muted = true;
+                video.preload = 'metadata';
+                video.onloadeddata = () => URL.revokeObjectURL(url);
+                item.appendChild(video);
+
+                const badge = document.createElement('div');
+                badge.className = 'media-badge';
+                badge.textContent = '🎬 видео';
+                item.appendChild(badge);
+            } else {
+                // На всякий случай — неизвестный тип
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:11px;text-align:center;padding:8px;';
+                div.textContent = file.name;
+                item.appendChild(div);
+            }
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'media-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Удалить';
+            removeBtn.addEventListener('click', () => {
+                selectedFiles.splice(index, 1);
+                syncInputFiles();
+                renderPreviews();
+            });
+            item.appendChild(removeBtn);
+
+            preview.appendChild(item);
+        });
+    }
+
+    function addFiles(files) {
+        Array.from(files).forEach(f => {
+            // Проверка на дубликаты по имени и размеру
+            const exists = selectedFiles.some(x => x.name === f.name && x.size === f.size);
+            if (!exists) selectedFiles.push(f);
+        });
+
+        // Ограничение на 10 файлов
+        if (selectedFiles.length > 10) {
+            selectedFiles = selectedFiles.slice(0, 10);
+            alert('Можно прикрепить не более 10 файлов');
+        }
+
+        syncInputFiles();
+        renderPreviews();
+    }
+
+    input.addEventListener('change', function () {
+        // Дополняем уже выбранные новыми
+        addFiles(input.files);
+        // Очищаем нативный input, чтобы можно было повторно выбрать тот же файл
+        input.value = '';
+    });
+
+    // Drag & drop
+    ['dragenter', 'dragover'].forEach(evt => {
+        zone.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        zone.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.remove('dragover');
+        });
+    });
+
+    zone.addEventListener('drop', function (e) {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length) {
+            addFiles(dt.files);
+        }
+    });
+});
+</script>

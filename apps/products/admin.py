@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django import forms
 from django.utils.html import format_html
-from .models import Category, Product, ProductImage, ProductVideo, Favorite, ProductSize
+from .models import Category, Product, ProductImage, ProductVideo, Favorite, ProductSize, ReviewMedia, Review
 
 
 class ProductImageInline(admin.TabularInline):
@@ -129,8 +129,23 @@ class ProductVideoAdmin(admin.ModelAdmin):
     search_fields = ('title', 'product__name')
 
 
+class ReviewMediaInline(admin.TabularInline):
+    model = ReviewMedia
+    extra = 1
+    fields = ('media_type', 'image', 'video', 'thumbnail', 'order')
+    ordering = ('order',)
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('id', 'product', 'user', 'rating', 'created', 'is_approved')
+    list_filter = ('is_approved', 'rating', 'created')
+    search_fields = ('user__email', 'product__name', 'comment')
+    inlines = [ReviewMediaInline]
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('user', 'product', 'added')
     list_filter = ('added',)
     search_fields = ('user__email', 'product__name')
+
+

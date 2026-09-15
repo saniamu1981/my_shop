@@ -366,3 +366,32 @@ def set_image_local_path(sender, instance, **kwargs):
             correct_path = f'products/{instance.product.slug}/{instance.image.name.split("/")[-1]}'
             if instance.image.name != correct_path:
                 instance.image.name = correct_path
+
+
+class ReviewMedia(models.Model):
+    """Фото/видео, прикреплённые к отзыву."""
+    MEDIA_TYPE_CHOICES = (
+        ('image', 'Фото'),
+        ('video', 'Видео'),
+    )
+
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='media',
+        verbose_name='Отзыв'
+    )
+    media_type = models.CharField('Тип', max_length=10, choices=MEDIA_TYPE_CHOICES, default='image')
+    image = models.ImageField('Фото', upload_to='reviews/images/', blank=True, null=True)
+    video = models.FileField('Видео', upload_to='reviews/videos/', blank=True, null=True)
+    thumbnail = models.ImageField('Превью видео', upload_to='reviews/thumbnails/', blank=True, null=True)
+    order = models.PositiveIntegerField('Порядок', default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Медиа отзыва'
+        verbose_name_plural = 'Медиа отзывов'
+        ordering = ('order', 'created')
+
+    def __str__(self):
+        return f'{self.get_media_type_display()} для отзыва #{self.review_id}'

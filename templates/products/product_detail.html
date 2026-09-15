@@ -574,6 +574,25 @@
                             {{ review.comment }}
                         </p>
 
+                        <div class="review-media-container d-flex gap-1 mt-2 flex-wrap
+                                    {% if reviews_has_media %}with-reserved-space{% endif %}">
+                            {% for m in review.media.all|slice:":3" %}
+                                {% if m.media_type == 'image' %}
+                                    <img src="{{ m.image.url }}" alt="Фото"
+                                         data-media-url="{{ m.image.url }}"
+                                         data-media-type="image"
+                                         style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                                {% elif m.media_type == 'video' %}
+                                    <div style="width: 40px; height: 40px; background: #000; border-radius: 4px;
+                                                display: flex; align-items: center; justify-content: center; color: #fff;"
+                                         data-media-url="{{ m.video.url }}"
+                                         data-media-type="video">
+                                        ▶
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
                             <div>
                                 {% if review.order %}
@@ -618,12 +637,62 @@
                 <p id="modal-review-comment"
                    style="line-height: 1.6; white-space: pre-line; font-size: 15px;"></p>
 
+                <div id="modal-review-media" class="d-flex flex-wrap gap-2 mt-3"></div>
+
                 <div id="modal-review-verified" style="display: none;">
                     <small class="text-muted">✅ Подтвержденный заказ</small>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка просмотра медиа отзыва -->
+<div class="modal fade" id="mediaViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content" style="background: #000; border: none;">
+            <div class="modal-header" style="border-bottom-color: #333;">
+                <h5 class="modal-title text-white" id="mediaViewerCounter">1 / 1</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-0 position-relative"
+                 style="display: flex; align-items: center; justify-content: center;
+                        min-height: 60vh; max-height: 80vh; background: #000;">
+
+                <!-- Кнопка Назад -->
+                <button type="button"
+                        id="mediaViewerPrev"
+                        class="btn btn-light position-absolute start-0 ms-2"
+                        style="z-index: 10; border-radius: 50%; width: 48px; height: 48px;
+                               display: flex; align-items: center; justify-content: center;
+                               opacity: 0.85;">
+                    ‹
+                </button>
+
+                <!-- Контейнер медиа -->
+                <div id="mediaViewerContent"
+                     style="max-width: 100%; max-height: 78vh; display: flex;
+                            align-items: center; justify-content: center;"></div>
+
+                <!-- Кнопка Вперёд -->
+                <button type="button"
+                        id="mediaViewerNext"
+                        class="btn btn-light position-absolute end-0 me-2"
+                        style="z-index: 10; border-radius: 50%; width: 48px; height: 48px;
+                               display: flex; align-items: center; justify-content: center;
+                               opacity: 0.85;">
+                    ›
+                </button>
+
+                <!-- Миниатюры внизу -->
+                <div id="mediaViewerThumbs"
+                     class="position-absolute bottom-0 start-50 translate-middle-x mb-2 d-flex gap-2"
+                     style="z-index: 10; max-width: 90%; overflow-x: auto; padding: 4px;
+                            background: rgba(0,0,0,0.5); border-radius: 8px;"></div>
             </div>
         </div>
     </div>
@@ -1855,6 +1924,9 @@ function initReviewModalOpen() {
             const date = card.dataset.reviewDate || '';
             const comment = card.dataset.reviewComment || '';
             const verified = card.dataset.reviewVerified === '1';
+            const mediaEl = card.querySelector('.review-media-container');
+            const modalMediaEl = document.getElementById('modal-review-media');
+            modalMediaEl.innerHTML = mediaEl ? mediaEl.innerHTML : '';
 
             document.getElementById('modal-review-user').textContent = user;
             document.getElementById('modal-review-date').textContent = date;
@@ -1873,6 +1945,148 @@ function initReviewModalOpen() {
 
             reviewModal.show();
         });
+    });
+}
+
+// ============ ГАЛЕРЕЯ МЕДИА ОТЗЫВА ============
+function initMediaViewer() {
+    const viewerEl = document.getElementById('mediaViewerModal');
+    if (!viewerEl) return;
+
+    const viewer = new bootstrap.Modal(viewerEl);
+    const contentEl = document.getElementById('mediaViewerContent');
+    const counterEl = document.getElementById('mediaViewerCounter');
+    const thumbsEl = document.getElementById('mediaViewerThumbs');
+    const prevBtn = document.getElementById('mediaViewerPrev');
+    const nextBtn = document.getElementById('mediaViewerNext');
+
+    let items = [];     // [{type: 'image'|'video', url: '...'}]
+    let currentIndex = 0;
+
+    // Обработчик клика по медиа внутри модалки отзыва
+    const modalMediaEl = document.getElementById('modal-review-media');
+    if (modalMediaEl) {
+        modalMediaEl.addEventListener('click', function (e) {
+            const target = e.target.closest('img, video, [data-media-type="video"]');
+            if (!target) return;
+
+            // Собираем список всех медиа из модалки отзыва
+            items = [];
+            modalMediaEl.querySelectorAll('img, [data-media-url]').forEach(el => {
+                const url = el.dataset.mediaUrl || el.src;
+                const type = el.dataset.mediaType || (el.tagName === 'VIDEO' ? 'video' : 'image');
+                if (url) items.push({ type, url });
+            });
+
+            if (!items.length) return;
+
+            // Определяем индекс кликнутого
+            const clickedUrl = target.dataset.mediaUrl || target.src;
+            const idx = items.findIndex(x => x.url === clickedUrl);
+            currentIndex = idx >= 0 ? idx : 0;
+
+            renderViewer();
+            viewer.show();
+
+            e.stopPropagation();
+        });
+    }
+
+    function renderViewer() {
+        if (!items.length) return;
+
+        const item = items[currentIndex];
+        contentEl.innerHTML = '';
+
+        if (item.type === 'video') {
+            const video = document.createElement('video');
+            video.src = item.url;
+            video.controls = true;
+            video.autoplay = true;
+            video.style.maxWidth = '100%';
+            video.style.maxHeight = '78vh';
+            contentEl.appendChild(video);
+        } else {
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.alt = 'Медиа отзыва';
+            contentEl.appendChild(img);
+        }
+
+        counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
+
+        // Кнопки
+        prevBtn.disabled = currentIndex === 0;
+        nextBtn.disabled = currentIndex === items.length - 1;
+
+        // Миниатюры
+        thumbsEl.innerHTML = '';
+        items.forEach((it, i) => {
+            let thumb;
+            if (it.type === 'video') {
+                thumb = document.createElement('div');
+                thumb.className = 'thumb-video d-flex align-items-center justify-content-center';
+                thumb.style.color = '#fff';
+                thumb.style.fontSize = '20px';
+                thumb.textContent = '▶';
+            } else {
+                thumb = document.createElement('img');
+                thumb.src = it.url;
+                thumb.alt = `Медиа ${i + 1}`;
+            }
+            if (i === currentIndex) thumb.classList.add('thumb-active');
+            thumb.addEventListener('click', () => {
+                currentIndex = i;
+                renderViewer();
+            });
+            thumbsEl.appendChild(thumb);
+        });
+
+        // Прячем стрелки и миниатюры, если медиа одно
+        if (items.length === 1) {
+            viewerEl.classList.add('single-item');
+        } else {
+            viewerEl.classList.remove('single-item');
+        }
+    }
+
+    // Стрелки
+    prevBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (currentIndex > 0) {
+            currentIndex--;
+            renderViewer();
+        }
+    });
+
+    nextBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (currentIndex < items.length - 1) {
+            currentIndex++;
+            renderViewer();
+        }
+    });
+
+    // Клавиатура
+    document.addEventListener('keydown', function (e) {
+        if (!viewerEl.classList.contains('show')) return;
+
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            currentIndex--;
+            renderViewer();
+        }
+        if (e.key === 'ArrowRight' && currentIndex < items.length - 1) {
+            currentIndex++;
+            renderViewer();
+        }
+        if (e.key === 'Escape') {
+            viewer.hide();
+        }
+    });
+
+    // Останавливаем видео при закрытии модалки
+    viewerEl.addEventListener('hidden.bs.modal', function () {
+        contentEl.innerHTML = '';
     });
 }
 
@@ -1965,6 +2179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initLightbox();
     initSpecsCut();
     initReviewModalOpen();
+    initMediaViewer();
 });
 
 
@@ -3073,6 +3288,98 @@ document.addEventListener('DOMContentLoaded', function() {
 .review-card-clickable:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+/* Медиа внутри модалки отзыва */
+#modal-review-media img,
+#modal-review-media video {
+    width: 120px !important;
+    height: 120px !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#modal-review-media img:hover,
+#modal-review-media video:hover {
+    transform: scale(1.03);
+}
+
+/* Плейсхолдер видео в модалке */
+#modal-review-media > div {
+    width: 120px !important;
+    height: 120px !important;
+    font-size: 28px !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#modal-review-media > div:hover {
+    transform: scale(1.03);
+}
+
+/* Галерея медиа в модалке */
+#mediaViewerContent img,
+#mediaViewerContent video {
+    max-width: 100%;
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+#mediaViewerContent .viewer-video-wrapper {
+    position: relative;
+}
+
+#mediaViewerThumbs img,
+#mediaViewerThumbs .thumb-video {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #111;
+}
+
+#mediaViewerThumbs img:hover,
+#mediaViewerThumbs .thumb-video:hover {
+    opacity: 0.8;
+}
+
+#mediaViewerThumbs .thumb-active {
+    border-color: #007bff;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+}
+
+#mediaViewerPrev:disabled,
+#mediaViewerNext:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Скрываем индикатор слайда, когда одна штука */
+#mediaViewerModal.single-item #mediaViewerThumbs {
+    display: none !important;
+}
+
+#mediaViewerModal.single-item #mediaViewerPrev,
+#mediaViewerModal.single-item #mediaViewerNext {
+    display: none !important;
+}
+
+/* Резервируем высоту только когда это нужно */
+.review-media-container.with-reserved-space {
+    min-height: 48px;
+    align-content: flex-start;
+}
+
+/* Если медиа нет — контейнер остаётся пустым, но по высоте таким же */
+.review-media-container:empty {
+    min-height: 48px;
 }
 </style>
 {% endblock %}

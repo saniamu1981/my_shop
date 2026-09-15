@@ -22,7 +22,7 @@
                                 </div>
                             </div>
 
-                            <form method="post">
+                            <form method="post" enctype="multipart/form-data">
                                 {% csrf_token %}
                                 <input type="hidden" name="product_id" value="{{ product.id }}">
 
@@ -47,6 +47,27 @@
                                     <label class="form-label fw-bold">Комментарий</label>
                                     <textarea name="comment" class="form-control" rows="3"
                                               placeholder="Поделитесь впечатлениями о товаре..." required></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📷 Фото и видео</label>
+
+                                    <label for="media-input" class="media-upload-zone" id="mediaUploadZone">
+                                        <input type="file"
+                                               id="media-input"
+                                               name="media"
+                                               accept="image/*,video/*"
+                                               multiple
+                                               style="display: none;">
+                                        <div class="media-upload-inner">
+                                            <div class="media-upload-icon">📎</div>
+                                            <div class="media-upload-title">Перетащите файлы сюда или нажмите для выбора</div>
+                                            <div class="media-upload-hint">Фото или видео. Максимум 10 файлов, каждый до 20 МБ.</div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Контейнер превью -->
+                                    <div id="mediaPreview" class="media-preview-grid"></div>
                                 </div>
 
                                 <button type="submit" class="btn btn-primary w-100">Отправить отзыв</button>

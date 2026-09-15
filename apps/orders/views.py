@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
-from apps.products.models import Product, Review
+from apps.products.models import Product, Review, ReviewMedia
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -347,13 +347,32 @@ def add_review(request):
             messages.warning(request, 'Отзыв на этот товар уже оставлен')
             return redirect(f'/orders/add-review/?order_id={order_id}')
 
-        Review.objects.create(
+        review = Review.objects.create(
             product=product,
             user=request.user,
             order=order,
             rating=int(rating),
             comment=comment
         )
+
+        # Обработка прикреплённых файлов
+        files = request.FILES.getlist('media')
+        for idx, f in enumerate(files):
+            content_type = f.content_type or ''
+            if content_type.startswith('image/'):
+                ReviewMedia.objects.create(
+                    review=review,
+                    media_type='image',
+                    image=f,
+                    order=idx,
+                )
+            elif content_type.startswith('video/'):
+                media = ReviewMedia.objects.create(
+                    review=review,
+                    media_type='video',
+                    video=f,
+                    order=idx,
+                )
 
         messages.success(request, f'Спасибо за отзыв на "{product.name}"!')
 

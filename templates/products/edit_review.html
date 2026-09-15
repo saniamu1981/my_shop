@@ -20,7 +20,7 @@
                         </div>
                     </div>
 
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
 
                         <div class="mb-3">
@@ -44,6 +44,56 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">Комментарий</label>
                             <textarea name="comment" class="form-control" rows="5" required>{{ review.comment }}</textarea>
+                        </div>
+
+                        {# Существующие медиа #}
+                        {% if review.media.all %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Прикреплённые файлы</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for m in review.media.all %}
+                                    <div class="position-relative" style="width: 100px; height: 100px;">
+                                        {% if m.media_type == 'image' %}
+                                            <img src="{{ m.image.url }}" alt="Фото отзыва"
+                                                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                                        {% elif m.media_type == 'video' %}
+                                            <video src="{{ m.video.url }}" muted
+                                                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"></video>
+                                        {% endif %}
+                                        <label class="position-absolute top-0 end-0 m-1 btn btn-sm btn-danger"
+                                               style="padding: 2px 6px; font-size: 11px; cursor: pointer;"
+                                               title="Удалить">
+                                            <input type="checkbox" name="delete_media" value="{{ m.id }}" style="display: none;"
+                                                   onchange="this.closest('label').classList.toggle('btn-danger', !this.checked); this.closest('label').classList.toggle('btn-secondary', this.checked);">
+                                            ✕
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">Отметьте ✕ на файле, чтобы удалить его после сохранения.</div>
+                        </div>
+                        {% endif %}
+
+                        {# Загрузка новых #}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📷 Фото и видео</label>
+
+                            <label for="media-input" class="media-upload-zone" id="mediaUploadZone">
+                                <input type="file"
+                                       id="media-input"
+                                       name="media"
+                                       accept="image/*,video/*"
+                                       multiple
+                                       style="display: none;">
+                                <div class="media-upload-inner">
+                                    <div class="media-upload-icon">📎</div>
+                                    <div class="media-upload-title">Перетащите файлы сюда или нажмите для выбора</div>
+                                    <div class="media-upload-hint">Фото или видео. Максимум 10 файлов, каждый до 20 МБ.</div>
+                                </div>
+                            </label>
+
+                            <!-- Контейнер превью -->
+                            <div id="mediaPreview" class="media-preview-grid"></div>
                         </div>
 
                         <div class="d-flex gap-2">

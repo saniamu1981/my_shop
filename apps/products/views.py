@@ -5,7 +5,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from .models import Category, Product, Favorite, Review
+from .models import Category, Product, Favorite, Review, ReviewMedia
 from django.conf import settings
 from apps.orders.models import Order
 
@@ -84,6 +84,9 @@ def product_detail(request, category_slug, product_slug):
                 items__product=product
             ).exists()
 
+    # Есть ли медиа хотя бы у одного отзыва из показанных
+    reviews_has_media = any(review.media.exists() for review in reviews)
+
     return render(request, 'products/product_detail.html', {
         'product': product,
         'main_image': main_image,
@@ -99,6 +102,7 @@ def product_detail(request, category_slug, product_slug):
         'has_review': has_review,
         'user_review': user_review,
         'YANDEX_MAPS_API_KEY': settings.YANDEX_MAPS_API_KEY,
+        'reviews_has_media': reviews_has_media,
     })
 
 def product_reviews_page(request, product_id):
@@ -323,6 +327,25 @@ def edit_review(request, review_id):
         review.rating = int(rating)
         review.comment = comment
         review.save()
+
+        # Удаление отмеченных файлов
+        delete_ids = request.POST.getlist('delete_media')
+        if delete_ids:
+            ReviewMedia.objects.filter(id__in=delete_ids, review=review).delete()
+
+        # Добавление новых
+        new_files = request.FILES.getlist('media')
+        start_order = review.media.count()
+        for idx, f in enumerate(new_files):
+            content_type = f.content_type or ''
+            if content_type.startswith('image/'):
+                ReviewMedia.objects.create(
+                    review=review, media_type='image', image=f, order=start_order + idx,
+                )
+            elif content_type.startswith('video/'):
+                ReviewMedia.objects.create(
+                    review=review, media_type='video', video=f, order=start_order + idx,
+                )
 
         messages.success(request, f'Отзыв на "{product.name}" успешно обновлен!')
         return redirect(
