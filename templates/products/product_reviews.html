@@ -7,15 +7,21 @@
     <nav aria-label="Breadcrumb" class="breadcrumb-nav mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
-                <a href="{% url 'products:product_list' %}" class="breadcrumb-item link-page" style="text-decoration: none;">Каталог</a>
+                <a href="{% url 'products:product_list' %}" class="breadcrumb-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Каталог
+                </a>
             </li>
             <li class="breadcrumb-item">
-                <a href="{{ product.category.get_absolute_url }}" class="breadcrumb-item link-page" style="text-decoration: none;">{{ product.category.name }}</a>
+                <a href="{{ product.category.get_absolute_url }}" class="breadcrumb-link">{{ product.category.name }}</a>
             </li>
             <li class="breadcrumb-item">
-                <a href="{{ product.get_absolute_url }}" class="breadcrumb-item link-page" style="text-decoration: none;">{{ product.name|truncatechars:40 }}</a>
+                <a href="{{ product.get_absolute_url }}" class="breadcrumb-link">{{ product.name|truncatechars:40 }}</a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">Все отзывы</li>
+            <li class="breadcrumb-item breadcrumb-link active" aria-current="page">Все отзывы</li>
         </ol>
     </nav>
 
@@ -234,12 +240,45 @@ document.addEventListener('DOMContentLoaded', function () {
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
 }
 
-.link-page {
-    color: #474747;
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #999;
 }
 
-.link-page:hover {
-    color: #3b0101;
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    padding: 0 8px;
+    color: #ccc;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.breadcrumb-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: none;
+}
+
+.breadcrumb-link:hover {
+    color: #005bff;
+    text-decoration: none;
+}
+
+.active {
+    color: #666;
+    font-weight: bold;
+}
+
+.active:hover {
+    color: #666;
+    font-weight: bold;
 }
 </style>
 {% endblock %}
