@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load rating_extras %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+
+    <nav aria-label="Breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'products:product_list' %}" class="breadcrumb-link">Каталог</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{{ product.category.get_absolute_url }}" class="breadcrumb-link">{{ product.category.name }}</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{{ product.get_absolute_url }}" class="breadcrumb-link">{{ product.name|truncatechars:40 }}</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Все отзывы</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="mb-0">Все отзывы</h3>
+            <p class="text-muted mb-0" style="font-size: 14px;">
+                {{ product.name|truncatechars:80 }}
+            </p>
+        </div>
+        <a href="{{ product.get_absolute_url }}" class="btn btn-outline-secondary btn-sm">
+            ← Назад к товару
+        </a>
+    </div>
+
+    {% if reviews_count > 0 %}
+        <div class="d-flex align-items-center mb-4">
+            <div class="text-warning">
+                {% for state in average_rating|star_states %}
+                    {% if state == 'full' %}
+                        <i class="bi bi-star-fill"></i>
+                    {% elif state == 'half' %}
+                        <i class="bi bi-star-half"></i>
+                    {% else %}
+                        <i class="bi bi-star"></i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <span class="ms-2">{{ average_rating|floatformat:1 }} из 5</span>
+            <span class="ms-2 text-muted">({{ reviews_count }} {{ reviews_count|pluralize:"отзыв,отзыва,отзывов" }})</span>
+        </div>
+    {% endif %}
+
+    {% if reviews %}
+        <div class="reviews-list">
+            {% for review in reviews %}
+                <div class="review-item p-4 mb-3 bg-light rounded {% if user.is_authenticated and review.user == user %}border border-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>{{ review.user.get_full_name|default:review.user.email }}</strong>
+                            {% if user.is_authenticated and review.user == user %}
+                                <span class="badge bg-warning text-dark ms-2">Ваш отзыв</span>
+                            {% endif %}
+                            <div class="text-warning small">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ review.created|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <p class="mt-2 mb-0" style="line-height: 1.6;">{{ review.comment }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                        <div>
+                            {% if review.order %}
+                                <small class="text-muted" style="font-size: 11px;">✅ Подтвержденный заказ</small>
+                            {% endif %}
+                        </div>
+
+                        {% if user.is_authenticated and review.user == user %}
+                            <a href="{% url 'products:edit_review' review.id %}"
+                               class="btn btn-sm btn-outline-warning"
+                               style="font-size: 9px; padding: 2px 8px;">
+                                ✏️ Редактировать
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if reviews.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if reviews.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ reviews.previous_page_number }}">«</a>
+                        </li>
+                    {% endif %}
+                    {% for num in reviews.paginator.page_range %}
+                        {% if reviews.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > reviews.number|add:'-3' and num < reviews.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if reviews.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ reviews.next_page_number }}">»</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <p class="text-muted">Пока нет отзывов на этот товар.</p>
+    {% endif %}
+</div>
+{% endblock %}

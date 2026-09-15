@@ -50,15 +50,18 @@ def product_detail(request, category_slug, product_slug):
     if not main_image and product.image:
         main_image = product.image
 
-    # Получаем одобренные отзывы для товара
-    reviews = product.reviews.filter(is_approved=True).order_by('-created')
-    reviews_count = reviews.count()
+    # ===== Отзывы и рейтинг =====
+    # ВАЖНО: считаем рейтинг по ВСЕМ одобренным отзывам, а не по 4 показанным
+    all_reviews = product.reviews.filter(is_approved=True)
+    reviews_count = all_reviews.count()
 
-    # Средний рейтинг
     average_rating = 0
     if reviews_count > 0:
         from django.db.models import Avg
-        average_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+        average_rating = all_reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+
+    # Для показа на странице берём только 4 последних
+    reviews = all_reviews.order_by('-created')[:4]
 
     is_favorite = False
     favorites_count = 0
@@ -70,12 +73,10 @@ def product_detail(request, category_slug, product_slug):
         is_favorite = Favorite.objects.filter(user=request.user, product=product).exists()
         favorites_count = Favorite.objects.filter(user=request.user).count()
 
-        # Проверяем, есть ли у пользователя отзыв на этот товар
         user_review = Review.objects.filter(product=product, user=request.user).first()
         if user_review:
             has_review = True
 
-        # Проверяем, может ли пользователь оставить отзыв (если нет отзыва, но есть доставленный заказ)
         if not has_review:
             can_review = Order.objects.filter(
                 user=request.user,
@@ -90,13 +91,59 @@ def product_detail(request, category_slug, product_slug):
         'videos': videos,
         'is_favorite': is_favorite,
         'favorites_count': favorites_count,
-        'reviews': reviews[:10],
+        'reviews': reviews,
         'reviews_count': reviews_count,
+        'has_more_reviews': reviews_count > 4,
         'average_rating': average_rating,
         'can_review': can_review,
         'has_review': has_review,
         'user_review': user_review,
         'YANDEX_MAPS_API_KEY': settings.YANDEX_MAPS_API_KEY,
+    })
+
+def product_reviews_page(request, product_id):
+    """Отдельная страница со всеми отзывами товара (в столбец)."""
+    product = get_object_or_404(Product, id=product_id)
+    reviews_qs = product.reviews.filter(is_approved=True).order_by('-created')
+
+    # Пагинация — по 20 отзывов на страницу
+    paginator = Paginator(reviews_qs, 20)
+    page = request.GET.get('page', 1)
+    try:
+        reviews = paginator.page(page)
+    except PageNotAnInteger:
+        reviews = paginator.page(1)
+    except EmptyPage:
+        reviews = paginator.page(paginator.num_pages)
+
+    reviews_count = reviews_qs.count()
+    average_rating = 0
+    if reviews_count > 0:
+        from django.db.models import Avg
+        average_rating = reviews_qs.aggregate(Avg('rating'))['rating__avg'] or 0
+
+    # Может ли пользователь оставить отзыв
+    can_review = False
+    has_review = False
+    user_review = None
+    if request.user.is_authenticated:
+        user_review = Review.objects.filter(product=product, user=request.user).first()
+        has_review = bool(user_review)
+        if not has_review:
+            can_review = Order.objects.filter(
+                user=request.user,
+                status='delivered',
+                items__product=product
+            ).exists()
+
+    return render(request, 'products/product_reviews.html', {
+        'product': product,
+        'reviews': reviews,
+        'reviews_count': reviews_count,
+        'average_rating': average_rating,
+        'can_review': can_review,
+        'has_review': has_review,
+        'user_review': user_review,
     })
 
 def product_sizes_api(request, product_id):
@@ -260,10 +307,10 @@ def get_product_reviews(request, product_id):
 
 
 @login_required
-def edit_review(request, product_id):
-    """Редактирование отзыва"""
-    product = get_object_or_404(Product, id=product_id)
-    review = get_object_or_404(Review, product=product, user=request.user)
+def edit_review(request, review_id):
+    """Редактирование конкретного отзыва по его id."""
+    review = get_object_or_404(Review, id=review_id, user=request.user)
+    product = review.product
 
     if request.method == 'POST':
         rating = request.POST.get('rating')
@@ -271,14 +318,18 @@ def edit_review(request, product_id):
 
         if not rating:
             messages.error(request, 'Пожалуйста, поставьте оценку')
-            return redirect('products:edit_review', product_id=product_id)
+            return redirect('products:edit_review', review_id=review.id)
 
         review.rating = int(rating)
         review.comment = comment
         review.save()
 
         messages.success(request, f'Отзыв на "{product.name}" успешно обновлен!')
-        return redirect('products:product_detail', category_slug=product.category.slug, product_slug=product.slug)
+        return redirect(
+            'products:product_detail',
+            category_slug=product.category.slug,
+            product_slug=product.slug
+        )
 
     context = {
         'product': product,
