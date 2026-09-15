@@ -52,17 +52,29 @@
     {% if reviews %}
         <div class="reviews-list">
             {% for review in reviews %}
-                <div class="review-item p-4 mb-3 bg-light rounded {% if user.is_authenticated and review.user == user %}border border-warning{% endif %}">
+                <div class="review-item p-4 mb-3 bg-light rounded review-card-clickable
+                            {% if user.is_authenticated and review.user == user %}border border-warning{% endif %}"
+                     data-bs-toggle="modal"
+                     data-bs-target="#reviewModal"
+                     data-review-user="{{ review.user.get_full_name|default:review.user.email }}"
+                     data-review-rating="{{ review.rating }}"
+                     data-review-date="{{ review.created|date:'d.m.Y H:i' }}"
+                     data-review-comment="{{ review.comment|escapejs }}"
+                     data-review-verified="{% if review.order %}1{% else %}0{% endif %}"
+                     style="cursor: pointer;">
+
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
+                        <div style="min-width: 0; flex: 1;">
                             <strong>{{ review.user.get_full_name|default:review.user.email }}</strong>
                             {% if user.is_authenticated and review.user == user %}
                                 <span class="badge bg-warning text-dark ms-2">Ваш отзыв</span>
                             {% endif %}
                             <div class="text-warning small">
-                                {% for i in "12345"|make_list %}
-                                    {% if forloop.counter <= review.rating %}
+                                {% for state in review.rating|star_states %}
+                                    {% if state == 'full' %}
                                         <i class="bi bi-star-fill"></i>
+                                    {% elif state == 'half' %}
+                                        <i class="bi bi-star-half"></i>
                                     {% else %}
                                         <i class="bi bi-star"></i>
                                     {% endif %}
@@ -71,7 +83,11 @@
                         </div>
                         <small class="text-muted">{{ review.created|date:"d.m.Y H:i" }}</small>
                     </div>
-                    <p class="mt-2 mb-0" style="line-height: 1.6;">{{ review.comment }}</p>
+
+                    <p class="review-text-preview mt-2 mb-0" style="line-height: 1.6;">
+                        {{ review.comment }}
+                    </p>
+
                     <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
                         <div>
                             {% if review.order %}
@@ -82,7 +98,8 @@
                         {% if user.is_authenticated and review.user == user %}
                             <a href="{% url 'products:edit_review' review.id %}"
                                class="btn btn-sm btn-outline-warning"
-                               style="font-size: 9px; padding: 2px 8px;">
+                               style="font-size: 9px; padding: 2px 8px;"
+                               onclick="event.stopPropagation();">
                                 ✏️ Редактировать
                             </a>
                         {% endif %}
@@ -120,4 +137,95 @@
         <p class="text-muted">Пока нет отзывов на этот товар.</p>
     {% endif %}
 </div>
+
+<!-- Модалка полного отзыва -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Отзыв</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                    <div>
+                        <strong id="modal-review-user" style="font-size: 16px;"></strong>
+                        <div class="text-warning small" id="modal-review-stars"></div>
+                    </div>
+                    <small class="text-muted" id="modal-review-date"></small>
+                </div>
+
+                <p id="modal-review-comment"
+                   style="line-height: 1.6; white-space: pre-line; font-size: 15px;"></p>
+
+                <div id="modal-review-verified" style="display: none;">
+                    <small class="text-muted">✅ Подтвержденный заказ</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const reviewModalEl = document.getElementById('reviewModal');
+    if (!reviewModalEl) return;
+
+    reviewModalEl.addEventListener('show.bs.modal', function (event) {
+        const card = event.relatedTarget;
+        if (!card) return;
+
+        const user = card.dataset.reviewUser || '';
+        const rating = parseInt(card.dataset.reviewRating || '0', 10);
+        const date = card.dataset.reviewDate || '';
+        const comment = card.dataset.reviewComment || '';
+        const verified = card.dataset.reviewVerified === '1';
+
+        document.getElementById('modal-review-user').textContent = user;
+        document.getElementById('modal-review-date').textContent = date;
+        document.getElementById('modal-review-comment').textContent = comment;
+
+        const starsEl = document.getElementById('modal-review-stars');
+        starsEl.innerHTML = '';
+        for (let i = 1; i <= 5; i++) {
+            const iEl = document.createElement('i');
+            iEl.className = i <= rating ? 'bi bi-star-fill' : 'bi bi-star';
+            starsEl.appendChild(iEl);
+        }
+
+        document.getElementById('modal-review-verified').style.display =
+            verified ? 'block' : 'none';
+    });
+});
+</script>
+
+<style>
+.review-text-preview {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    max-height: 1.6em;
+}
+
+.review-card-clickable {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.review-card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    background: #f0f0f0 !important;
+}
+
+.review-card-clickable:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+</style>
 {% endblock %}
