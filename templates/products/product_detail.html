@@ -536,8 +536,6 @@
                 <div class="col-md-6 col-lg-3">
                     <div class="review-item p-3 h-100 bg-light rounded review-card-clickable
                                 {% if user.is_authenticated and review.user == user %}border border-warning{% endif %}"
-                         data-bs-toggle="modal"
-                         data-bs-target="#reviewModal"
                          data-review-user="{{ review.user.get_full_name|default:review.user.email }}"
                          data-review-rating="{{ review.rating }}"
                          data-review-date="{{ review.created|date:'d.m.Y H:i' }}"
@@ -586,8 +584,7 @@
                             {% if user.is_authenticated and review.user == user %}
                                 <a href="{% url 'products:edit_review' review.id %}"
                                    class="btn btn-sm btn-outline-warning"
-                                   style="font-size: 9px; padding: 2px 8px;"
-                                   onclick="event.stopPropagation();">
+                                   style="font-size: 9px; padding: 2px 8px;">
                                     ✏️ Редактировать
                                 </a>
                             {% endif %}
@@ -1838,43 +1835,45 @@ function loadCdekPoints() {
     });
 }
 
-// ============ МОДАЛ ПОЛНОГО ОТЗЫВА ============
-function initReviewModal() {
+// ============ ОТКРЫТИЕ МОДАЛА ПОЛНОГО ОТЗЫВА ============
+function initReviewModalOpen() {
     const reviewModalEl = document.getElementById('reviewModal');
     if (!reviewModalEl) return;
 
-    const modal = new bootstrap.Modal(reviewModalEl);
+    const reviewModal = new bootstrap.Modal(reviewModalEl);
 
-    reviewModalEl.addEventListener('show.bs.modal', function (event) {
-        const card = event.relatedTarget; // карточка, по которой кликнули
-        if (!card) return;
+    document.querySelectorAll('.review-card-clickable').forEach(card => {
+        card.addEventListener('click', function (e) {
+            // Если клик был по кнопке редактирования или по ссылке внутри карточки —
+            // не открываем модал
+            if (e.target.closest('.review-edit-btn')) return;
+            if (e.target.closest('a')) return;
 
-        const user = card.dataset.reviewUser || '';
-        const rating = parseInt(card.dataset.reviewRating || '0', 10);
-        const date = card.dataset.reviewDate || '';
-        const comment = card.dataset.reviewComment || '';
-        const verified = card.dataset.reviewVerified === '1';
+            // Заполняем модал данными
+            const user = card.dataset.reviewUser || '';
+            const rating = parseInt(card.dataset.reviewRating || '0', 10);
+            const date = card.dataset.reviewDate || '';
+            const comment = card.dataset.reviewComment || '';
+            const verified = card.dataset.reviewVerified === '1';
 
-        // Заполняем
-        document.getElementById('modal-review-user').textContent = user;
-        document.getElementById('modal-review-date').textContent = date;
-        document.getElementById('modal-review-comment').textContent = comment;
+            document.getElementById('modal-review-user').textContent = user;
+            document.getElementById('modal-review-date').textContent = date;
+            document.getElementById('modal-review-comment').textContent = comment;
 
-        // Звёзды
-        const starsEl = document.getElementById('modal-review-stars');
-        starsEl.innerHTML = '';
-        for (let i = 1; i <= 5; i++) {
-            const i_el = document.createElement('i');
-            i_el.className = i <= rating ? 'bi bi-star-fill' : 'bi bi-star';
-            starsEl.appendChild(i_el);
-        }
+            const starsEl = document.getElementById('modal-review-stars');
+            starsEl.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('i');
+                star.className = i <= rating ? 'bi bi-star-fill' : 'bi bi-star';
+                starsEl.appendChild(star);
+            }
 
-        // Подтвержденный заказ
-        const verifiedEl = document.getElementById('modal-review-verified');
-        verifiedEl.style.display = verified ? 'block' : 'none';
+            document.getElementById('modal-review-verified').style.display =
+                verified ? 'block' : 'none';
+
+            reviewModal.show();
+        });
     });
-
-    // Открытие модалки по клику на карточку — уже работает через data-bs-toggle
 }
 
 // ============ ИНИЦИАЛИЗАЦИЯ ============
@@ -1965,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initThumbnailScroll();
     initLightbox();
     initSpecsCut();
-    initReviewModal();
+    initReviewModalOpen();
 });
 
 

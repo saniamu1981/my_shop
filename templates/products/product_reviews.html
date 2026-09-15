@@ -54,8 +54,6 @@
             {% for review in reviews %}
                 <div class="review-item p-4 mb-3 bg-light rounded review-card-clickable
                             {% if user.is_authenticated and review.user == user %}border border-warning{% endif %}"
-                     data-bs-toggle="modal"
-                     data-bs-target="#reviewModal"
                      data-review-user="{{ review.user.get_full_name|default:review.user.email }}"
                      data-review-rating="{{ review.rating }}"
                      data-review-date="{{ review.created|date:'d.m.Y H:i' }}"
@@ -97,9 +95,8 @@
 
                         {% if user.is_authenticated and review.user == user %}
                             <a href="{% url 'products:edit_review' review.id %}"
-                               class="btn btn-sm btn-outline-warning"
-                               style="font-size: 9px; padding: 2px 8px;"
-                               onclick="event.stopPropagation();">
+                               class="btn btn-sm btn-outline-warning review-edit-btn"
+                               style="font-size: 9px; padding: 2px 8px;">
                                 ✏️ Редактировать
                             </a>
                         {% endif %}
@@ -174,30 +171,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const reviewModalEl = document.getElementById('reviewModal');
     if (!reviewModalEl) return;
 
-    reviewModalEl.addEventListener('show.bs.modal', function (event) {
-        const card = event.relatedTarget;
-        if (!card) return;
+    const reviewModal = new bootstrap.Modal(reviewModalEl);
 
-        const user = card.dataset.reviewUser || '';
-        const rating = parseInt(card.dataset.reviewRating || '0', 10);
-        const date = card.dataset.reviewDate || '';
-        const comment = card.dataset.reviewComment || '';
-        const verified = card.dataset.reviewVerified === '1';
+    document.querySelectorAll('.review-card-clickable').forEach(card => {
+        card.addEventListener('click', function (e) {
+            // Не открывать модал, если клик был по ссылке/кнопке внутри карточки
+            if (e.target.closest('a')) return;
+            if (e.target.closest('button')) return;
+            if (e.target.closest('.review-edit-btn')) return;
 
-        document.getElementById('modal-review-user').textContent = user;
-        document.getElementById('modal-review-date').textContent = date;
-        document.getElementById('modal-review-comment').textContent = comment;
+            // Заполняем модал
+            const user = card.dataset.reviewUser || '';
+            const rating = parseInt(card.dataset.reviewRating || '0', 10);
+            const date = card.dataset.reviewDate || '';
+            const comment = card.dataset.reviewComment || '';
+            const verified = card.dataset.reviewVerified === '1';
 
-        const starsEl = document.getElementById('modal-review-stars');
-        starsEl.innerHTML = '';
-        for (let i = 1; i <= 5; i++) {
-            const iEl = document.createElement('i');
-            iEl.className = i <= rating ? 'bi bi-star-fill' : 'bi bi-star';
-            starsEl.appendChild(iEl);
-        }
+            document.getElementById('modal-review-user').textContent = user;
+            document.getElementById('modal-review-date').textContent = date;
+            document.getElementById('modal-review-comment').textContent = comment;
 
-        document.getElementById('modal-review-verified').style.display =
-            verified ? 'block' : 'none';
+            const starsEl = document.getElementById('modal-review-stars');
+            starsEl.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('i');
+                star.className = i <= rating ? 'bi bi-star-fill' : 'bi bi-star';
+                starsEl.appendChild(star);
+            }
+
+            document.getElementById('modal-review-verified').style.display =
+                verified ? 'block' : 'none';
+
+            reviewModal.show();
+        });
     });
 });
 </script>
