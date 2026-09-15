@@ -7,13 +7,13 @@
     <nav aria-label="Breadcrumb" class="breadcrumb-nav mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
-                <a href="{% url 'products:product_list' %}" class="breadcrumb-link">Каталог</a>
+                <a href="{% url 'products:product_list' %}" class="breadcrumb-item link-page" style="text-decoration: none;">Каталог</a>
             </li>
             <li class="breadcrumb-item">
-                <a href="{{ product.category.get_absolute_url }}" class="breadcrumb-link">{{ product.category.name }}</a>
+                <a href="{{ product.category.get_absolute_url }}" class="breadcrumb-item link-page" style="text-decoration: none;">{{ product.category.name }}</a>
             </li>
             <li class="breadcrumb-item">
-                <a href="{{ product.get_absolute_url }}" class="breadcrumb-link">{{ product.name|truncatechars:40 }}</a>
+                <a href="{{ product.get_absolute_url }}" class="breadcrumb-item link-page" style="text-decoration: none;">{{ product.name|truncatechars:40 }}</a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">Все отзывы</li>
         </ol>
@@ -232,6 +232,14 @@ document.addEventListener('DOMContentLoaded', function () {
 .review-card-clickable:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+.link-page {
+    color: #474747;
+}
+
+.link-page:hover {
+    color: #3b0101;
 }
 </style>
 {% endblock %}
