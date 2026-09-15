@@ -28,13 +28,18 @@
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Оценка</label>
-                                    <div class="rating-stars">
-                                        <div class="btn-group" role="group">
-                                            {% for i in "12345"|make_list %}
-                                                <input type="radio" class="btn-check" name="rating" value="{{ i }}" id="rating{{ product.id }}{{ i }}" required>
-                                                <label class="btn btn-outline-warning" for="rating{{ product.id }}{{ i }}">⭐</label>
-                                            {% endfor %}
-                                        </div>
+                                    <div class="rating-stars" data-rating-group="{{ product.id }}">
+                                        {% for i in "12345"|make_list %}
+                                            <input type="radio" class="btn-check" name="rating"
+                                                   value="{{ i }}"
+                                                   id="rating{{ product.id }}{{ i }}"
+                                                   required>
+                                            <label class="btn btn-outline-warning rating-star-label"
+                                                   for="rating{{ product.id }}{{ i }}"
+                                                   data-value="{{ i }}">
+                                                ⭐
+                                            </label>
+                                        {% endfor %}
                                     </div>
                                 </div>
 
@@ -59,19 +64,81 @@
     {% endif %}
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    initRatingStars();
+});
+
+function initRatingStars() {
+    document.querySelectorAll('.rating-stars').forEach(group => {
+        const labels = group.querySelectorAll('.rating-star-label');
+
+        function updateHighlight(selectedValue) {
+            labels.forEach(label => {
+                const value = parseInt(label.dataset.value, 10);
+                if (value <= selectedValue) {
+                    label.classList.add('rating-active');
+                } else {
+                    label.classList.remove('rating-active');
+                }
+            });
+        }
+
+        labels.forEach(label => {
+            // Клик по звезде
+            label.addEventListener('click', function () {
+                const value = parseInt(this.dataset.value, 10);
+                updateHighlight(value);
+            });
+
+            // Наведение — временная подсветка
+            label.addEventListener('mouseenter', function () {
+                const value = parseInt(this.dataset.value, 10);
+                updateHighlight(value);
+            });
+        });
+
+        // Уход мыши — возвращаем подсветку по выбранному значению
+        group.addEventListener('mouseleave', function () {
+            const checked = group.querySelector('input[type="radio"]:checked');
+            const value = checked ? parseInt(checked.value, 10) : 0;
+            updateHighlight(value);
+        });
+    });
+}
+</script>
+
 <style>
-.rating-stars .btn-check:checked + .btn {
-    background: #ffc107;
+.rating-stars {
+    display: inline-flex;
+    gap: 5px;
+}
+
+.rating-stars .btn {
+    font-size: 22px;
+    padding: 6px 12px;
+    min-width: 44px;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+/* Скрываем input, но оставляем доступным для формы */
+.rating-stars .btn-check {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Подсветка выбранных и предыдущих звёзд */
+.rating-stars .rating-active {
+    background: #ffc107 !important;
     color: #000;
     border-color: #ffc107;
+    transform: scale(1.05);
 }
-.rating-stars .btn {
-    font-size: 20px;
-    padding: 5px 10px;
-    min-width: 40px;
-}
+
 .rating-stars .btn:hover {
     background: #ffed4a;
+    border-color: #ffed4a;
 }
 </style>
 {% endblock %}

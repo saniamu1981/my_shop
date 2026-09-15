@@ -25,17 +25,19 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">Оценка</label>
-                            <div class="rating-stars">
-                                <div class="btn-group" role="group">
-                                    {% for i in "12345"|make_list %}
-                                        <input type="radio" class="btn-check" name="rating"
-                                               value="{{ forloop.counter }}"
-                                               id="rating{{ forloop.counter }}"
-                                               {% if review.rating == forloop.counter %}checked{% endif %}
-                                               required>
-                                        <label class="btn btn-outline-warning" for="rating{{ forloop.counter }}">⭐</label>
-                                    {% endfor %}
-                                </div>
+                            <div class="rating-stars" data-initial-rating="{{ review.rating }}">
+                                {% for i in "12345"|make_list %}
+                                    <input type="radio" class="btn-check" name="rating"
+                                           value="{{ forloop.counter }}"
+                                           id="rating{{ forloop.counter }}"
+                                           {% if review.rating == forloop.counter %}checked{% endif %}
+                                           required>
+                                    <label class="btn btn-outline-warning rating-star-label"
+                                           for="rating{{ forloop.counter }}"
+                                           data-value="{{ forloop.counter }}">
+                                        ⭐
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -66,23 +68,80 @@
     </div>
 </div>
 
-<style>
-.rating-stars .btn-check:checked + .btn {
-    background: #ffc107;
-    color: #000;
-    border-color: #ffc107;
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    initEditRatingStars();
+});
+
+function initEditRatingStars() {
+    document.querySelectorAll('.rating-stars').forEach(group => {
+        const labels = group.querySelectorAll('.rating-star-label');
+        const initialRating = parseInt(group.dataset.initialRating || '0', 10);
+
+        function updateHighlight(selectedValue) {
+            labels.forEach(label => {
+                const value = parseInt(label.dataset.value, 10);
+                if (value <= selectedValue) {
+                    label.classList.add('rating-active');
+                } else {
+                    label.classList.remove('rating-active');
+                }
+            });
+        }
+
+        // Начальная подсветка
+        updateHighlight(initialRating);
+
+        labels.forEach(label => {
+            label.addEventListener('click', function () {
+                const value = parseInt(this.dataset.value, 10);
+                updateHighlight(value);
+            });
+
+            label.addEventListener('mouseenter', function () {
+                const value = parseInt(this.dataset.value, 10);
+                updateHighlight(value);
+            });
+        });
+
+        group.addEventListener('mouseleave', function () {
+            const checked = group.querySelector('input[type="radio"]:checked');
+            const value = checked ? parseInt(checked.value, 10) : initialRating;
+            updateHighlight(value);
+        });
+    });
 }
+</script>
+
+<style>
+.rating-stars {
+    display: inline-flex;
+    gap: 5px;
+}
+
 .rating-stars .btn {
     font-size: 24px;
     padding: 8px 15px;
     min-width: 50px;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
+
+.rating-stars .btn-check {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rating-stars .rating-active {
+    background: #ffc107 !important;
+    color: #000;
+    border-color: #ffc107;
+    transform: scale(1.05);
+}
+
 .rating-stars .btn:hover {
     background: #ffed4a;
-}
-.rating-stars .btn-group {
-    display: flex;
-    gap: 5px;
+    border-color: #ffed4a;
 }
 </style>
 {% endblock %}
