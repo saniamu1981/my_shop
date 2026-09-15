@@ -40,12 +40,12 @@
                     <div class="d-flex align-items-center gap-3">
                         {% if offer_accepted %}
                             <span class="badge bg-success"
-                                  style="font-size: 13px; padding: 6px 14px; border-radius: 20px;">
+                                  style="font-size: 15px; padding: 8px 14px; border-radius: 20px;">
                                 ✅ Принята
                             </span>
                         {% else %}
                             <span class="badge bg-danger"
-                                  style="font-size: 13px; padding: 6px 14px; border-radius: 20px;">
+                                  style="font-size: 15px; padding: 8px 14px; border-radius: 20px;">
                                 ❌ Не принята
                             </span>
                         {% endif %}
@@ -59,41 +59,41 @@
             </div>
             {% endif %}
 
-            <h3 class="mt-4">Мои заказы</h3>
-            {% if orders %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>№ заказа</th>
-                                <th>Дата</th>
-                                <th>Сумма</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in orders %}
-                                <tr>
-                                    <td>{{ order.id }}</td>
-                                    <td>{{ order.created|date:"d.m.Y H:i" }}</td>
-                                    <td>{{ order.total_price }} ₽</td>
-                                    <td>
-                                        <span class="badge bg-{% if order.status == 'paid' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'delivered' %}primary{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">
-                                            {{ order.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-info">Детали</a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <p class="text-muted">У вас пока нет заказов</p>
-            {% endif %}
+<!--            <h3 class="mt-4">Мои заказы</h3>-->
+<!--            {% if orders %}-->
+<!--                <div class="table-responsive">-->
+<!--                    <table class="table table-striped">-->
+<!--                        <thead>-->
+<!--                            <tr>-->
+<!--                                <th>№ заказа</th>-->
+<!--                                <th>Дата</th>-->
+<!--                                <th>Сумма</th>-->
+<!--                                <th>Статус</th>-->
+<!--                                <th>Действия</th>-->
+<!--                            </tr>-->
+<!--                        </thead>-->
+<!--                        <tbody>-->
+<!--                            {% for order in orders %}-->
+<!--                                <tr>-->
+<!--                                    <td>{{ order.id }}</td>-->
+<!--                                    <td>{{ order.created|date:"d.m.Y H:i" }}</td>-->
+<!--                                    <td>{{ order.total_price }} ₽</td>-->
+<!--                                    <td>-->
+<!--                                        <span class="badge bg-{% if order.status == 'paid' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'delivered' %}primary{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">-->
+<!--                                            {{ order.get_status_display }}-->
+<!--                                        </span>-->
+<!--                                    </td>-->
+<!--                                    <td>-->
+<!--                                        <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-info">Детали</a>-->
+<!--                                    </td>-->
+<!--                                </tr>-->
+<!--                            {% endfor %}-->
+<!--                        </tbody>-->
+<!--                    </table>-->
+<!--                </div>-->
+<!--            {% else %}-->
+<!--                <p class="text-muted">У вас пока нет заказов</p>-->
+<!--            {% endif %}-->
         </div>
     </div>
 </div>

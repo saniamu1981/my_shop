@@ -2,12 +2,14 @@
 
 {% block content %}
 <div class="container" style="max-width: 900px;">
-    <nav aria-label="Breadcrumb" class="mb-3">
+    <nav aria-label="Breadcrumb" class="breadcrumb-nav mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
-                <a href="{% url 'accounts:profile' %}">Личный кабинет</a>
+                <a href="{% url 'accounts:profile' %}" class="breadcrumb-link">
+                    Личный кабинет
+                </a>
             </li>
-            <li class="breadcrumb-item active">Оферта</li>
+            <li class="breadcrumb-item breadcrumb-link active" aria-current="page">Оферта</li>
         </ol>
     </nav>
 
@@ -58,4 +60,47 @@
         </div>
     </div>
 </div>
+
+<style>
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #999;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    padding: 0 8px;
+    color: #ccc;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.breadcrumb-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: none;
+}
+
+.breadcrumb-link:hover {
+    color: #005bff;
+    text-decoration: none;
+}
+
+.active {
+    color: #666;
+    font-weight: bold;
+}
+
+.active:hover {
+    color: #666;
+    font-weight: bold;
+}
+</style>
 {% endblock %}
