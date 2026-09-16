@@ -144,6 +144,18 @@ def payment_process(request, order_id):
             reverse('orders:payment_success', args=[order.id])
         )
 
+        items_for_receipt = []
+        for item in order.items.all():
+            items_for_receipt.append({
+                "description": item.product.name[:128],  # ограничение ЮKassa
+                "quantity": item.quantity,
+                "amount": {
+                    "value": f"{item.price:.2f}",
+                    "currency": "RUB"
+                },
+                "vat_code": 1,
+            })
+
         payment = Payment.create({
             "amount": {
                 "value": f"{order.total_price:.2f}",
@@ -155,10 +167,26 @@ def payment_process(request, order_id):
                 "return_url": return_url,
             },
             "description": f"Заказ №{order.id}",
+            "receipt": {
+                    "customer": {"email": order.email},
+                    "items": items_for_receipt,
+                },
+                "items": [
+                    {
+                        "description": f"Товар по заказу №{order.id}",
+                        "quantity": 1,
+                        "amount": {
+                            "value": f"{order.total_price:.2f}",
+                            "currency": "RUB"
+                        },
+                        "vat_code": 1,  # 1 = без НДС. Уточните свой код НДС.
+                    }
+                ]
+            },
             "metadata": {
                 "order_id": str(order.id),
             }
-        }, uuid.uuid4())   # Idempotence-Key
+        }, uuid.uuid4())
 
         order.payment_id = payment.id
         order.save()
