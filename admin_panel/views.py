@@ -26,20 +26,35 @@ def dashboard(request):
 
 @staff_member_required
 def chat_list(request):
-    """Список пользователей с чатами."""
-    users = User.objects.filter(chat_messages__isnull=False).distinct()
+    """Список пользователей с чатами: сначала непрочитанные, потом прочитанные."""
+    from django.db.models import Max, Q
 
-    # Для каждого пользователя — последнее сообщение и количество непрочитанных
+    User = get_user_model()
+
+    # Все пользователи, у которых есть хоть одно сообщение
+    users = (
+        User.objects
+        .filter(chat_messages__isnull=False)
+        .distinct()
+        .annotate(
+            last_message_at=Max('chat_messages__created'),
+        )
+    )
+
+    # Готовим каждого пользователя: последнее сообщение + количество непрочитанных
+    users = list(users)
     for u in users:
-        last = u.chat_messages.order_by('-created').first()
-        u.last_message = last
+        u.last_message = (
+            u.chat_messages.order_by('-created').first()
+        )
         u.unread_count = u.chat_messages.filter(sender='user', is_read=False).count()
 
-    # Сортируем по дате последнего сообщения (свежие сверху)
-    users = sorted(
-        users,
-        key=lambda x: x.last_message.created if x.last_message else None,
-        reverse=True,
+    # Сортируем: сначала непрочитанные (по новизне), потом прочитанные (по новизне)
+    users.sort(
+        key=lambda u: (
+            0 if u.unread_count > 0 else 1,     # сначала непрочитанные
+            -(u.last_message_at.timestamp() if u.last_message_at else 0),  # по убыванию даты
+        )
     )
 
     return render(request, 'admin_panel/chat_list.html', {'users': users})

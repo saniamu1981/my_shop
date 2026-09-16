@@ -324,7 +324,7 @@
                     </div>
 
                     <!-- Блок доставки -->
-                    <div class="delivery-block" style="margin-top: -10px;">
+                    <div class="delivery-block" style="margin-top: -20px;">
                         <div class="delivery-trigger">
                             <span class="delivery-label" id="delivery-label">🚚 Выберите способ доставки</span>
                             <i class="bi bi-chevron-down" style="font-size: 12px; margin-left: 5px; transition: transform 0.3s;"></i>
@@ -410,29 +410,34 @@
                     </div>
 
                     <!-- Кнопки -->
-                    <div style="margin-top: 10px;">
+                    <div style="margin-top: 2px;">
                         <div class="d-flex flex-column gap-2">
                             <div class="d-flex gap-2 align-items-center justify-content-center">
                                 <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-inline" id="addToCartForm" style="flex: 1;">
                                     {% csrf_token %}
                                     <input type="hidden" name="size" id="selected-size" value="">
-                                    <button type="submit" class="btn btn-success btn-lg w-100" style="border-radius: 17px; padding: 8px 25px;" id="addToCartBtn">
+                                    <button type="submit" class="btn btn-success btn-lg w-100" style="font-size: 14px; border-radius: 10px; padding: 6px 15px;" id="addToCartBtn">
                                         🛒 В корзину
                                     </button>
                                 </form>
 
                                 {% if user.is_authenticated %}
                                     <button class="favorite-btn" data-product-id="{{ product.id }}"
-                                            style="border: none; background: #f0f0f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0;">
+                                            style="border: none; background: #f0f0f0; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0;">
                                         <i class="bi bi-heart{% if is_favorite %}-fill{% endif %}"
-                                           style="font-size: 22px; color: {% if is_favorite %}#dc3545{% else %}#888{% endif %}; transition: all 0.3s ease; line-height: 1;"></i>
+                                           style="font-size: 16px; color: {% if is_favorite %}#dc3545{% else %}#888{% endif %}; transition: all 0.3s ease; line-height: 1;"></i>
                                     </button>
                                 {% endif %}
                             </div>
 
                             <button type="button" id="buyNowBtn" class="btn btn-primary btn-lg w-100"
-                                    style="border-radius: 17px; padding: 8px 25px; background: linear-gradient(135deg, #ff6b00, #ff9a00); border: none; font-weight: 600;">
+                                    style="font-size: 14px; border-radius: 10px; padding: 6px 15px; background: linear-gradient(135deg, #ff6b00, #ff9a00); border: none; font-weight: 600;">
                                 ⚡ Купить сейчас
+                            </button>
+
+                            <button type="button" id="questProdBtn" class="btn btn-lg w-100"
+                                    style="font-size: 14px; border-radius: 10px; padding: 6px 15px; background: linear-gradient(135deg, #4a6cf7, #7c4dff); color: #fff; border: none; font-weight: 600;">
+                                💬 Задать вопрос о товаре
                             </button>
                         </div>
                     </div>
@@ -720,6 +725,54 @@
                 <a href="#" id="loginRequiredGoBtn" class="btn btn-primary">
                     🔐 Войти
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка: задать вопрос о товаре -->
+<div class="modal fade" id="questProdModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #4a6cf7, #7c4dff); color: #fff;">
+                <h5 class="modal-title">💬 Вопрос о товаре</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                    {% endif %}
+                    <div>
+                        <strong style="font-size: 14px;">{{ product.name }}</strong>
+                        {% if product.sku %}
+                            <div class="text-muted small">Артикул: {{ product.sku }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ваш вопрос</label>
+                    <textarea id="questProdMessage"
+                              class="form-control"
+                              rows="5"
+                              placeholder="Опишите ваш вопрос..."
+                              style="resize: vertical;"></textarea>
+                    <div class="form-text">
+                        Сообщение отправится в чат с поддержкой. Мы ответим в ближайшее время.
+                    </div>
+                </div>
+
+                <div id="questProdError" class="text-danger small" style="display: none;"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="questProdSendBtn">
+                    Отправить
+                </button>
             </div>
         </div>
     </div>
@@ -2141,6 +2194,104 @@ function initMediaViewer() {
     });
 }
 
+// ============ ВОПРОС О ТОВАРЕ ============
+function initQuestProd() {
+    const questBtn = document.getElementById('questProdBtn');
+    const questModalEl = document.getElementById('questProdModal');
+    if (!questBtn || !questModalEl) return;
+
+    const questModal = new bootstrap.Modal(questModalEl);
+    const textarea = document.getElementById('questProdMessage');
+    const sendBtn = document.getElementById('questProdSendBtn');
+    const errorEl = document.getElementById('questProdError');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+    // Первая строка — шаблон сообщения
+    const productName = '{{ product.name|escapejs }}';
+    const productSku = '{{ product.sku|default:""|escapejs }}';
+
+    let prefix = 'Вопрос о товаре';
+    if (productSku) prefix += ` — Артикул: ${productSku}`;
+    prefix += `, Название: ${productName}`;
+
+    questBtn.addEventListener('click', function () {
+        // Проверка авторизации
+        if (!{% if user.is_authenticated %}true{% else %}false{% endif %}) {
+            const loginModalEl = document.getElementById('loginRequiredModal');
+            if (loginModalEl) {
+                const loginModal = bootstrap.Modal.getOrCreateInstance(loginModalEl);
+                const goBtn = document.getElementById('loginRequiredGoBtn');
+                if (goBtn) {
+                    const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                    goBtn.href = '/accounts/login/?next=' + nextUrl;
+                }
+                loginModal.show();
+            } else {
+                const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.href = '/accounts/login/?next=' + nextUrl;
+            }
+            return;
+        }
+
+        // Сбрасываем предыдущее состояние
+        textarea.value = '';
+        errorEl.style.display = 'none';
+        questModal.show();
+
+        // Автофокус на поле после открытия
+        questModalEl.addEventListener('shown.bs.modal', function handler() {
+            textarea.focus();
+            questModalEl.removeEventListener('shown.bs.modal', handler);
+        });
+    });
+
+    sendBtn.addEventListener('click', function () {
+        const userText = (textarea.value || '').trim();
+        if (!userText) {
+            errorEl.textContent = 'Введите текст вопроса.';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        // Склеиваем префикс и текст пользователя
+        const fullMessage = prefix + '\n\n' + userText;
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Отправка...';
+
+        const fd = new FormData();
+        fd.append('message', fullMessage);
+        if (csrfToken) fd.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch('{% url "accounts:chat_send" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: fd,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                questModal.hide();
+            } else {
+                errorEl.textContent = data.error || 'Не удалось отправить сообщение.';
+                errorEl.style.display = 'block';
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка отправки:', err);
+            errorEl.textContent = 'Ошибка сети. Попробуйте еще раз.';
+            errorEl.style.display = 'block';
+        })
+        .finally(() => {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Отправить';
+        });
+    });
+}
+
 // ============ ИНИЦИАЛИЗАЦИЯ ============
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM загружен, инициализация...');
@@ -2231,6 +2382,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSpecsCut();
     initReviewModalOpen();
     initMediaViewer();
+    initQuestProd();
 });
 
 
