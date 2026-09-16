@@ -3,5 +3,5 @@
     <circle cx="12" cy="12" r="12" fill="#6F35FC"/>
 
     <!-- Буквы ML -->
-    <text x="12" y="12" font-size="13px" font-family="'Helvetica Neue', sans-serif;" text-anchor="middle" dominant-baseline="central" fill="white">ML</text>
+    <text x="13" y="12" font-size="13px" font-family="'Helvetica Neue', sans-serif;" text-anchor="middle" dominant-baseline="central" fill="white">ML</text>
 </svg>
