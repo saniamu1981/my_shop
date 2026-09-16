@@ -131,9 +131,10 @@
             </nav>
         {% endif %}
     {% else %}
-        <div class="alert alert-info">
-            <p>У вас пока нет заказов.</p>
-            <a href="{% url 'products:product_list' %}" class="btn btn-primary">Начать покупки</a>
+        <div class="alert alert-info text-center" style="padding: 50px;">
+            <h3>📦 У вас пока нет заказов</h3>
+            <p class="mt-3">Оформите первый заказ, чтобы увидеть его здесь!</p>
+            <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">Перейти в каталог</a>
         </div>
     {% endif %}
 </div>
