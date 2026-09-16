@@ -698,6 +698,33 @@
     </div>
 </div>
 
+<!-- Модалка: требуется авторизация -->
+<div class="modal fade" id="loginRequiredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">⚠️ Требуется вход</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-person-lock" style="font-size: 48px; color: #ffc107;"></i>
+                <h4 class="mt-3">Вы не авторизованы</h4>
+                <p class="text-muted mb-0">
+                    Чтобы оформить заказ, войдите в свой аккаунт или зарегистрируйтесь.
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <a href="#" id="loginRequiredGoBtn" class="btn btn-primary">
+                    🔐 Войти
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .review-item {
     transition: all 0.3s ease;
@@ -1454,6 +1481,14 @@ function initBuyNow() {
 
     if (!buyNowBtn) return;
 
+    // Флаг авторизации, приходит из Django-шаблона
+    const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+
+    // Модалка авторизации
+    const loginRequiredModalEl = document.getElementById('loginRequiredModal');
+    const loginRequiredModal = loginRequiredModalEl ? new bootstrap.Modal(loginRequiredModalEl) : null;
+    const loginRequiredGoBtn = document.getElementById('loginRequiredGoBtn');
+
     // Модалки
     const sizeWarningModalEl = document.getElementById('sizeWarningModal');
     const pointWarningModalEl = document.getElementById('pointWarningModal');
@@ -1468,6 +1503,22 @@ function initBuyNow() {
 
     buyNowBtn.addEventListener('click', function (e) {
         e.preventDefault();
+
+        // ===== 0. Проверка авторизации =====
+        if (!isAuthenticated) {
+            if (loginRequiredModal) {
+                if (loginRequiredGoBtn) {
+                    const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                    loginRequiredGoBtn.href = '/accounts/login/?next=' + nextUrl;
+                }
+                loginRequiredModal.show();
+            } else {
+                // fallback: если модалка не найдена — сразу редирект
+                const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.href = '/accounts/login/?next=' + nextUrl;
+            }
+            return;
+        }
 
         // ===== 1. Проверка размера =====
         const buyNowSizeInput = document.getElementById('buyNowSize');
