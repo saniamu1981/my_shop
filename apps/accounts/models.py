@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 
 
 class Offer(models.Model):
@@ -57,3 +58,36 @@ class CustomUser(AbstractUser):
         if not active:
             return True  # нет активной оферты — нечего принимать
         return self.offer_accepted_id == active.id
+
+
+class ChatMessage(models.Model):
+    """Сообщение в чате пользователя с администратором."""
+
+    SENDER_CHOICES = (
+        ('user', 'Пользователь'),
+        ('admin', 'Администратор'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='chat_messages',
+        verbose_name='Пользователь'
+    )
+    sender = models.CharField(
+        'Отправитель',
+        max_length=10,
+        choices=SENDER_CHOICES,
+        default='user'
+    )
+    message = models.TextField('Сообщение')
+    is_read = models.BooleanField('Прочитано', default=False)
+    created = models.DateTimeField('Отправлено', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Сообщение чата'
+        verbose_name_plural = 'Сообщения чата'
+        ordering = ('created',)
+
+    def __str__(self):
+        return f'{self.get_sender_display()} → {self.user.email}: {self.message[:40]}'

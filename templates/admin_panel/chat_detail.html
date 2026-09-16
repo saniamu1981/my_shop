@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Чат с пользователями</h1>
+
+    <div class="row">
+        <!-- Сайдбар -->
+        <div class="col-md-3">
+            {% include 'accounts/_sidebar.html' %}
+        </div>
+
+        <!-- Контент -->
+        <div class="col-md-9">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div>
+                    <h3 class="mb-0">💬 Чат с {{ target_user.email }}</h3>
+                    <p class="text-muted mb-0" style="font-size: 14px;">
+                        Пользователь: {{ target_user.get_full_name|default:target_user.email }}
+                    </p>
+                </div>
+                <a href="{% url 'admin_panel:chat_list' %}" class="btn btn-outline-secondary btn-sm">
+                    ← Ко всем чатам
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="chatMessages" class="chat-messages">
+                        {% for msg in chat_messages %}
+                            <div class="chat-message chat-message-{{ msg.sender }}" data-message-id="{{ msg.id }}">
+                                <div class="chat-bubble">
+                                    <div class="chat-text">{{ msg.message }}</div>
+                                    <div class="chat-time">{{ msg.created|date:"d.m.Y H:i" }}</div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <form id="chatForm" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <textarea id="chatInput"
+                                  class="form-control"
+                                  rows="1"
+                                  placeholder="Ответить..."
+                                  style="resize: none; max-height: 120px;"></textarea>
+                        <button type="submit" class="btn btn-primary">Отправить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Те же стили, что и в пользовательском чате */
+.chat-messages { height: 500px; overflow-y: auto; padding: 16px; background: #f8f9fa; display: flex; flex-direction: column; gap: 12px; }
+.chat-message { display: flex; max-width: 70%; }
+.chat-message-user { align-self: flex-end; justify-content: flex-end; }
+.chat-message-admin { align-self: flex-start; }
+.chat-bubble { padding: 10px 14px; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); word-wrap: break-word; }
+.chat-message-user .chat-bubble { background: #007bff; color: #fff; border-bottom-right-radius: 4px; }
+.chat-message-admin .chat-bubble { background: #fff; color: #212529; border-bottom-left-radius: 4px; }
+.chat-text { font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+.chat-time { font-size: 10px; opacity: 0.75; margin-top: 4px; text-align: right; }
+#chatInput { min-height: 40px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('chatForm');
+    const input = document.getElementById('chatInput');
+    const messagesEl = document.getElementById('chatMessages');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    let lastMessageId = 0;
+    messagesEl.querySelectorAll('.chat-message').forEach(el => {
+        const id = parseInt(el.dataset.messageId || '0', 10);
+        if (id > lastMessageId) lastMessageId = id;
+    });
+
+    function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+    scrollToBottom();
+
+    function appendMessage(msg) {
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-message chat-message-' + msg.sender;
+        wrap.dataset.messageId = msg.id;
+        wrap.innerHTML = `<div class="chat-bubble"><div class="chat-text"></div><div class="chat-time">${msg.created}</div></div>`;
+        wrap.querySelector('.chat-text').textContent = msg.message;
+        messagesEl.appendChild(wrap);
+        scrollToBottom();
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        const fd = new FormData();
+        fd.append('message', text);
+        fd.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch('{% url "admin_panel:chat_admin_send" target_user.id %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                appendMessage(data.message);
+                lastMessageId = Math.max(lastMessageId, data.message.id);
+                input.value = '';
+                input.style.height = 'auto';
+            }
+        })
+        .catch(err => console.error(err));
+    });
+
+    setInterval(function () {
+        fetch('{% url "admin_panel:chat_admin_messages" target_user.id %}?after_id=' + lastMessageId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        .then(r => r.json())
+        .then(data => {
+            (data.messages || []).forEach(msg => {
+                appendMessage(msg);
+                lastMessageId = Math.max(lastMessageId, msg.id);
+            });
+        })
+        .catch(err => console.error(err));
+    }, 5000);
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            form.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    input.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Чат с поддержкой</h1>
+    <div class="row">
+        <!-- Сайдбар как в профиле -->
+        <div class="col-md-3">
+            <div class="list-group">
+                <a href="{% url 'accounts:profile' %}" class="list-group-item list-group-item-action">👤 Профиль</a>
+                <a href="{% url 'accounts:edit_profile' %}" class="list-group-item list-group-item-action">✏️ Редактировать профиль</a>
+                <a href="{% url 'accounts:change_password' %}" class="list-group-item list-group-item-action">🔒 Сменить пароль</a>
+                <a href="{% url 'accounts:chat' %}" class="list-group-item list-group-item-action active">💬 Чат с поддержкой</a>
+                <a href="{% url 'account_logout' %}" class="list-group-item list-group-item-action text-danger">Выйти</a>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0">💬 Чат с поддержкой</h5>
+                    <small class="text-muted" id="chat-status">Онлайн</small>
+                </div>
+
+                <div class="card-body p-0">
+                    <div id="chatMessages" class="chat-messages">
+                        {% if chat_messages %}
+                            {% for msg in chat_messages %}
+                                <div class="chat-message chat-message-{{ msg.sender }}" data-message-id="{{ msg.id }}">
+                                    <div class="chat-bubble">
+                                        <div class="chat-text">{{ msg.message }}</div>
+                                        <div class="chat-time">{{ msg.created|date:"d.m.Y H:i" }}</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-5" id="chatEmpty">
+                                <div style="font-size: 48px;">👋</div>
+                                <p class="mt-2">Напишите нам первое сообщение — мы ответим в ближайшее время.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <form id="chatForm" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <textarea id="chatInput"
+                                  class="form-control"
+                                  rows="1"
+                                  placeholder="Введите сообщение..."
+                                  style="resize: none; max-height: 120px;"></textarea>
+                        <button type="submit" class="btn btn-primary" id="chatSendBtn">
+                            Отправить
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.chat-messages {
+    height: 500px;
+    overflow-y: auto;
+    padding: 16px;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    max-width: 70%;
+}
+
+.chat-message-user {
+    align-self: flex-end;
+    justify-content: flex-end;
+}
+
+.chat-message-admin {
+    align-self: flex-start;
+}
+
+.chat-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.chat-message-user .chat-bubble {
+    background: #007bff;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message-admin .chat-bubble {
+    background: #ffffff;
+    color: #212529;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-text {
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+.chat-time {
+    font-size: 10px;
+    opacity: 0.75;
+    margin-top: 4px;
+    text-align: right;
+}
+
+#chatInput {
+    min-height: 40px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('chatForm');
+    const input = document.getElementById('chatInput');
+    const messagesEl = document.getElementById('chatMessages');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    let lastMessageId = 0;
+    // Находим максимальный id среди уже отрендеренных сообщений
+    messagesEl.querySelectorAll('.chat-message').forEach(el => {
+        const id = parseInt(el.dataset.messageId || '0', 10);
+        if (id > lastMessageId) lastMessageId = id;
+    });
+
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    scrollToBottom();
+
+    function removeEmpty() {
+        const empty = document.getElementById('chatEmpty');
+        if (empty) empty.remove();
+    }
+
+    function appendMessage(msg) {
+        removeEmpty();
+
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-message chat-message-' + msg.sender;
+        wrap.dataset.messageId = msg.id;
+        wrap.innerHTML = `
+            <div class="chat-bubble">
+                <div class="chat-text"></div>
+                <div class="chat-time">${msg.created}</div>
+            </div>
+        `;
+        // Безопасно вставляем текст (без интерпретации HTML)
+        wrap.querySelector('.chat-text').textContent = msg.message;
+
+        messagesEl.appendChild(wrap);
+        scrollToBottom();
+    }
+
+    // Отправка
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const text = input.value.trim();
+        if (!text) return;
+
+        sendBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('message', text);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        fetch('{% url "accounts:chat_send" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                appendMessage(data.message);
+                lastMessageId = Math.max(lastMessageId, data.message.id);
+                input.value = '';
+                input.style.height = 'auto';
+            } else {
+                alert(data.error || 'Не удалось отправить сообщение');
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка отправки:', err);
+            alert('Ошибка сети. Попробуйте еще раз.');
+        })
+        .finally(() => {
+            sendBtn.disabled = false;
+            input.focus();
+        });
+    });
+
+    // Автоподгрузка новых сообщений от админа
+    setInterval(function () {
+        fetch('{% url "accounts:chat_messages" %}?after_id=' + lastMessageId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        .then(r => r.json())
+        .then(data => {
+            (data.messages || []).forEach(msg => {
+                appendMessage(msg);
+                lastMessageId = Math.max(lastMessageId, msg.id);
+            });
+        })
+        .catch(err => console.error('Ошибка получения новых сообщений:', err));
+    }, 5000);  // каждые 5 секунд
+
+    // Enter отправляет, Shift+Enter переносит строку
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            form.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // Авторазмер textarea
+    input.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+});
+</script>
+{% endblock %}

@@ -90,6 +90,7 @@ TEMPLATES = [
                 'apps.cart.context_processors.cart_total',
                 'apps.orders.context_processors.orders_count',
                 'apps.products.context_processors.favorites_count',
+                'apps.accounts.context_processors.unread_chat_count',
             ],
         },
     },

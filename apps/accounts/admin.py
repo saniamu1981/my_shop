@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import CustomUser, Offer
+from django.utils.safestring import mark_safe
+from django.urls import reverse
+
+from .models import CustomUser, Offer, ChatMessage
 
 
 @admin.register(Offer)
@@ -46,3 +49,65 @@ class UserAdmin(admin.ModelAdmin):
 
     offer_status.short_description = 'Оферта'
     offer_status.admin_order_field = 'offer_accepted'
+
+
+class ChatMessageInline(admin.TabularInline):
+    """Показываем сообщения прямо в карточке пользователя."""
+    model = ChatMessage
+    extra = 0
+    fields = ('sender', 'message', 'is_read', 'created')
+    readonly_fields = ('created',)
+    ordering = ('created',)
+    can_delete = True
+    show_change_link = True
+
+
+# Дополняем UserAdmin — переопределяем, потому что выше уже зарегистрирован
+UserAdmin.inlines = [ChatMessageInline]
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user_link', 'sender', 'short_message', 'is_read', 'created')
+    list_filter = ('sender', 'is_read', 'created')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'message')
+    list_editable = ('is_read',)
+    readonly_fields = ('created',)
+    date_hierarchy = 'created'
+    ordering = ('-created',)
+    list_per_page = 50
+
+    fieldsets = (
+        ('Сообщение', {
+            'fields': ('user', 'sender', 'message', 'is_read')
+        }),
+        ('Даты', {
+            'fields': ('created',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def user_link(self, obj):
+        url = reverse('admin:accounts_customuser_change', args=[obj.user_id])
+        return mark_safe(f'<a href="{url}">{obj.user.email}</a>')
+
+    user_link.short_description = 'Пользователь'
+    user_link.admin_order_field = 'user__email'
+
+    def short_message(self, obj):
+        return obj.message[:80] + ('…' if len(obj.message) > 80 else '')
+
+    short_message.short_description = 'Сообщение'
+
+    # Массовые действия
+    actions = ['mark_as_read', 'mark_as_unread']
+
+    @admin.action(description='Отметить как прочитанные')
+    def mark_as_read(self, request, queryset):
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f'Отмечено как прочитано: {updated}')
+
+    @admin.action(description='Отметить как непрочитанные')
+    def mark_as_unread(self, request, queryset):
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f'Отмечено как непрочитано: {updated}')
