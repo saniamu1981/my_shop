@@ -1,16 +1,26 @@
-import stripe
+import json
+import uuid
+
+from yookassa import Configuration, Payment
+from yookassa.domain.exceptions import ApiError
+
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
+
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
 from apps.products.models import Product, Review, ReviewMedia
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# ============ Настройка ЮKassa ============
+Configuration.account_id = settings.YOOKASSA_SHOP_ID
+Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
 
 # apps/orders/views.py
@@ -129,47 +139,100 @@ def payment_process(request, order_id):
         return redirect('orders:order_detail', order_id=order.id)
 
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': f'Заказ №{order.id}',
-                    },
-                    'unit_amount': int(order.total_price * 100),
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=request.build_absolute_uri(
-                reverse('orders:payment_success', args=[order.id])
-            ),
-            cancel_url=request.build_absolute_uri(
-                reverse('orders:payment_cancel', args=[order.id])
-            ),
-            metadata={
-                'order_id': str(order.id),
-            }
+        # return_url — куда вернётся пользователь после оплаты
+        return_url = request.build_absolute_uri(
+            reverse('orders:payment_success', args=[order.id])
         )
 
-        order.payment_id = session.id
+        payment = Payment.create({
+            "amount": {
+                "value": f"{order.total_price:.2f}",
+                "currency": "RUB"
+            },
+            "capture": True,
+            "confirmation": {
+                "type": "redirect",
+                "return_url": return_url,
+            },
+            "description": f"Заказ №{order.id}",
+            "metadata": {
+                "order_id": str(order.id),
+            }
+        }, uuid.uuid4())   # Idempotence-Key
+
+        order.payment_id = payment.id
         order.save()
 
-        return redirect(session.url, 303)
-    except stripe.error.StripeError as e:
-        messages.error(request, f'Ошибка оплаты: {str(e)}')
+        # Редиректим пользователя на страницу оплаты ЮKassa
+        return redirect(payment.confirmation.confirmation_url)
+
+    except ApiError as e:
+        messages.error(request, f'Ошибка оплаты: {e}')
+        return redirect('orders:order_detail', order_id=order.id)
+    except Exception as e:
+        messages.error(request, f'Ошибка оплаты: {e}')
         return redirect('orders:order_detail', order_id=order.id)
 
 
 @login_required
 def payment_success(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    order.paid = True
-    order.status = 'paid'
-    order.save()
-    messages.success(request, f'Заказ №{order.id} успешно оплачен!')
+
+    # Проверяем статус оплаты через ЮKassa API
+    try:
+        if order.payment_id:
+            payment = Payment.find_one(order.payment_id)
+            if payment.status == 'succeeded' and not order.paid:
+                order.paid = True
+                order.status = 'paid'
+                order.save()
+                messages.success(request, f'Заказ №{order.id} успешно оплачен!')
+            elif not order.paid:
+                messages.info(request, 'Оплата еще обрабатывается. Проверьте статус через минуту.')
+        else:
+            messages.warning(request, 'Не найден идентификатор платежа.')
+    except Exception as e:
+        messages.error(request, f'Не удалось проверить статус оплаты: {e}')
+
     return render(request, 'orders/payment_success.html', {'order': order})
+
+
+@csrf_exempt
+def yookassa_webhook(request):
+    """Уведомления от ЮKassa о смене статуса платежа."""
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+
+    try:
+        event_json = json.loads(request.body)
+        event = event_json.get('event')
+        payment_object = event_json.get('object', {})
+
+        if event == 'payment.succeeded':
+            order_id = payment_object.get('metadata', {}).get('order_id')
+            payment_id = payment_object.get('id')
+
+            if order_id:
+                order = Order.objects.filter(id=order_id).first()
+                if order and not order.paid:
+                    order.paid = True
+                    order.status = 'paid'
+                    order.payment_id = payment_id or order.payment_id
+                    order.save()
+
+        elif event == 'payment.canceled':
+            order_id = payment_object.get('metadata', {}).get('order_id')
+            if order_id:
+                order = Order.objects.filter(id=order_id).first()
+                if order and not order.paid:
+                    order.status = 'cancelled'
+                    order.save()
+
+        return HttpResponse(status=200)
+
+    except Exception as e:
+        print(f'YooKassa webhook error: {e}')
+        return HttpResponse(status=500)
 
 
 @login_required

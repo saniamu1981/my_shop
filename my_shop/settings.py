@@ -318,3 +318,9 @@ else:
     STATIC_URL = '/static/'
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
+# ============ ЮKassa ============
+YOOKASSA_SHOP_ID = os.environ.get('YOOKASSA_SHOP_ID', '1431740')
+YOOKASSA_SECRET_KEY = os.environ.get('YOOKASSA_SECRET_KEY', 'live_80p7fCyD9xUWWqbT0KNs-5AZlhA7ebzwo2qW6zjhtVY')
+YOOKASSA_RETURN_URL = os.environ.get('YOOKASSA_RETURN_URL', 'https://maidlingerie.ru')

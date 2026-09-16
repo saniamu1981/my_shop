@@ -1,18 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h1 class="display-1 text-success">✅</h1>
-                    <h2 class="card-title">Оплата прошла успешно!</h2>
-                    <p class="card-text">Заказ №{{ order.id }} успешно оплачен.</p>
-                    <p class="card-text">Мы отправим уведомление о статусе заказа на ваш email.</p>
-                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-primary">Просмотреть заказ</a>
-                    <a href="{% url 'products:product_list' %}" class="btn btn-secondary">Продолжить покупки</a>
-                </div>
+<div class="container" style="max-width: 600px;">
+    <div class="card mt-5">
+        <div class="card-body text-center py-5">
+            <div style="font-size: 64px;">✅</div>
+            <h3 class="mt-3">Спасибо за заказ!</h3>
+            <p class="text-muted mt-2">
+                Заказ №{{ order.id }} на сумму <strong>{{ order.total_price }} ₽</strong>
+            </p>
+
+            {% if order.paid %}
+                <p class="text-success">Оплата прошла успешно.</p>
+            {% else %}
+                <p class="text-warning">Оплата еще обрабатывается. Мы свяжемся с вами после подтверждения.</p>
+            {% endif %}
+
+            <div class="d-flex justify-content-center gap-2 mt-4">
+                <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-primary">
+                    Перейти к заказу
+                </a>
+                <a href="{% url 'products:product_list' %}" class="btn btn-outline-secondary">
+                    Продолжить покупки
+                </a>
             </div>
         </div>
     </div>
