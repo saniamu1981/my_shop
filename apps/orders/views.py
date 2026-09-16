@@ -144,6 +144,7 @@ def payment_process(request, order_id):
             reverse('orders:payment_success', args=[order.id])
         )
 
+        # Формируем список позиций для чека
         items_for_receipt = []
         for item in order.items.all():
             items_for_receipt.append({
@@ -151,15 +152,15 @@ def payment_process(request, order_id):
                 "quantity": item.quantity,
                 "amount": {
                     "value": f"{item.price:.2f}",
-                    "currency": "RUB"
+                    "currency": "RUB",
                 },
-                "vat_code": 1,
+                "vat_code": 1,  # 1 = без НДС. Уточните свой код НДС.
             })
 
         payment = Payment.create({
             "amount": {
                 "value": f"{order.total_price:.2f}",
-                "currency": "RUB"
+                "currency": "RUB",
             },
             "capture": True,
             "confirmation": {
@@ -168,24 +169,12 @@ def payment_process(request, order_id):
             },
             "description": f"Заказ №{order.id}",
             "receipt": {
-                    "customer": {"email": order.email},
-                    "items": items_for_receipt,
-                },
-                "items": [
-                    {
-                        "description": f"Товар по заказу №{order.id}",
-                        "quantity": 1,
-                        "amount": {
-                            "value": f"{order.total_price:.2f}",
-                            "currency": "RUB"
-                        },
-                        "vat_code": 1,  # 1 = без НДС. Уточните свой код НДС.
-                    }
-                ]
+                "customer": {"email": order.email},
+                "items": items_for_receipt,
             },
             "metadata": {
                 "order_id": str(order.id),
-            }
+            },
         }, uuid.uuid4())
 
         order.payment_id = payment.id
