@@ -421,13 +421,27 @@
                             <a class="nav-link-custom dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <span class="nav-icon-wrapper">
                                     <span class="nav-icon bi bi-person-circle"></span>
+                                    {% if chat_unread_count %}
+                                        <span class="badge-icon">{{ chat_unread_count }}</span>
+                                    {% endif %}
                                 </span>
                                 <span class="nav-icon-label">{{ user.email|truncatechars:12 }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">👤 Личный кабинет</a></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                        👤 Личный кабинет
+                                        {% if chat_unread_count %}
+                                            <span class="badge bg-danger ms-2">{{ chat_unread_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}">🚪 Выйти</a></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                                        🚪 Выйти
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     {% else %}
