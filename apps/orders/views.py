@@ -148,13 +148,15 @@ def payment_process(request, order_id):
         items_for_receipt = []
         for item in order.items.all():
             items_for_receipt.append({
-                "description": item.product.name[:128],  # ограничение ЮKassa
+                "description": item.product.name[:128],
                 "quantity": item.quantity,
                 "amount": {
                     "value": f"{item.price:.2f}",
-                    "currency": "RUB",
+                    "currency": "RUB"
                 },
-                "vat_code": 1,  # 1 = без НДС. Уточните свой код НДС.
+                "vat_code": 1,
+                "payment_subject": "commodity",  # ← признак предмета расчёта
+                "payment_mode": "full_payment",  # ← признак способа расчёта
             })
 
         payment = Payment.create({
