@@ -4,6 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 
+from apps.products import feeds
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin-panel/', include('apps.admin_panel.urls')),  # Добавьте эту строку
@@ -13,6 +15,7 @@ urlpatterns = [
     path('orders/', include('apps.orders.urls')),
     path('profile/', include('apps.accounts.urls')),
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('feed.yml', feeds.yml_feed, name='yml_feed'),
 ]
 
 if settings.DEBUG:
