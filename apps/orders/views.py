@@ -53,12 +53,14 @@ def order_list(request):
 @login_required
 def create_order(request):
     cart = CartManager(request)
+    buy_now_data = request.session.get('buy_now')
 
-    if cart.is_empty():
+    # ===== Если в корзине пусто и нет быстрой покупки — уходим =====
+    if cart.is_empty() and not buy_now_data:
         messages.warning(request, 'Корзина пуста')
         return redirect('products:product_list')
 
-    # ===== Проверка принятия активной оферты =====
+    # ===== Проверка оферты =====
     from apps.accounts.models import Offer
     active_offer = Offer.objects.filter(is_active=True).first()
 
@@ -75,43 +77,73 @@ def create_order(request):
         messages.warning(request, 'Для оформления заказа необходимо принять оферту.')
         return redirect('accounts:profile')
 
-    # ===== Дальше существующая логика =====
+    # ===== POST — создаём заказ =====
     if request.method == 'POST':
-        # Способ доставки и пункт приходят со страницы оформления
         delivery_method = request.POST.get('delivery_method', '')
         delivery_point_raw = request.POST.get('delivery_point', '{}')
         try:
-            import json
             point_data = json.loads(delivery_point_raw) if delivery_point_raw else {}
         except Exception:
             point_data = {}
 
+        # ---- Считаем сумму и собираем позиции ----
+        if buy_now_data:
+            # быстрая покупка — один товар из сессии
+            product = get_object_or_404(Product, id=buy_now_data.get('product_id'))
+            quantity = int(buy_now_data.get('quantity', 1) or 1)
+            price = product.price
+            total_price = price * quantity
+
+            order_items_data = [{
+                'product': product,
+                'price': price,
+                'quantity': quantity,
+            }]
+        else:
+            # обычная корзина
+            total_price = cart.get_total_price()
+            order_items_data = [{
+                'product': item['product'],
+                'price': item['price'],
+                'quantity': item['quantity'],
+            } for item in cart]
+
         order = Order.objects.create(
             user=request.user,
-            first_name=request.POST.get('first_name'),
-            last_name=request.POST.get('last_name'),
-            email=request.POST.get('email'),
-            # Адрес берём из пункта выдачи, если он есть; иначе — из поля формы
+            first_name=request.POST.get('first_name', ''),
+            last_name=request.POST.get('last_name', ''),
+            email=request.POST.get('email', ''),
             address=point_data.get('address') or request.POST.get('address', ''),
-            phone=request.POST.get('phone'),
-            total_price=cart.get_total_price(),
+            phone=request.POST.get('phone', ''),
+            total_price=total_price,
             delivery_method=delivery_method,
             delivery_point_code=point_data.get('code', ''),
             delivery_point_name=point_data.get('name', ''),
             delivery_point_address=point_data.get('address', ''),
         )
 
-        for item in cart:
+        for item in order_items_data:
             OrderItem.objects.create(
                 order=order,
                 product=item['product'],
                 price=item['price'],
-                quantity=item['quantity']
+                quantity=item['quantity'],
             )
 
-        cart.clear()
+        # ---- Чистим источники ----
+        if buy_now_data:
+            # Удаляем товар из корзины, если он там был (при buy-now обычно нет)
+            size = buy_now_data.get('size') or ''
+            try:
+                cart.remove(order_items_data[0]['product'].id, size=size)
+            except Exception:
+                pass
+            request.session.pop('buy_now', None)
+            request.session.modified = True
+        else:
+            cart.clear()
 
-        # Если AJAX — возвращаем URL, чтобы JS сам перешёл
+        # ---- Ответ ----
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             from django.urls import reverse
             return JsonResponse({
@@ -123,7 +155,26 @@ def create_order(request):
         messages.success(request, f'Заказ №{order.id} успешно создан')
         return redirect('orders:payment_process', order_id=order.id)
 
-    return render(request, 'orders/order_create.html', {'cart': cart})
+    # ===== GET — рендерим форму =====
+    # Показываем в правой колонке либо корзину, либо один товар быстрой покупки
+    if buy_now_data:
+        product = get_object_or_404(Product, id=buy_now_data.get('product_id'))
+        cart_context = [{
+            'product': product,
+            'price': product.price,
+            'quantity': int(buy_now_data.get('quantity', 1) or 1),
+            'total_price': product.price * int(buy_now_data.get('quantity', 1) or 1),
+        }]
+        total_price = sum(x['total_price'] for x in cart_context)
+    else:
+        cart_context = list(cart)
+        total_price = cart.get_total_price()
+
+    return render(request, 'orders/order_create.html', {
+        'cart': cart_context,
+        'total_price': total_price,
+        'buy_now': bool(buy_now_data),
+    })
 
 
 @login_required
@@ -286,94 +337,68 @@ def cancel_order(request, order_id):
 
 @login_required
 def buy_now(request, product_id):
-    """Быстрая покупка одного товара"""
+    """Быстрая покупка одного товара.
+
+    Теперь НЕ создаёт заказ сразу, а откладывает покупку в сессию
+    и редиректит на страницу оформления (create_order), где пользователь
+    подтверждает данные и переходит к оплате.
+    """
     product = get_object_or_404(Product, id=product_id, available=True)
 
-    if request.method == 'POST':
-        # ===== Проверка принятия активной оферты =====
-        from apps.accounts.models import Offer
-        active_offer = Offer.objects.filter(is_active=True).first()
-
-        if active_offer and request.user.offer_accepted_id != active_offer.id:
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                from django.urls import reverse
-                return JsonResponse({
-                    'success': False,
-                    'offer_required': True,
-                    'offer_url': reverse('accounts:offer_detail', args=[active_offer.id]),
-                    'profile_url': reverse('accounts:profile'),
-                    'message': 'Для оформления заказа необходимо принять оферту.',
-                }, status=200)
-
-            messages.warning(request, 'Для оформления заказа необходимо принять оферту.')
-            return redirect('accounts:profile')
-
-        # ===== Логика покупки =====
-        size = request.POST.get('size', '')
-        delivery_method = request.POST.get('delivery_method', '')
-        delivery_point = request.POST.get('delivery_point', '{}')
-
-        try:
-            import json
-            point_data = json.loads(delivery_point) if delivery_point else {}
-        except Exception:
-            point_data = {}
-
-        user_phone = ''
-        if hasattr(request.user, 'phone') and request.user.phone:
-            user_phone = request.user.phone
-        elif hasattr(request.user, 'profile') and hasattr(request.user.profile, 'phone'):
-            user_phone = request.user.profile.phone
-
-        if not user_phone:
-            user_phone = 'Не указан'
-
-        order = Order.objects.create(
-            user=request.user,
-            first_name=request.user.first_name or 'Покупатель',
-            last_name=request.user.last_name or '',
-            email=request.user.email,
-            address=point_data.get('address', 'Адрес не указан'),
-            phone=user_phone,
-            total_price=product.price,
-            delivery_method=delivery_method,
-            delivery_point_code=point_data.get('code', ''),
-            delivery_point_name=point_data.get('name', ''),
-            delivery_point_address=point_data.get('address', ''),
+    if request.method != 'POST':
+        return redirect(
+            'products:product_detail',
+            category_slug=product.category.slug,
+            product_slug=product.slug
         )
 
-        OrderItem.objects.create(
-            order=order,
-            product=product,
-            price=product.price,
-            quantity=1
-        )
+    # ===== Проверка оферты =====
+    from apps.accounts.models import Offer
+    active_offer = Offer.objects.filter(is_active=True).first()
 
-        # ===== Удаляем товар из корзины =====
-        cart = CartManager(request)
-        cart.remove(product.id, size=size)
-
-        # ===== AJAX-ответ =====
+    if active_offer and request.user.offer_accepted_id != active_offer.id:
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             from django.urls import reverse
             return JsonResponse({
-                'success': True,
-                'order_id': order.id,
-                'redirect_url': reverse('orders:payment_process', args=[order.id]),
-                'cart_count': len(cart),  # новое количество позиций в корзине
-            })
+                'success': False,
+                'offer_required': True,
+                'offer_url': reverse('accounts:offer_detail', args=[active_offer.id]),
+                'profile_url': reverse('accounts:profile'),
+                'message': 'Для оформления заказа необходимо принять оферту.',
+            }, status=200)
 
-        messages.success(
-            request,
-            f'Заказ №{order.id} успешно создан для товара "{product.name}"'
-        )
-        return redirect('orders:payment_process', order_id=order.id)
+        messages.warning(request, 'Для оформления заказа необходимо принять оферту.')
+        return redirect('accounts:profile')
 
-    return redirect(
-        'products:product_detail',
-        category_slug=product.category.slug,
-        product_slug=product.slug
-    )
+    # ===== Собираем данные =====
+    size = request.POST.get('size', '')
+    delivery_method = request.POST.get('delivery_method', '')
+    delivery_point = request.POST.get('delivery_point', '{}')
+
+    try:
+        point_data = json.loads(delivery_point) if delivery_point else {}
+    except Exception:
+        point_data = {}
+
+    # ===== Складываем "быструю покупку" в сессию =====
+    request.session['buy_now'] = {
+        'product_id': product.id,
+        'size': size,
+        'quantity': 1,
+        'delivery_method': delivery_method,
+        'delivery_point': point_data,
+    }
+    request.session.modified = True
+
+    # ===== AJAX-ответ: клиент сам перейдёт на страницу оформления =====
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        from django.urls import reverse
+        return JsonResponse({
+            'success': True,
+            'redirect_url': reverse('orders:create_order'),
+        })
+
+    return redirect('orders:create_order')
 
 @login_required
 def add_review(request):

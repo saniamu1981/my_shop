@@ -235,35 +235,35 @@
             </div>
         </div>
 
-        <!-- Модальное окно выбора пункта выдачи -->
-        <div class="modal fade" id="deliveryPointsModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title">📍 Выберите пункт выдачи</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            Выбран способ доставки: <strong id="selected-delivery-method">СДЭК</strong>
-                        </div>
-                        <div class="delivery-points-list" id="deliveryPointsList">
-                            <div class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Загрузка...</span>
-                                </div>
-                                <p class="mt-2">Загрузка пунктов выдачи...</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="button" class="btn btn-success" id="confirmDeliveryPoint" disabled>Подтвердить</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!--        &lt;!&ndash; Модальное окно выбора пункта выдачи &ndash;&gt;-->
+<!--        <div class="modal fade" id="deliveryPointsModal" tabindex="-1" aria-hidden="true">-->
+<!--            <div class="modal-dialog modal-lg modal-dialog-centered">-->
+<!--                <div class="modal-content">-->
+<!--                    <div class="modal-header bg-success text-white">-->
+<!--                        <h5 class="modal-title">📍 Выберите пункт выдачи</h5>-->
+<!--                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>-->
+<!--                    </div>-->
+<!--                    <div class="modal-body">-->
+<!--                        <div class="alert alert-info">-->
+<!--                            <i class="bi bi-info-circle"></i>-->
+<!--                            Выбран способ доставки: <strong id="selected-delivery-method">СДЭК</strong>-->
+<!--                        </div>-->
+<!--                        <div class="delivery-points-list" id="deliveryPointsList">-->
+<!--                            <div class="text-center py-4">-->
+<!--                                <div class="spinner-border text-primary" role="status">-->
+<!--                                    <span class="visually-hidden">Загрузка...</span>-->
+<!--                                </div>-->
+<!--                                <p class="mt-2">Загрузка пунктов выдачи...</p>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div class="modal-footer">-->
+<!--                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>-->
+<!--                        <button type="button" class="btn btn-success" id="confirmDeliveryPoint" disabled>Подтвердить</button>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
 
         <!-- Модалка оферты -->
         <div class="modal fade" id="offerWarningModal" tabindex="-1" aria-hidden="true">
@@ -341,50 +341,50 @@
                         </div>
                     </div>
 
-                    <!-- Блок СДЭК -->
-                    <div id="cdek-widget-container" style="display: none; margin-top: 10px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px; background: #f8f9fa;">
-                        <div style="margin-bottom: 10px;">
-                            <strong style="font-size: 13px;">📍 Выберите пункт выдачи СДЭК</strong>
-                            <p class="text-muted small" style="font-size: 11px; margin-bottom: 0;">Выберите область и город, затем найдите пункт</p>
-                        </div>
+<!--                    &lt;!&ndash; Блок СДЭК &ndash;&gt;-->
+<!--                    <div id="cdek-widget-container" style="display: none; margin-top: 10px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px; background: #f8f9fa;">-->
+<!--                        <div style="margin-bottom: 10px;">-->
+<!--                            <strong style="font-size: 13px;">📍 Выберите пункт выдачи СДЭК</strong>-->
+<!--                            <p class="text-muted small" style="font-size: 11px; margin-bottom: 0;">Выберите область и город, затем найдите пункт</p>-->
+<!--                        </div>-->
 
-                        <div style="margin-bottom: 6px;">
-                            <select id="cdek-region-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;">
-                                <option value="">-- Выберите область --</option>
-                            </select>
-                        </div>
+<!--                        <div style="margin-bottom: 6px;">-->
+<!--                            <select id="cdek-region-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;">-->
+<!--                                <option value="">&#45;&#45; Выберите область &#45;&#45;</option>-->
+<!--                            </select>-->
+<!--                        </div>-->
 
-                        <div style="margin-bottom: 6px;">
-                            <select id="cdek-city-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;" disabled>
-                                <option value="">-- Сначала выберите область --</option>
-                            </select>
-                        </div>
+<!--                        <div style="margin-bottom: 6px;">-->
+<!--                            <select id="cdek-city-select" class="form-select form-select-sm" style="font-size: 12px; padding: 4px 8px;" disabled>-->
+<!--                                <option value="">&#45;&#45; Сначала выберите область &#45;&#45;</option>-->
+<!--                            </select>-->
+<!--                        </div>-->
 
-                        <div style="margin-bottom: 6px;">
-                            <input type="text" id="cdek-search-input" class="form-control form-control-sm"
-                                   placeholder="🔍 Поиск по адресу или названию..."
-                                   style="font-size: 12px; padding: 4px 8px;" disabled>
-                        </div>
+<!--                        <div style="margin-bottom: 6px;">-->
+<!--                            <input type="text" id="cdek-search-input" class="form-control form-control-sm"-->
+<!--                                   placeholder="🔍 Поиск по адресу или названию..."-->
+<!--                                   style="font-size: 12px; padding: 4px 8px;" disabled>-->
+<!--                        </div>-->
 
-                        <div id="cdek-points-list" style="max-height: 250px; overflow-y: auto; margin-top: 6px; display: none;">
-                            <div class="text-center py-2">
-                                <div class="spinner-border text-primary" style="width: 24px; height: 24px;" role="status">
-                                    <span class="visually-hidden">Загрузка...</span>
-                                </div>
-                                <p class="mt-1" style="font-size: 12px;">Загрузка пунктов выдачи...</p>
-                            </div>
-                        </div>
+<!--                        <div id="cdek-points-list" style="max-height: 250px; overflow-y: auto; margin-top: 6px; display: none;">-->
+<!--                            <div class="text-center py-2">-->
+<!--                                <div class="spinner-border text-primary" style="width: 24px; height: 24px;" role="status">-->
+<!--                                    <span class="visually-hidden">Загрузка...</span>-->
+<!--                                </div>-->
+<!--                                <p class="mt-1" style="font-size: 12px;">Загрузка пунктов выдачи...</p>-->
+<!--                            </div>-->
+<!--                        </div>-->
 
-                        <div id="cdek-selected-point" style="margin-top: 6px; padding: 6px 10px; background: #d4edda; border-radius: 6px; display: none; border: 1px solid #c3e6cb; font-size: 12px;">
-                            <strong>✅ Выбран:</strong>
-                            <span id="cdek-point-address"></span>
-                            <input type="hidden" id="cdek-point-code" name="delivery_point_code">
-                            <input type="hidden" id="cdek-point-name" name="delivery_point_name">
-                            <input type="hidden" id="cdek-point-address-input" name="delivery_point_address">
-                            <input type="hidden" id="cdek-point-city" name="delivery_point_city">
-                            <input type="hidden" id="cdek-point-region" name="delivery_point_region">
-                        </div>
-                    </div>
+<!--                        <div id="cdek-selected-point" style="margin-top: 6px; padding: 6px 10px; background: #d4edda; border-radius: 6px; display: none; border: 1px solid #c3e6cb; font-size: 12px;">-->
+<!--                            <strong>✅ Выбран:</strong>-->
+<!--                            <span id="cdek-point-address"></span>-->
+<!--                            <input type="hidden" id="cdek-point-code" name="delivery_point_code">-->
+<!--                            <input type="hidden" id="cdek-point-name" name="delivery_point_name">-->
+<!--                            <input type="hidden" id="cdek-point-address-input" name="delivery_point_address">-->
+<!--                            <input type="hidden" id="cdek-point-city" name="delivery_point_city">-->
+<!--                            <input type="hidden" id="cdek-point-region" name="delivery_point_region">-->
+<!--                        </div>-->
+<!--                    </div>-->
 
                     <!-- Блок Самовывоз -->
                     <div id="pickup-info-container" style="display: none; margin-top: 10px; border: 1px solid #28a745; border-radius: 12px; padding: 15px; background: #f8fff8;">
@@ -778,6 +778,47 @@
     </div>
 </div>
 
+<!-- Модальное окно выбора ПВЗ СДЭК -->
+<div class="modal fade" id="cdekPvzModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">📍 Выберите пункт выдачи СДЭК</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-0" style="position: relative;">
+                <!-- Город и поиск -->
+                <div class="p-3 border-bottom bg-light d-flex gap-2 flex-wrap align-items-center">
+                    <select id="cdekCitySelect" class="form-select form-select-sm" style="max-width: 260px;">
+                        <option value="">-- Загрузка городов... --</option>
+                    </select>
+                    <input type="text" id="cdekSearchInput" class="form-control form-control-sm"
+                           placeholder="🔍 Поиск по адресу..." style="max-width: 300px;">
+                    <button type="button" id="cdekShowAllBtn" class="btn btn-sm btn-outline-primary">
+                        🌍 Показать все ПВЗ России
+                    </button>
+                    <span id="cdekPointsCount" class="text-muted small"></span>
+                </div>
+
+                <!-- Карта -->
+                <div id="cdekMap" style="width: 100%; height: 65vh; background: #eef1f5;"></div>
+
+                <!-- Выбранный пункт — плашка снизу -->
+                <div id="cdekSelectedBox" class="p-3 border-top bg-success bg-opacity-10" style="display: none;">
+                    <strong>✅ Выбран:</strong>
+                    <span id="cdekSelectedAddress"></span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" id="cdekConfirmBtn" disabled>Подтвердить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .review-item {
     transition: all 0.3s ease;
@@ -818,367 +859,367 @@ let searchTimeout = null;
 
 // ============ СДЭК ============
 
-// Загрузка областей для СДЭК
-function loadRegions() {
-    const regionSelect = document.getElementById('cdek-region-select');
-    if (!regionSelect) return;
+<!--// Загрузка областей для СДЭК-->
+<!--function loadRegions() {-->
+<!--    const regionSelect = document.getElementById('cdek-region-select');-->
+<!--    if (!regionSelect) return;-->
 
-    regionSelect.innerHTML = '<option value="">-- Загрузка областей... --</option>';
+<!--    regionSelect.innerHTML = '<option value="">&#45;&#45; Загрузка областей... &#45;&#45;</option>';-->
 
-    fetch('/delivery/api/regions/', {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        regionSelect.innerHTML = '<option value="">-- Выберите область --</option>';
+<!--    fetch('/delivery/api/regions/', {-->
+<!--        method: 'GET',-->
+<!--        headers: {-->
+<!--            'X-Requested-With': 'XMLHttpRequest',-->
+<!--        },-->
+<!--    })-->
+<!--    .then(response => response.json())-->
+<!--    .then(data => {-->
+<!--        regionSelect.innerHTML = '<option value="">&#45;&#45; Выберите область &#45;&#45;</option>';-->
 
-        if (data.regions && data.regions.length > 0) {
-            data.regions.forEach(region => {
-                const option = document.createElement('option');
-                option.value = region.name;
-                option.textContent = region.name;
-                regionSelect.appendChild(option);
-            });
-        } else {
-            regionSelect.innerHTML = '<option value="">-- Области не найдены --</option>';
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки областей:', error);
-        regionSelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
-    });
-}
+<!--        if (data.regions && data.regions.length > 0) {-->
+<!--            data.regions.forEach(region => {-->
+<!--                const option = document.createElement('option');-->
+<!--                option.value = region.name;-->
+<!--                option.textContent = region.name;-->
+<!--                regionSelect.appendChild(option);-->
+<!--            });-->
+<!--        } else {-->
+<!--            regionSelect.innerHTML = '<option value="">&#45;&#45; Области не найдены &#45;&#45;</option>';-->
+<!--        }-->
+<!--    })-->
+<!--    .catch(error => {-->
+<!--        console.error('Ошибка загрузки областей:', error);-->
+<!--        regionSelect.innerHTML = '<option value="">&#45;&#45; Ошибка загрузки &#45;&#45;</option>';-->
+<!--    });-->
+<!--}-->
 
-// Загрузка городов для СДЭК
-function loadCities(regionName) {
-    const citySelect = document.getElementById('cdek-city-select');
-    const searchInput = document.getElementById('cdek-search-input');
-    const pointsList = document.getElementById('cdek-points-list');
+<!--// Загрузка городов для СДЭК-->
+<!--function loadCities(regionName) {-->
+<!--    const citySelect = document.getElementById('cdek-city-select');-->
+<!--    const searchInput = document.getElementById('cdek-search-input');-->
+<!--    const pointsList = document.getElementById('cdek-points-list');-->
 
-    if (!citySelect) return;
+<!--    if (!citySelect) return;-->
 
-    citySelect.innerHTML = '<option value="">-- Загрузка городов... --</option>';
-    citySelect.disabled = true;
+<!--    citySelect.innerHTML = '<option value="">&#45;&#45; Загрузка городов... &#45;&#45;</option>';-->
+<!--    citySelect.disabled = true;-->
 
-    if (searchInput) {
-        searchInput.value = '';
-        searchInput.disabled = true;
-    }
+<!--    if (searchInput) {-->
+<!--        searchInput.value = '';-->
+<!--        searchInput.disabled = true;-->
+<!--    }-->
 
-    if (pointsList) {
-        pointsList.style.display = 'none';
-        pointsList.innerHTML = '';
-    }
+<!--    if (pointsList) {-->
+<!--        pointsList.style.display = 'none';-->
+<!--        pointsList.innerHTML = '';-->
+<!--    }-->
 
-    const selectedPoint = document.getElementById('cdek-selected-point');
-    if (selectedPoint) {
-        selectedPoint.style.display = 'none';
-    }
+<!--    const selectedPoint = document.getElementById('cdek-selected-point');-->
+<!--    if (selectedPoint) {-->
+<!--        selectedPoint.style.display = 'none';-->
+<!--    }-->
 
-    allPoints = [];
+<!--    allPoints = [];-->
 
-    if (!regionName) {
-        citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
-        citySelect.disabled = false;
-        return;
-    }
+<!--    if (!regionName) {-->
+<!--        citySelect.innerHTML = '<option value="">&#45;&#45; Сначала выберите область &#45;&#45;</option>';-->
+<!--        citySelect.disabled = false;-->
+<!--        return;-->
+<!--    }-->
 
-    console.log('Загрузка городов для области:', regionName);
+<!--    console.log('Загрузка городов для области:', regionName);-->
 
-    fetch(`/delivery/api/cities/?region_name=${encodeURIComponent(regionName)}`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Получены города:', data);
+<!--    fetch(`/delivery/api/cities/?region_name=${encodeURIComponent(regionName)}`, {-->
+<!--        method: 'GET',-->
+<!--        headers: {-->
+<!--            'X-Requested-With': 'XMLHttpRequest',-->
+<!--        },-->
+<!--    })-->
+<!--    .then(response => response.json())-->
+<!--    .then(data => {-->
+<!--        console.log('Получены города:', data);-->
 
-        citySelect.innerHTML = '<option value="">-- Выберите город --</option>';
-        citySelect.disabled = false;
+<!--        citySelect.innerHTML = '<option value="">&#45;&#45; Выберите город &#45;&#45;</option>';-->
+<!--        citySelect.disabled = false;-->
 
-        if (data.cities && data.cities.length > 0) {
-            data.cities.forEach(city => {
-                const option = document.createElement('option');
-                option.value = city.code;
-                option.textContent = city.name;
-                citySelect.appendChild(option);
-            });
-            citySelect.disabled = false;
-        } else {
-            citySelect.innerHTML = '<option value="">-- Города не найдены --</option>';
-            citySelect.disabled = true;
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки городов:', error);
-        citySelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
-        citySelect.disabled = true;
-    });
-}
+<!--        if (data.cities && data.cities.length > 0) {-->
+<!--            data.cities.forEach(city => {-->
+<!--                const option = document.createElement('option');-->
+<!--                option.value = city.code;-->
+<!--                option.textContent = city.name;-->
+<!--                citySelect.appendChild(option);-->
+<!--            });-->
+<!--            citySelect.disabled = false;-->
+<!--        } else {-->
+<!--            citySelect.innerHTML = '<option value="">&#45;&#45; Города не найдены &#45;&#45;</option>';-->
+<!--            citySelect.disabled = true;-->
+<!--        }-->
+<!--    })-->
+<!--    .catch(error => {-->
+<!--        console.error('Ошибка загрузки городов:', error);-->
+<!--        citySelect.innerHTML = '<option value="">&#45;&#45; Ошибка загрузки &#45;&#45;</option>';-->
+<!--        citySelect.disabled = true;-->
+<!--    });-->
+<!--}-->
 
-// Загрузка пунктов СДЭК по городу
-function loadPointsByCity(cityName) {
-    const pointsList = document.getElementById('cdek-points-list');
-    const searchInput = document.getElementById('cdek-search-input');
+<!--// Загрузка пунктов СДЭК по городу-->
+<!--function loadPointsByCity(cityName) {-->
+<!--    const pointsList = document.getElementById('cdek-points-list');-->
+<!--    const searchInput = document.getElementById('cdek-search-input');-->
 
-    if (!cityName) {
-        if (pointsList) pointsList.style.display = 'none';
-        if (searchInput) searchInput.disabled = true;
-        return;
-    }
+<!--    if (!cityName) {-->
+<!--        if (pointsList) pointsList.style.display = 'none';-->
+<!--        if (searchInput) searchInput.disabled = true;-->
+<!--        return;-->
+<!--    }-->
 
-    if (pointsList) {
-        pointsList.style.display = 'block';
-        pointsList.innerHTML = `
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Загрузка...</span>
-                </div>
-                <p class="mt-2">Загрузка пунктов выдачи...</p>
-            </div>
-        `;
-    }
+<!--    if (pointsList) {-->
+<!--        pointsList.style.display = 'block';-->
+<!--        pointsList.innerHTML = `-->
+<!--            <div class="text-center py-3">-->
+<!--                <div class="spinner-border text-primary" role="status">-->
+<!--                    <span class="visually-hidden">Загрузка...</span>-->
+<!--                </div>-->
+<!--                <p class="mt-2">Загрузка пунктов выдачи...</p>-->
+<!--            </div>-->
+<!--        `;-->
+<!--    }-->
 
-    if (searchInput) {
-        searchInput.disabled = true;
-        searchInput.value = '';
-    }
+<!--    if (searchInput) {-->
+<!--        searchInput.disabled = true;-->
+<!--        searchInput.value = '';-->
+<!--    }-->
 
-    const selectedPoint = document.getElementById('cdek-selected-point');
-    if (selectedPoint) {
-        selectedPoint.style.display = 'none';
-    }
+<!--    const selectedPoint = document.getElementById('cdek-selected-point');-->
+<!--    if (selectedPoint) {-->
+<!--        selectedPoint.style.display = 'none';-->
+<!--    }-->
 
-    let url = `/delivery/api/cdek-points/?city_name=${encodeURIComponent(cityName)}`;
+<!--    let url = `/delivery/api/cdek-points/?city_name=${encodeURIComponent(cityName)}`;-->
 
-    console.log('Загрузка пунктов:', url);
+<!--    console.log('Загрузка пунктов:', url);-->
 
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Получены пункты:', data);
+<!--    fetch(url, {-->
+<!--        method: 'GET',-->
+<!--        headers: {-->
+<!--            'X-Requested-With': 'XMLHttpRequest',-->
+<!--        },-->
+<!--    })-->
+<!--    .then(response => response.json())-->
+<!--    .then(data => {-->
+<!--        console.log('Получены пункты:', data);-->
 
-        allPoints = [];
+<!--        allPoints = [];-->
 
-        if (data.points && data.points.length > 0) {
-            console.log('Пример пункта (все поля):', data.points[0]);
-            console.log('Все поля пункта:', Object.keys(data.points[0]));
+<!--        if (data.points && data.points.length > 0) {-->
+<!--            console.log('Пример пункта (все поля):', data.points[0]);-->
+<!--            console.log('Все поля пункта:', Object.keys(data.points[0]));-->
 
-            allPoints = data.points;
-            renderCdekPoints(allPoints);
-            if (searchInput) {
-                searchInput.disabled = false;
-                searchInput.placeholder = 'Введите адрес или название пункта...';
-            }
-        } else {
-            if (pointsList) {
-                pointsList.innerHTML = `
-                    <div class="text-center py-4 text-muted">
-                        <i class="bi bi-geo-alt" style="font-size: 32px;"></i>
-                        <p class="mt-2">Пункты выдачи не найдены</p>
-                        ${data.error ? `<p class="text-danger small">${data.error}</p>` : ''}
-                    </div>
-                `;
-            }
-            if (searchInput) {
-                searchInput.disabled = true;
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки пунктов:', error);
-        if (pointsList) {
-            pointsList.innerHTML = `
-                <div class="text-center py-4 text-danger">
-                    <i class="bi bi-exclamation-circle" style="font-size: 32px;"></i>
-                    <p class="mt-2">Ошибка загрузки пунктов</p>
-                </div>
-            `;
-        }
-        if (searchInput) {
-            searchInput.disabled = true;
-        }
-    });
-}
+<!--            allPoints = data.points;-->
+<!--            renderCdekPoints(allPoints);-->
+<!--            if (searchInput) {-->
+<!--                searchInput.disabled = false;-->
+<!--                searchInput.placeholder = 'Введите адрес или название пункта...';-->
+<!--            }-->
+<!--        } else {-->
+<!--            if (pointsList) {-->
+<!--                pointsList.innerHTML = `-->
+<!--                    <div class="text-center py-4 text-muted">-->
+<!--                        <i class="bi bi-geo-alt" style="font-size: 32px;"></i>-->
+<!--                        <p class="mt-2">Пункты выдачи не найдены</p>-->
+<!--                        ${data.error ? `<p class="text-danger small">${data.error}</p>` : ''}-->
+<!--                    </div>-->
+<!--                `;-->
+<!--            }-->
+<!--            if (searchInput) {-->
+<!--                searchInput.disabled = true;-->
+<!--            }-->
+<!--        }-->
+<!--    })-->
+<!--    .catch(error => {-->
+<!--        console.error('Ошибка загрузки пунктов:', error);-->
+<!--        if (pointsList) {-->
+<!--            pointsList.innerHTML = `-->
+<!--                <div class="text-center py-4 text-danger">-->
+<!--                    <i class="bi bi-exclamation-circle" style="font-size: 32px;"></i>-->
+<!--                    <p class="mt-2">Ошибка загрузки пунктов</p>-->
+<!--                </div>-->
+<!--            `;-->
+<!--        }-->
+<!--        if (searchInput) {-->
+<!--            searchInput.disabled = true;-->
+<!--        }-->
+<!--    });-->
+<!--}-->
 
-// Получение полного адреса из данных пункта
-function getFullAddress(point) {
-    let fullAddress = point.name || '';
+<!--// Получение полного адреса из данных пункта-->
+<!--function getFullAddress(point) {-->
+<!--    let fullAddress = point.name || '';-->
 
-    if (fullAddress && fullAddress.includes(',')) {
-        const parts = fullAddress.split(',');
-        if (parts.length > 1) {
-            const addressParts = parts.slice(1).map(p => p.trim());
-            fullAddress = addressParts.join(', ');
-        }
-    }
+<!--    if (fullAddress && fullAddress.includes(',')) {-->
+<!--        const parts = fullAddress.split(',');-->
+<!--        if (parts.length > 1) {-->
+<!--            const addressParts = parts.slice(1).map(p => p.trim());-->
+<!--            fullAddress = addressParts.join(', ');-->
+<!--        }-->
+<!--    }-->
 
-    if (point.address && point.address !== '' && !fullAddress.includes(point.address)) {
-        fullAddress = fullAddress ? `${fullAddress}, ${point.address}` : point.address;
-    }
+<!--    if (point.address && point.address !== '' && !fullAddress.includes(point.address)) {-->
+<!--        fullAddress = fullAddress ? `${fullAddress}, ${point.address}` : point.address;-->
+<!--    }-->
 
-    if (point.full_address && point.full_address !== '' && !fullAddress.includes(point.full_address)) {
-        fullAddress = fullAddress ? `${fullAddress}, ${point.full_address}` : point.full_address;
-    }
+<!--    if (point.full_address && point.full_address !== '' && !fullAddress.includes(point.full_address)) {-->
+<!--        fullAddress = fullAddress ? `${fullAddress}, ${point.full_address}` : point.full_address;-->
+<!--    }-->
 
-    return fullAddress || point.name || 'Адрес не указан';
-}
+<!--    return fullAddress || point.name || 'Адрес не указан';-->
+<!--}-->
 
-function getPointName(point) {
-    let name = point.name || 'Пункт выдачи';
+<!--function getPointName(point) {-->
+<!--    let name = point.name || 'Пункт выдачи';-->
 
-    if (name && name.includes(',')) {
-        const parts = name.split(',');
-        if (parts.length > 1) {
-            name = parts[0].trim();
-        }
-    }
+<!--    if (name && name.includes(',')) {-->
+<!--        const parts = name.split(',');-->
+<!--        if (parts.length > 1) {-->
+<!--            name = parts[0].trim();-->
+<!--        }-->
+<!--    }-->
 
-    return name;
-}
+<!--    return name;-->
+<!--}-->
 
-// Поиск пунктов СДЭК
-function searchPoints(query) {
-    const pointsList = document.getElementById('cdek-points-list');
-    if (!pointsList) return;
+<!--// Поиск пунктов СДЭК-->
+<!--function searchPoints(query) {-->
+<!--    const pointsList = document.getElementById('cdek-points-list');-->
+<!--    if (!pointsList) return;-->
 
-    if (!query || query.trim() === '') {
-        renderCdekPoints(allPoints);
-        return;
-    }
+<!--    if (!query || query.trim() === '') {-->
+<!--        renderCdekPoints(allPoints);-->
+<!--        return;-->
+<!--    }-->
 
-    const searchTerm = query.toLowerCase().trim();
+<!--    const searchTerm = query.toLowerCase().trim();-->
 
-    const filteredPoints = allPoints.filter(point => {
-        const searchableText = [
-            point.name || '',
-            point.address || '',
-            point.full_address || '',
-            point.city || '',
-            point.region || '',
-            point.district || '',
-            point.sub_region || '',
-            point.code || '',
-            point.work_time || '',
-            point.phone || ''
-        ].join(' ').toLowerCase();
+<!--    const filteredPoints = allPoints.filter(point => {-->
+<!--        const searchableText = [-->
+<!--            point.name || '',-->
+<!--            point.address || '',-->
+<!--            point.full_address || '',-->
+<!--            point.city || '',-->
+<!--            point.region || '',-->
+<!--            point.district || '',-->
+<!--            point.sub_region || '',-->
+<!--            point.code || '',-->
+<!--            point.work_time || '',-->
+<!--            point.phone || ''-->
+<!--        ].join(' ').toLowerCase();-->
 
-        return searchableText.includes(searchTerm);
-    });
+<!--        return searchableText.includes(searchTerm);-->
+<!--    });-->
 
-    renderCdekPoints(filteredPoints);
-}
+<!--    renderCdekPoints(filteredPoints);-->
+<!--}-->
 
-// Рендер пунктов СДЭК
-function renderCdekPoints(points) {
-    const pointsList = document.getElementById('cdek-points-list');
-    if (!pointsList) return;
+<!--// Рендер пунктов СДЭК-->
+<!--function renderCdekPoints(points) {-->
+<!--    const pointsList = document.getElementById('cdek-points-list');-->
+<!--    if (!pointsList) return;-->
 
-    if (!Array.isArray(points)) {
-        points = [];
-    }
+<!--    if (!Array.isArray(points)) {-->
+<!--        points = [];-->
+<!--    }-->
 
-    if (points.length === 0) {
-        pointsList.innerHTML = `
-            <div class="text-center py-2 text-muted" style="font-size: 12px;">
-                <i class="bi bi-search" style="font-size: 20px;"></i>
-                <p class="mt-1 mb-0">Ничего не найдено</p>
-            </div>
-        `;
-        return;
-    }
+<!--    if (points.length === 0) {-->
+<!--        pointsList.innerHTML = `-->
+<!--            <div class="text-center py-2 text-muted" style="font-size: 12px;">-->
+<!--                <i class="bi bi-search" style="font-size: 20px;"></i>-->
+<!--                <p class="mt-1 mb-0">Ничего не найдено</p>-->
+<!--            </div>-->
+<!--        `;-->
+<!--        return;-->
+<!--    }-->
 
-    let html = '';
-    points.forEach(point => {
-        const code = point.code || point.id || '';
-        const name = getPointName(point);
-        const fullAddress = getFullAddress(point);
-        const workTime = point.work_time || '';
-        const phone = point.phone || '';
-        const city = point.city || '';
-        const region = point.region || '';
+<!--    let html = '';-->
+<!--    points.forEach(point => {-->
+<!--        const code = point.code || point.id || '';-->
+<!--        const name = getPointName(point);-->
+<!--        const fullAddress = getFullAddress(point);-->
+<!--        const workTime = point.work_time || '';-->
+<!--        const phone = point.phone || '';-->
+<!--        const city = point.city || '';-->
+<!--        const region = point.region || '';-->
 
-        html += `
-            <div class="cdek-point-item compact"
-                 data-code="${code}"
-                 data-name="${name}"
-                 data-address="${fullAddress}"
-                 data-city="${city}"
-                 data-region="${region}"
-                 onclick="selectCdekPoint(this)"
-                 style="padding: 5px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; display: flex; align-items: center; gap: 8px;">
-                <div style="flex: 1; min-width: 0;">
-                    <div style="font-size: 13px; font-weight: 500; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${name}
-                    </div>
-                    <div style="font-size: 11px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${fullAddress}
-                    </div>
-                    ${workTime ? `<div style="font-size: 10px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🕐 ${workTime}</div>` : ''}
-                    ${phone ? `<div style="font-size: 10px; color: #999;">📞 ${phone}</div>` : ''}
-                </div>
-                <div style="flex-shrink: 0;">
-                    <input type="radio" name="cdek_point" value="${code}" id="cdek-${code}"
-                           style="width: 14px; height: 14px; accent-color: #007bff; cursor: pointer;">
-                </div>
-            </div>
-        `;
-    });
-    pointsList.innerHTML = html;
-}
+<!--        html += `-->
+<!--            <div class="cdek-point-item compact"-->
+<!--                 data-code="${code}"-->
+<!--                 data-name="${name}"-->
+<!--                 data-address="${fullAddress}"-->
+<!--                 data-city="${city}"-->
+<!--                 data-region="${region}"-->
+<!--                 onclick="selectCdekPoint(this)"-->
+<!--                 style="padding: 5px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; display: flex; align-items: center; gap: 8px;">-->
+<!--                <div style="flex: 1; min-width: 0;">-->
+<!--                    <div style="font-size: 13px; font-weight: 500; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-->
+<!--                        ${name}-->
+<!--                    </div>-->
+<!--                    <div style="font-size: 11px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-->
+<!--                        ${fullAddress}-->
+<!--                    </div>-->
+<!--                    ${workTime ? `<div style="font-size: 10px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🕐 ${workTime}</div>` : ''}-->
+<!--                    ${phone ? `<div style="font-size: 10px; color: #999;">📞 ${phone}</div>` : ''}-->
+<!--                </div>-->
+<!--                <div style="flex-shrink: 0;">-->
+<!--                    <input type="radio" name="cdek_point" value="${code}" id="cdek-${code}"-->
+<!--                           style="width: 14px; height: 14px; accent-color: #007bff; cursor: pointer;">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        `;-->
+<!--    });-->
+<!--    pointsList.innerHTML = html;-->
+<!--}-->
 
-function selectCdekPoint(element) {
-    document.querySelectorAll('.cdek-point-item').forEach(item => {
-        item.style.background = '';
-        item.style.borderLeftColor = 'transparent';
-        item.classList.remove('selected');
-    });
+<!--function selectCdekPoint(element) {-->
+<!--    document.querySelectorAll('.cdek-point-item').forEach(item => {-->
+<!--        item.style.background = '';-->
+<!--        item.style.borderLeftColor = 'transparent';-->
+<!--        item.classList.remove('selected');-->
+<!--    });-->
 
-    element.style.background = '#e7f5ff';
-    element.style.borderLeftColor = '#007bff';
-    element.classList.add('selected');
+<!--    element.style.background = '#e7f5ff';-->
+<!--    element.style.borderLeftColor = '#007bff';-->
+<!--    element.classList.add('selected');-->
 
-    const radio = element.querySelector('input[type="radio"]');
-    if (radio) {
-        radio.checked = true;
-    }
+<!--    const radio = element.querySelector('input[type="radio"]');-->
+<!--    if (radio) {-->
+<!--        radio.checked = true;-->
+<!--    }-->
 
-    const selectedPointDiv = document.getElementById('cdek-selected-point');
-    const pointAddress = document.getElementById('cdek-point-address');
-    const pointCode = document.getElementById('cdek-point-code');
-    const pointName = document.getElementById('cdek-point-name');
-    const pointAddressInput = document.getElementById('cdek-point-address-input');
-    const pointCity = document.getElementById('cdek-point-city');
-    const pointRegion = document.getElementById('cdek-point-region');
+<!--    const selectedPointDiv = document.getElementById('cdek-selected-point');-->
+<!--    const pointAddress = document.getElementById('cdek-point-address');-->
+<!--    const pointCode = document.getElementById('cdek-point-code');-->
+<!--    const pointName = document.getElementById('cdek-point-name');-->
+<!--    const pointAddressInput = document.getElementById('cdek-point-address-input');-->
+<!--    const pointCity = document.getElementById('cdek-point-city');-->
+<!--    const pointRegion = document.getElementById('cdek-point-region');-->
 
-    if (selectedPointDiv) {
-        selectedPointDiv.style.display = 'block';
-    }
+<!--    if (selectedPointDiv) {-->
+<!--        selectedPointDiv.style.display = 'block';-->
+<!--    }-->
 
-    const fullAddress = element.dataset.address || '';
-    const city = element.dataset.city || '';
-    const region = element.dataset.region || '';
-    const name = element.dataset.name || '';
+<!--    const fullAddress = element.dataset.address || '';-->
+<!--    const city = element.dataset.city || '';-->
+<!--    const region = element.dataset.region || '';-->
+<!--    const name = element.dataset.name || '';-->
 
-    if (pointAddress) {
-        pointAddress.textContent = fullAddress;
-    }
-    if (pointCode) pointCode.value = element.dataset.code || '';
-    if (pointName) pointName.value = name;
-    if (pointAddressInput) pointAddressInput.value = fullAddress;
-    if (pointCity) pointCity.value = city;
-    if (pointRegion) pointRegion.value = region;
-}
+<!--    if (pointAddress) {-->
+<!--        pointAddress.textContent = fullAddress;-->
+<!--    }-->
+<!--    if (pointCode) pointCode.value = element.dataset.code || '';-->
+<!--    if (pointName) pointName.value = name;-->
+<!--    if (pointAddressInput) pointAddressInput.value = fullAddress;-->
+<!--    if (pointCity) pointCity.value = city;-->
+<!--    if (pointRegion) pointRegion.value = region;-->
+<!--}-->
 
 // ============ ОБЩИЕ ФУНКЦИИ ============
 
@@ -1404,47 +1445,35 @@ let selectedDelivery = null;
 function initDelivery() {
     const deliveryInputs = document.querySelectorAll('.delivery-item input[type="radio"]');
     const deliveryLabel = document.getElementById('delivery-label');
-    const cdekContainer = document.getElementById('cdek-widget-container');
-    const pickupContainer = document.getElementById('pickup-info-container');
 
     deliveryInputs.forEach(input => {
-        input.addEventListener('change', function() {
+        input.addEventListener('change', function () {
             selectedDelivery = this.value;
             const label = this.closest('.delivery-item').querySelector('label');
+
             if (deliveryLabel && label) {
                 deliveryLabel.textContent = '🚚 ' + label.textContent.trim();
             }
 
-            // Скрываем все контейнеры
-            if (cdekContainer) cdekContainer.style.display = 'none';
-            if (pickupContainer) pickupContainer.style.display = 'none';
-
-            // Показываем нужный контейнер
-            if (this.value === 'sdek' && cdekContainer) {
-                cdekContainer.style.display = 'block';
-                if (!document.getElementById('cdek-region-select').options.length > 1) {
-                    loadRegions();
-                }
-            } else if (this.value === 'pickup' && pickupContainer) {
-                pickupContainer.style.display = 'block';
-                // Автоматически заполняем данные для самовывоза
+            if (this.value === 'sdek') {
+                openCdekModal();
+            } else if (this.value === 'pickup') {
+                // Самовывоз — заполняем сразу
                 setPickupData();
+                if (deliveryLabel) {
+                    deliveryLabel.textContent = '🚚 Самовывоз';
+                }
             }
         });
     });
 
-    // Проверяем, что выбрано по умолчанию при загрузке страницы
+    // Проверка: если radio уже выбран при загрузке
     const sdekRadio = document.getElementById('delivery-sdek');
     if (sdekRadio && sdekRadio.checked) {
-        if (cdekContainer) cdekContainer.style.display = 'block';
-        if (!document.getElementById('cdek-region-select').options.length > 1) {
-            loadRegions();
-        }
+        openCdekModal();
     }
-
     const pickupRadio = document.getElementById('delivery-pickup');
     if (pickupRadio && pickupRadio.checked) {
-        if (pickupContainer) pickupContainer.style.display = 'block';
         setPickupData();
     }
 }
@@ -1542,16 +1571,13 @@ function initBuyNow() {
     const loginRequiredModal = loginRequiredModalEl ? new bootstrap.Modal(loginRequiredModalEl) : null;
     const loginRequiredGoBtn = document.getElementById('loginRequiredGoBtn');
 
-    // Модалки
-    const sizeWarningModalEl = document.getElementById('sizeWarningModal');
-    const pointWarningModalEl = document.getElementById('pointWarningModal');
-    const offerWarningModalEl = document.getElementById('offerWarningModal');
+    // Модалки-предупреждения (объявляем здесь!)
+    const sizeWarningModalEl    = document.getElementById('sizeWarningModal');
+    const offerWarningModalEl   = document.getElementById('offerWarningModal');
 
-    const sizeWarningModal = sizeWarningModalEl ? new bootstrap.Modal(sizeWarningModalEl) : null;
-    const pointWarningModal = pointWarningModalEl ? new bootstrap.Modal(pointWarningModalEl) : null;
+    const sizeWarningModal  = sizeWarningModalEl  ? new bootstrap.Modal(sizeWarningModalEl)  : null;
     const offerWarningModal = offerWarningModalEl ? new bootstrap.Modal(offerWarningModalEl) : null;
 
-    const pointWarningText = document.getElementById('pointWarningText');
     const offerGoBtn = document.getElementById('offerGoBtn');
 
     buyNowBtn.addEventListener('click', function (e) {
@@ -1595,43 +1621,63 @@ function initBuyNow() {
 
         // ===== 2. Проверка способа доставки =====
         if (!selectedDelivery) {
-            const deliveryWarningModal = new bootstrap.Modal(document.getElementById('deliveryWarningModal'));
-            deliveryWarningModal.show();
+            const deliveryWarnEl = document.getElementById('deliveryWarningModal');
+            if (deliveryWarnEl) {
+                bootstrap.Modal.getOrCreateInstance(deliveryWarnEl).show();
+            } else {
+                alert('Пожалуйста, выберите способ доставки!');
+            }
             return;
         }
 
         // ===== 3. Собираем пункт выдачи =====
         let pointCode = null, pointName = null, pointAddress = null;
+
         if (selectedDelivery === 'sdek') {
-            pointCode = document.getElementById('cdek-point-code')?.value;
-            pointName = document.getElementById('cdek-point-name')?.value;
-            pointAddress = document.getElementById('cdek-point-address-input')?.value;
+            // Новая система — используем cdekSelectedPoint из модалки с картой
+            if (typeof cdekSelectedPoint !== 'undefined' && cdekSelectedPoint) {
+                pointCode    = cdekSelectedPoint.code || '';
+                pointName    = cdekSelectedPoint.name || '';
+                pointAddress = cdekSelectedPoint.address || cdekSelectedPoint.full_address || '';
+            }
         } else if (selectedDelivery === 'pickup') {
-            pointCode = document.getElementById('pickup-point-code')?.value;
-            pointName = document.getElementById('pickup-point-name')?.value;
+            pointCode    = document.getElementById('pickup-point-code')?.value;
+            pointName    = document.getElementById('pickup-point-name')?.value;
             pointAddress = document.getElementById('pickup-point-address-input')?.value;
         }
 
         if (!pointCode) {
-            const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
-            if (pointWarningModal && pointWarningText) {
-                pointWarningText.textContent = `Пожалуйста, выберите пункт выдачи ${deliveryName} перед оформлением заказа.`;
-                pointWarningModal.show();
-            } else {
-                alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
+        const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
+
+        // Показываем модалку предупреждения о доставке
+        const deliveryWarnEl = document.getElementById('deliveryWarningModal');
+        if (deliveryWarnEl) {
+            // Меняем текст на актуальный
+            const bodyP = deliveryWarnEl.querySelector('.modal-body p.text-muted');
+            if (bodyP) {
+                bodyP.textContent = `Пожалуйста, выберите пункт выдачи ${deliveryName} перед оформлением заказа.`;
             }
-            const container = document.getElementById(
-                selectedDelivery === 'sdek' ? 'cdek-widget-container' : 'pickup-info-container'
-            );
-            if (container) {
-                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                container.style.borderColor = '#dc3545';
-                setTimeout(() => {
-                    container.style.borderColor = '#e0e0e0';
-                }, 3000);
-            }
-            return;
+            const h4 = deliveryWarnEl.querySelector('.modal-body h4');
+            if (h4) h4.textContent = `Не выбран пункт выдачи ${deliveryName}!`;
+
+            bootstrap.Modal.getOrCreateInstance(deliveryWarnEl).show();
+        } else {
+            alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
         }
+
+        // Прокручиваем к соответствующему блоку
+        const container = document.getElementById(
+            selectedDelivery === 'sdek' ? 'delivery-label' : 'pickup-info-container'
+        );
+        if (container) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            container.style.borderColor = '#dc3545';
+            setTimeout(() => {
+                container.style.borderColor = '#e0e0e0';
+            }, 3000);
+        }
+        return;
+    }
 
         // ===== 4. Заполняем скрытую форму =====
         if (buyNowDeliveryInput) buyNowDeliveryInput.value = selectedDelivery;
@@ -1643,9 +1689,25 @@ function initBuyNow() {
             });
         }
 
+        // Данные о доставке — в sessionStorage, их подхватит order_create.html
+        sessionStorage.setItem('checkout_delivery_method', selectedDelivery);
+        sessionStorage.setItem('checkout_delivery_point', JSON.stringify({
+            code: pointCode || '',
+            name: pointName || '',
+            address: pointAddress || '',
+        }));
+
         // ===== 5. Отправляем AJAX-запрос =====
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
         const formData = new FormData(buyNowForm);
+
+        // Убеждаемся, что в buyNowForm есть поле delivery_point (актуальное)
+        formData.set('delivery_method', selectedDelivery);
+        formData.set('delivery_point', JSON.stringify({
+            code: pointCode || '',
+            name: pointName || '',
+            address: pointAddress || '',
+        }));
 
         fetch(buyNowForm.action, {
             method: 'POST',
@@ -1657,7 +1719,6 @@ function initBuyNow() {
         })
         .then(response => response.json())
         .then(data => {
-            // ==== Оферта не принята — показываем модал ====
             if (data.offer_required) {
                 if (offerWarningModal) {
                     if (offerGoBtn && data.profile_url) {
@@ -1670,14 +1731,10 @@ function initBuyNow() {
                 }
                 return;
             }
-
-            // ==== Успешно — переходим к оплате ====
             if (data.success && data.redirect_url) {
                 window.location.href = data.redirect_url;
                 return;
             }
-
-            // ==== Непредвиденный ответ ====
             alert(data.message || 'Не удалось создать заказ');
         })
         .catch(error => {
@@ -1924,89 +1981,89 @@ function initLightbox() {
     });
 }
 
-// ============ ЗАГРУЗКА ПУНКТОВ СДЭК (для прямой загрузки) ============
-function loadCdekPoints() {
-    const pointsList = document.getElementById('cdek-points-list');
-    if (!pointsList) return;
+<!--// ============ ЗАГРУЗКА ПУНКТОВ СДЭК (для прямой загрузки) ============-->
+<!--function loadCdekPoints() {-->
+<!--    const pointsList = document.getElementById('cdek-points-list');-->
+<!--    if (!pointsList) return;-->
 
-    pointsList.innerHTML = `
-        <div class="text-center py-3">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Загрузка...</span>
-            </div>
-            <p class="mt-2">Загрузка пунктов выдачи...</p>
-        </div>
-    `;
+<!--    pointsList.innerHTML = `-->
+<!--        <div class="text-center py-3">-->
+<!--            <div class="spinner-border text-primary" role="status">-->
+<!--                <span class="visually-hidden">Загрузка...</span>-->
+<!--            </div>-->
+<!--            <p class="mt-2">Загрузка пунктов выдачи...</p>-->
+<!--        </div>-->
+<!--    `;-->
 
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+<!--    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;-->
 
-    fetch('/delivery/api/cdek-points/', {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken || '',
-        },
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Ответ от сервера:', data);
+<!--    fetch('/delivery/api/cdek-points/', {-->
+<!--        method: 'GET',-->
+<!--        headers: {-->
+<!--            'X-Requested-With': 'XMLHttpRequest',-->
+<!--            'Content-Type': 'application/json',-->
+<!--            'X-CSRFToken': csrfToken || '',-->
+<!--        },-->
+<!--    })-->
+<!--    .then(response => {-->
+<!--        if (!response.ok) {-->
+<!--            throw new Error(`HTTP error! status: ${response.status}`);-->
+<!--        }-->
+<!--        return response.json();-->
+<!--    })-->
+<!--    .then(data => {-->
+<!--        console.log('Ответ от сервера:', data);-->
 
-        let points = [];
-        if (data && data.points) {
-            if (Array.isArray(data.points)) {
-                points = data.points;
-            } else if (typeof data.points === 'object' && data.points !== null) {
-                if (data.points.results) {
-                    points = data.points.results;
-                } else {
-                    points = Object.values(data.points);
-                }
-            }
-        }
+<!--        let points = [];-->
+<!--        if (data && data.points) {-->
+<!--            if (Array.isArray(data.points)) {-->
+<!--                points = data.points;-->
+<!--            } else if (typeof data.points === 'object' && data.points !== null) {-->
+<!--                if (data.points.results) {-->
+<!--                    points = data.points.results;-->
+<!--                } else {-->
+<!--                    points = Object.values(data.points);-->
+<!--                }-->
+<!--            }-->
+<!--        }-->
 
-        if (points && points.length > 0) {
-            renderCdekPoints(points);
-            if (data.is_real_data) {
-                console.log('✅ Используются РЕАЛЬНЫЕ данные СДЭК');
-                showNotification('Пункты выдачи СДЭК загружены', 'success');
-            } else {
-                console.log('ℹ️ Используются ТЕСТОВЫЕ данные СДЭК');
-                if (data.error) {
-                    console.warn('Ошибка:', data.error);
-                }
-                showNotification('Используются тестовые пункты выдачи', 'warning');
-            }
-        } else {
-            pointsList.innerHTML = `
-                <div class="text-center py-4 text-muted">
-                    <i class="bi bi-geo-alt" style="font-size: 32px;"></i>
-                    <p class="mt-2">Пункты выдачи не найдены</p>
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadCdekPoints()">
-                        🔄 Попробовать снова
-                    </button>
-                </div>
-            `;
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки пунктов СДЭК:', error);
-        pointsList.innerHTML = `
-            <div class="text-center py-4 text-danger">
-                <i class="bi bi-exclamation-circle" style="font-size: 32px;"></i>
-                <p class="mt-2">Ошибка загрузки пунктов выдачи</p>
-                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadCdekPoints()">
-                    🔄 Попробовать снова
-                </button>
-            </div>
-        `;
-    });
-}
+<!--        if (points && points.length > 0) {-->
+<!--            renderCdekPoints(points);-->
+<!--            if (data.is_real_data) {-->
+<!--                console.log('✅ Используются РЕАЛЬНЫЕ данные СДЭК');-->
+<!--                showNotification('Пункты выдачи СДЭК загружены', 'success');-->
+<!--            } else {-->
+<!--                console.log('ℹ️ Используются ТЕСТОВЫЕ данные СДЭК');-->
+<!--                if (data.error) {-->
+<!--                    console.warn('Ошибка:', data.error);-->
+<!--                }-->
+<!--                showNotification('Используются тестовые пункты выдачи', 'warning');-->
+<!--            }-->
+<!--        } else {-->
+<!--            pointsList.innerHTML = `-->
+<!--                <div class="text-center py-4 text-muted">-->
+<!--                    <i class="bi bi-geo-alt" style="font-size: 32px;"></i>-->
+<!--                    <p class="mt-2">Пункты выдачи не найдены</p>-->
+<!--                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadCdekPoints()">-->
+<!--                        🔄 Попробовать снова-->
+<!--                    </button>-->
+<!--                </div>-->
+<!--            `;-->
+<!--        }-->
+<!--    })-->
+<!--    .catch(error => {-->
+<!--        console.error('Ошибка загрузки пунктов СДЭК:', error);-->
+<!--        pointsList.innerHTML = `-->
+<!--            <div class="text-center py-4 text-danger">-->
+<!--                <i class="bi bi-exclamation-circle" style="font-size: 32px;"></i>-->
+<!--                <p class="mt-2">Ошибка загрузки пунктов выдачи</p>-->
+<!--                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadCdekPoints()">-->
+<!--                    🔄 Попробовать снова-->
+<!--                </button>-->
+<!--            </div>-->
+<!--        `;-->
+<!--    });-->
+<!--}-->
 
 // ============ ОТКРЫТИЕ МОДАЛА ПОЛНОГО ОТЗЫВА ============
 function initReviewModalOpen() {
@@ -2292,85 +2349,327 @@ function initQuestProd() {
     });
 }
 
+
+// ============ КАРТА ПВЗ СДЭК (v2) ============
+const CDEK_CITY_DEFAULT = 'Санкт-Петербург';
+
+let cdekMap = null;
+let cdekPlacemarks = [];
+let cdekAllPoints = [];
+let cdekSelectedPoint = null;
+let cdekMapInitialized = false;
+
+// Загрузка списка городов (упрощённо — из вашего API)
+function loadCdekCities() {
+    const select = document.getElementById('cdekCitySelect');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">-- Загрузка городов... --</option>';
+
+    fetch('/delivery/api/all-cities/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        select.innerHTML = '';
+
+        const cities = data.cities || [];
+        if (!cities.length) {
+            select.innerHTML = '<option value="">-- Города не найдены --</option>';
+            return;
+        }
+
+        // Группируем по региону через optgroup для удобства
+        const grouped = {};
+        cities.forEach(c => {
+            const region = c.region || 'Другие';
+            if (!grouped[region]) grouped[region] = [];
+            grouped[region].push(c.name);
+        });
+
+        Object.keys(grouped).sort().forEach(region => {
+            const group = document.createElement('optgroup');
+            group.label = region;
+            grouped[region].forEach(cityName => {
+                const option = document.createElement('option');
+                option.value = cityName;
+                option.textContent = cityName;
+                group.appendChild(option);
+            });
+            select.appendChild(group);
+        });
+
+        // Выбираем город по умолчанию и сразу загружаем ПВЗ
+        select.value = CDEK_CITY_DEFAULT;
+        loadCdekPointsForCity(CDEK_CITY_DEFAULT);
+    })
+    .catch(err => {
+        console.error('Ошибка загрузки городов:', err);
+        select.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
+    });
+}
+
+// Загрузка ПВЗ по городу и отрисовка на карте
+function loadCdekPointsForCity(cityName) {
+    if (!cityName) return;
+
+    const countEl = document.getElementById('cdekPointsCount');
+    if (countEl) countEl.textContent = 'Загрузка...';
+
+    fetch(`/delivery/api/cdek-points/?city_name=${encodeURIComponent(cityName)}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        cdekAllPoints = data.points || [];
+        if (countEl) countEl.textContent = `Найдено пунктов: ${cdekAllPoints.length}`;
+        drawCdekPointsOnMap(cdekAllPoints);
+    })
+    .catch(err => {
+        console.error('Ошибка загрузки ПВЗ:', err);
+        if (countEl) countEl.textContent = 'Ошибка загрузки';
+    });
+}
+
+// Инициализация карты
+function initCdekMapOnce() {
+    if (cdekMapInitialized) return;
+    if (typeof ymaps === 'undefined') {
+        console.warn('Яндекс.Карты не загружены');
+        return;
+    }
+
+    ymaps.ready(function () {
+        cdekMap = new ymaps.Map('cdekMap', {
+            center: [59.9386, 30.3141], // СПб
+            zoom: 11,
+            controls: ['zoomControl', 'fullscreenControl', 'geolocationControl'],
+        });
+        cdekMapInitialized = true;
+
+        // Загружаем ПВЗ для города по умолчанию
+        loadCdekPointsForCity(CDEK_CITY_DEFAULT);
+    });
+}
+
+// Отрисовка ПВЗ на карте
+function drawCdekPointsOnMap(points) {
+    if (!cdekMap) return;
+
+    cdekMap.geoObjects.removeAll();
+    cdekPlacemarks = [];
+
+    if (!points.length) return;
+
+    points.forEach(p => {
+        const lat = parseFloat(p.latitude);
+        const lng = parseFloat(p.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const placemark = new ymaps.Placemark([lat, lng], {
+            hintContent: p.name || p.address || 'ПВЗ',
+            balloonContent: `
+                <div style="font-size:13px; line-height:1.4;">
+                    <strong>${p.name || 'ПВЗ'}</strong><br>
+                    ${p.address || ''}<br>
+                    ${p.work_time ? '🕐 ' + p.work_time : ''}
+                </div>
+            `,
+        }, {
+            preset: 'islands#blueIcon',
+        });
+
+        placemark.events.add('click', () => {
+            selectCdekPointFromMap(p, placemark);
+        });
+
+        cdekMap.geoObjects.add(placemark);
+        cdekPlacemarks.push({ point: p, placemark });
+    });
+
+    // Подгоняем карту под метки
+    const bounds = ymaps.geoQuery(cdekMap.geoObjects).getBounds();
+    if (bounds) {
+        cdekMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
+    }
+}
+
+// Выбор точки
+function selectCdekPointFromMap(point, placemark) {
+    // Перекрашиваем все метки в синий
+    cdekPlacemarks.forEach(({ placemark: pm }) => {
+        pm.options.set('preset', 'islands#blueIcon');
+    });
+    placemark.options.set('preset', 'islands#greenIcon');
+
+    cdekSelectedPoint = point;
+
+    // Показываем выбранный адрес
+    const box = document.getElementById('cdekSelectedBox');
+    const addrEl = document.getElementById('cdekSelectedAddress');
+    if (box) box.style.display = 'block';
+    if (addrEl) addrEl.textContent = point.address || point.name || '';
+
+    // Активируем кнопку «Подтвердить»
+    const confirmBtn = document.getElementById('cdekConfirmBtn');
+    if (confirmBtn) confirmBtn.disabled = false;
+}
+
+// Открытие модалки с картой
+function openCdekModal() {
+    const modalEl = document.getElementById('cdekPvzModal');
+    if (!modalEl) return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    // Инициализируем карту при первом открытии
+    modalEl.addEventListener('shown.bs.modal', function onShown() {
+        if (!cdekMapInitialized) {
+            initCdekMapOnce();
+        } else if (cdekMap) {
+            cdekMap.container.fitToViewport();
+        }
+    }, { once: false });
+
+    // Сбрасываем прошлый выбор
+    cdekSelectedPoint = null;
+    const box = document.getElementById('cdekSelectedBox');
+    const confirmBtn = document.getElementById('cdekConfirmBtn');
+    if (box) box.style.display = 'none';
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    modal.show();
+}
+
+// Обработчики внутри модалки
+document.addEventListener('DOMContentLoaded', function () {
+    // Заполняем список городов
+    loadCdekCities();
+
+    // Смена города → перезагрузка ПВЗ
+    const citySelect = document.getElementById('cdekCitySelect');
+    if (citySelect) {
+        citySelect.addEventListener('change', function () {
+            loadCdekPointsForCity(this.value);
+        });
+    }
+
+    // Поиск по адресу
+    const searchInput = document.getElementById('cdekSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            if (!q) {
+                drawCdekPointsOnMap(cdekAllPoints);
+                return;
+            }
+            const filtered = cdekAllPoints.filter(p => {
+                const txt = [p.name, p.address, p.full_address, p.city, p.region, p.work_time]
+                    .filter(Boolean).join(' ').toLowerCase();
+                return txt.includes(q);
+            });
+            drawCdekPointsOnMap(filtered);
+        });
+    }
+
+    // Подтверждение выбора
+    const confirmBtn = document.getElementById('cdekConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+            if (!cdekSelectedPoint) return;
+
+            const code    = cdekSelectedPoint.code || '';
+            const name    = cdekSelectedPoint.name || '';
+            const address = cdekSelectedPoint.address || cdekSelectedPoint.full_address || '';
+
+            // 1. Записываем в JSON-поле (как было)
+            const hidden = document.getElementById('buyNowDeliveryPoint');
+            if (hidden) {
+                hidden.value = JSON.stringify({ code, name, address });
+            }
+
+            // 2. ВАЖНО: заполняем скрытые поля, которые читает initBuyNow()
+            const pointCodeInput    = document.getElementById('cdek-point-code');
+            const pointNameInput    = document.getElementById('cdek-point-name');
+            const pointAddressInput = document.getElementById('cdek-point-address-input');
+            const pointCityInput    = document.getElementById('cdek-point-city');
+            const pointRegionInput  = document.getElementById('cdek-point-region');
+
+            if (pointCodeInput)    pointCodeInput.value    = code;
+            if (pointNameInput)    pointNameInput.value    = name;
+            if (pointAddressInput) pointAddressInput.value = address;
+            // город/регион можно вытащить из cdekSelectedPoint, если они там есть:
+            if (pointCityInput)    pointCityInput.value    = cdekSelectedPoint.city || '';
+            if (pointRegionInput)  pointRegionInput.value  = cdekSelectedPoint.region || '';
+
+            // 3. Обновляем надпись у селекта доставки
+            const label = document.getElementById('delivery-label');
+            if (label) {
+                label.textContent = '🚚 СДЭК: ' + (address || name);
+            }
+
+            // 4. Закрываем модалку карты
+            const modalEl = document.getElementById('cdekPvzModal');
+            const inst = bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+        });
+    }
+});
+
+
+// Загрузка всех ПВЗ России
+function loadAllRussiaPoints() {
+    const countEl = document.getElementById('cdekPointsCount');
+    const btn = document.getElementById('cdekShowAllBtn');
+
+    if (countEl) countEl.textContent = 'Загрузка всех ПВЗ России... это может занять до 15 секунд';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Загрузка...';
+    }
+
+    fetch('/delivery/api/cdek-all-points/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        cdekAllPoints = data.points || [];
+        if (countEl) countEl.textContent = `Найдено пунктов: ${cdekAllPoints.length}`;
+        drawCdekPointsOnMap(cdekAllPoints);
+
+        // Расширяем карту на всю Россию
+        if (cdekMap && cdekAllPoints.length) {
+            const latLngs = cdekAllPoints.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
+            const bounds = ymaps.util.bounds.fromPoints(latLngs);
+            if (bounds) {
+                cdekMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 30 });
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Ошибка загрузки всех ПВЗ:', err);
+        if (countEl) countEl.textContent = 'Ошибка загрузки';
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🌍 Показать все ПВЗ России';
+        }
+    });
+}
+
+const showAllBtn = document.getElementById('cdekShowAllBtn');
+if (showAllBtn) {
+    showAllBtn.addEventListener('click', function () {
+        loadAllRussiaPoints();
+    });
+}
+
 // ============ ИНИЦИАЛИЗАЦИЯ ============
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM загружен, инициализация...');
 
-    // Загружаем области для СДЭК
-    loadRegions();
-
-    // ============ Обработчики для СДЭК ============
-    const regionSelect = document.getElementById('cdek-region-select');
-    const citySelect = document.getElementById('cdek-city-select');
-    const searchInput = document.getElementById('cdek-search-input');
-
-    if (regionSelect) {
-        regionSelect.addEventListener('change', function() {
-            const regionName = this.value;
-            console.log('Выбрана область СДЭК:', regionName);
-            if (regionName) {
-                loadCities(regionName);
-            } else {
-                if (citySelect) {
-                    citySelect.innerHTML = '<option value="">-- Сначала выберите область --</option>';
-                    citySelect.disabled = true;
-                }
-                if (searchInput) {
-                    searchInput.value = '';
-                    searchInput.disabled = true;
-                }
-                const pointsList = document.getElementById('cdek-points-list');
-                if (pointsList) {
-                    pointsList.style.display = 'none';
-                    pointsList.innerHTML = '';
-                }
-                allPoints = [];
-            }
-        });
-    }
-
-    if (citySelect) {
-        citySelect.addEventListener('change', function() {
-            const cityName = this.value;
-            console.log('Выбран город СДЭК:', cityName);
-            if (cityName) {
-                loadPointsByCity(cityName);
-            } else {
-                if (searchInput) {
-                    searchInput.value = '';
-                    searchInput.disabled = true;
-                }
-                const pointsList = document.getElementById('cdek-points-list');
-                if (pointsList) {
-                    pointsList.style.display = 'none';
-                    pointsList.innerHTML = '';
-                }
-                allPoints = [];
-            }
-        });
-    }
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            if (searchTimeout) {
-                clearTimeout(searchTimeout);
-            }
-
-            searchTimeout = setTimeout(() => {
-                const query = this.value;
-                console.log('Поиск СДЭК:', query);
-                searchPoints(query);
-            }, 300);
-        });
-
-        searchInput.addEventListener('focus', function() {
-            if (allPoints.length > 0 && this.value === '') {
-                renderCdekPoints(allPoints);
-            }
-        });
-    }
-
-    // Инициализация остальных компонентов
+    // Инициализация компонентов
     initGallery();
     initFavorite();
     initSizeSelection();

@@ -106,21 +106,31 @@ def get_cdek_points_by_location(request):
                     if item_district and district_name.lower() not in item_district.lower():
                         continue
 
+                # Координаты лежат внутри location
+                location = item.get('location') or {}
+
+                # Телефон — в массиве phones
+                phones = item.get('phones') or []
+                phone = ''
+                if phones and isinstance(phones, list):
+                    first = phones[0] or {}
+                    phone = first.get('number', '')
+
                 point = {
                     'code': str(item.get('code', '')),
                     'name': item.get('name', 'Пункт выдачи СДЭК'),
-                    'address': item.get('address', ''),
-                    'full_address': item.get('full_address', ''),
-                    'city': item.get('city', ''),
-                    'city_code': str(item.get('city_code', '')),
-                    'region': item.get('region', ''),
-                    'region_code': str(item.get('region_code', '')),
-                    'district': item.get('district', ''),
-                    'sub_region': item.get('sub_region', ''),
+                    'address': location.get('address', ''),
+                    'full_address': location.get('address', ''),  # если full_address нет
+                    'city': location.get('city', ''),
+                    'city_code': str(location.get('city_code', '')),
+                    'region': location.get('region', ''),
+                    'region_code': str(location.get('region_code', '')),
+                    'district': location.get('district', ''),
+                    'sub_region': location.get('sub_region', ''),
                     'work_time': item.get('work_time', ''),
-                    'phone': item.get('phone', ''),
-                    'longitude': item.get('longitude', ''),
-                    'latitude': item.get('latitude', ''),
+                    'phone': phone,
+                    'longitude': location.get('longitude', ''),  # ← из location
+                    'latitude': location.get('latitude', ''),  # ← из location
                 }
                 points.append(point)
 
@@ -132,6 +142,120 @@ def get_cdek_points_by_location(request):
 
     except Exception as e:
         logger.error(f"Error: {str(e)}", exc_info=True)
+        return JsonResponse({'points': [], 'error': str(e)})
+
+
+@csrf_exempt
+def get_all_cities(request):
+    """Возвращает плоский список всех городов из справочника."""
+    cities = []
+    for region, city_list in CITIES_BY_REGION.items():
+        for city in city_list:
+            cities.append({'name': city, 'region': region})
+    # Сортируем по названию
+    cities.sort(key=lambda x: x['name'])
+    return JsonResponse({'cities': cities, 'source': 'local'})
+
+
+@csrf_exempt
+def get_all_cdek_points(request):
+    """Возвращает все ПВЗ СДЭК по России (кэшируется)."""
+    cache_key = 'cdek_all_points_russia'
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse({
+            'points': cached,
+            'total': len(cached),
+            'is_real_data': True,
+            'from_cache': True,
+        })
+
+    token = get_cdek_token()
+    if not token:
+        return JsonResponse({'points': [], 'error': 'Не удалось получить токен СДЭК'})
+
+    try:
+        # СДЭК отдаёт до 100 за раз — запрашиваем постранично
+        all_points = []
+        page = 0
+        page_size = 100
+        max_pages = 60  # защита от бесконечного цикла (макс 6000 точек)
+
+        while page < max_pages:
+            response = requests.get(
+                'https://api.cdek.ru/v2/deliverypoints',
+                headers={'Authorization': f'Bearer {token}'},
+                params={
+                    'country_code': 'RU',
+                    'type': 'PVZ',
+                    'size': page_size,
+                    'page': page,
+                },
+                timeout=30,
+            )
+
+            if response.status_code != 200:
+                break
+
+            try:
+                data = response.json()
+            except ValueError:
+                break
+
+            if isinstance(data, list):
+                batch = data
+            elif isinstance(data, dict):
+                batch = data.get('delivery_points', [])
+            else:
+                batch = []
+
+            if not batch:
+                break
+
+            for item in batch:
+                if not isinstance(item, dict):
+                    continue
+                location = item.get('location') or {}
+                lat = location.get('latitude')
+                lng = location.get('longitude')
+                # Пропускаем точки без координат — они не нарисуются
+                if lat is None or lng is None or lat == '' or lng == '':
+                    continue
+
+                phones = item.get('phones') or []
+                phone = ''
+                if phones and isinstance(phones, list):
+                    first = phones[0] or {}
+                    phone = first.get('number', '')
+
+                all_points.append({
+                    'code': str(item.get('code', '')),
+                    'name': item.get('name', 'ПВЗ СДЭК'),
+                    'address': location.get('address', ''),
+                    'city': location.get('city', ''),
+                    'region': location.get('region', ''),
+                    'work_time': item.get('work_time', ''),
+                    'phone': phone,
+                    'longitude': lng,
+                    'latitude': lat,
+                })
+
+            if len(batch) < page_size:
+                break  # последняя страница
+            page += 1
+
+        # Кэшируем на 24 часа
+        cache.set(cache_key, all_points, 60 * 60 * 24)
+
+        return JsonResponse({
+            'points': all_points,
+            'total': len(all_points),
+            'is_real_data': True,
+            'from_cache': False,
+        })
+
+    except Exception as e:
+        logger.error(f"Error loading all CDEK points: {e}", exc_info=True)
         return JsonResponse({'points': [], 'error': str(e)})
 
 

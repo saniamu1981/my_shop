@@ -8,29 +8,41 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" id="checkoutForm">
                         {% csrf_token %}
+                        <input type="hidden" name="delivery_method" id="checkout_delivery_method">
+                        <input type="hidden" name="delivery_point"  id="checkout_delivery_point">
+
                         <div class="mb-3">
                             <label for="first_name" class="form-label">Имя *</label>
-                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                   value="{{ user.first_name|default:'' }}" required>
                         </div>
                         <div class="mb-3">
                             <label for="last_name" class="form-label">Фамилия *</label>
-                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                   value="{{ user.last_name|default:'' }}" required>
                         </div>
                         <div class="mb-3">
                             <label for="email" class="form-label">Email *</label>
-                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ user.email|default:'' }}" required>
                         </div>
                         <div class="mb-3">
                             <label for="phone" class="form-label">Телефон *</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                   value="{{ user.phone|default:'' }}" required>
                         </div>
                         <div class="mb-3">
                             <label for="address" class="form-label">Адрес доставки *</label>
                             <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+                            <div class="form-text" id="addressHint">
+                                Адрес подставится автоматически после выбора пункта выдачи.
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-success btn-lg">Подтвердить заказ</button>
+                        <button type="submit" class="btn btn-success btn-lg" id="checkoutSubmitBtn">
+                            Перейти к оплате
+                        </button>
                     </form>
                 </div>
             </div>
@@ -49,7 +61,7 @@
                     <hr>
                     <div class="d-flex justify-content-between">
                         <strong>Итого:</strong>
-                        <strong>{{ cart.get_total_price }} ₽</strong>
+                        <strong>{{ total_price|default:"0" }} ₽</strong>
                     </div>
                 </div>
             </div>
@@ -57,14 +69,29 @@
     </div>
 </div>
 
-<input type="hidden" name="delivery_method" id="checkout_delivery_method">
-<input type="hidden" name="delivery_point" id="checkout_delivery_point">
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const m = sessionStorage.getItem('checkout_delivery_method') || '';
-    const p = sessionStorage.getItem('checkout_delivery_point') || '{}';
+    let p = sessionStorage.getItem('checkout_delivery_point') || '{}';
+
     document.getElementById('checkout_delivery_method').value = m;
-    document.getElementById('checkout_delivery_point').value = p;
+    document.getElementById('checkout_delivery_point').value  = p;
+
+    let point = {};
+    try { point = JSON.parse(p); } catch (e) { point = {}; }
+
+    const addressEl = document.getElementById('address');
+    const hintEl    = document.getElementById('addressHint');
+
+    if (point && point.address) {
+        addressEl.value = point.address;
+        if (hintEl) {
+            hintEl.textContent = 'Адрес подставлен из выбранного пункта выдачи (' +
+                (m === 'sdek' ? 'СДЭК' : 'Самовывоз') + '). Можно отредактировать.';
+        }
+    } else {
+        if (hintEl) hintEl.textContent = 'Адрес не был выбран. Укажите его вручную.';
+    }
 });
 </script>
 {% endblock %}
