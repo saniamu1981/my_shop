@@ -353,7 +353,8 @@ class Review(models.Model):
         unique_together = ('product', 'user', 'order')
 
     def __str__(self):
-        return f'{self.user.email} - {self.product.name} - {self.rating}⭐'
+        user_part = self.user.email if self.user else 'Пользователь удалён'
+        return f'{user_part} - {self.product.name} - {self.rating}⭐'
 
 
 # apps/products/models.py (добавьте в конец файла)

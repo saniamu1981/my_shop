@@ -55,7 +55,8 @@ class Order(models.Model):
         ordering = ('-created',)
 
     def __str__(self):
-        return f'Заказ №{self.id} от {self.user.email}'
+        user_email = self.user.email if self.user else 'удалён'
+        return f'Заказ №{self.id} от {user_email}'
 
     def can_cancel(self):
         return self.status in ['created', 'paid'] and not self.status == 'cancelled'
