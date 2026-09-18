@@ -15,14 +15,14 @@
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="first_name" class="form-label">Имя</label>
-                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}">
+                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name|default:'' }}">
                         </div>
                         <div class="mb-3">
                             <label for="last_name" class="form-label">Фамилия</label>
-                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}">
+                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name|default:'' }}">
                         </div>
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Телефон *</label>
+                            <label for="phone" class="form-label">Телефон</label>
                             <input type="tel"
                                    class="form-control"
                                    id="phone"
