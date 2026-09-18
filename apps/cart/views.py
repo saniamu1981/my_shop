@@ -8,8 +8,7 @@ from .cart import CartManager
 def cart_detail(request):
     cart = CartManager(request)
 
-    # Пользователь зашёл в корзину — значит, он хочет оформить именно её,
-    # а не быструю покупку. Сбрасываем buy_now.
+    # Пользователь пришёл в корзину — сбрасываем «быструю покупку»
     if 'buy_now' in request.session:
         request.session.pop('buy_now', None)
         request.session.modified = True

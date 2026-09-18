@@ -53,7 +53,17 @@ def order_list(request):
 @login_required
 def create_order(request):
     cart = CartManager(request)
-    buy_now_data = request.session.get('buy_now')
+    from_param = request.GET.get('from') or request.POST.get('from', '')
+
+    if from_param == 'cart':
+        # Пришли из корзины — игнорируем buy_now
+        buy_now_data = None
+        if 'buy_now' in request.session:
+            request.session.pop('buy_now', None)
+            request.session.modified = True
+    else:
+        # Пришли из buy_now — берём из сессии
+        buy_now_data = request.session.get('buy_now')
 
     # ===== Если в корзине пусто и нет быстрой покупки — уходим =====
     if cart.is_empty() and not buy_now_data:
@@ -401,7 +411,7 @@ def buy_now(request, product_id):
         from django.urls import reverse
         return JsonResponse({
             'success': True,
-            'redirect_url': reverse('orders:create_order'),
+            'redirect_url': reverse('orders:create_order') + '?from=buy-now',
         })
 
     return redirect('orders:create_order')

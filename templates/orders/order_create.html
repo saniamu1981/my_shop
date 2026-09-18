@@ -10,6 +10,7 @@
                 <div class="card-body">
                     <form method="post" id="checkoutForm">
                         {% csrf_token %}
+                        <input type="hidden" name="from" value="{{ request.GET.from|default:'' }}">
                         <input type="hidden" name="delivery_method" id="checkout_delivery_method">
                         <input type="hidden" name="delivery_point"  id="checkout_delivery_point">
 
