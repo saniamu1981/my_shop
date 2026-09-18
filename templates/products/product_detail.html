@@ -1008,6 +1008,7 @@ function initDelivery() {
     const deliveryLabel = document.getElementById('delivery-label');
 
     deliveryInputs.forEach(input => {
+        // ===== change — обновляем состояние и визуал =====
         input.addEventListener('change', function () {
             selectedDelivery = this.value;
             const label = this.closest('.delivery-item').querySelector('label');
@@ -1016,19 +1017,30 @@ function initDelivery() {
                 deliveryLabel.textContent = '🚚 ' + label.textContent.trim();
             }
 
-            if (this.value === 'sdek') {
-                openCdekModal();
-            } else if (this.value === 'pickup') {
-                // Самовывоз — заполняем сразу
+            if (this.value === 'pickup') {
                 setPickupData();
                 if (deliveryLabel) {
                     deliveryLabel.textContent = '🚚 Самовывоз';
                 }
             }
+            // Карту здесь НЕ открываем — это делает click на label
         });
+
+        // ===== click по label — открывает карту и при первом, и при повторном выборе =====
+        const label = document.querySelector(`label[for="${input.id}"]`);
+        if (label) {
+            label.addEventListener('click', function () {
+                // Ждём, пока браузер применит input.checked
+                setTimeout(() => {
+                    if (input.checked && input.value === 'sdek') {
+                        openCdekModal();
+                    }
+                }, 0);
+            });
+        }
     });
 
-    // Проверка: если radio уже выбран при загрузке
+    // Если при загрузке radio уже выбран — открываем карту/данные
     const sdekRadio = document.getElementById('delivery-sdek');
     if (sdekRadio && sdekRadio.checked) {
         openCdekModal();
@@ -1911,20 +1923,24 @@ function loadCdekPointsForCity(cityName) {
 // Инициализация карты
 function initCdekMapOnce() {
     if (cdekMapInitialized) return;
-    if (typeof ymaps === 'undefined') {
-        console.warn('Яндекс.Карты не загружены');
-        return;
-    }
+    if (typeof ymaps === 'undefined') return;
+
+    // Ставим флаг СРАЗУ, чтобы второй вызов не прошёл
+    cdekMapInitialized = true;
 
     ymaps.ready(function () {
+        // Если карта уже создана — не создаём повторно
+        if (cdekMap) {
+            cdekMap.container.fitToViewport();
+            return;
+        }
+
         cdekMap = new ymaps.Map('cdekMap', {
-            center: [59.9386, 30.3141], // СПб
+            center: [59.9386, 30.3141],
             zoom: 11,
             controls: ['zoomControl', 'fullscreenControl', 'geolocationControl'],
         });
-        cdekMapInitialized = true;
 
-        // Загружаем ПВЗ для города по умолчанию
         loadCdekPointsForCity(CDEK_CITY_DEFAULT);
     });
 }
@@ -1999,21 +2015,36 @@ function openCdekModal() {
 
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-    // Инициализируем карту при первом открытии
-    modalEl.addEventListener('shown.bs.modal', function onShown() {
-        if (!cdekMapInitialized) {
-            initCdekMapOnce();
-        } else if (cdekMap) {
-            cdekMap.container.fitToViewport();
-        }
-    }, { once: false });
+    // Навешиваем обработчик shown.bs.modal только один раз
+    if (!modalEl.dataset.shownBound) {
+        modalEl.dataset.shownBound = '1';
+        modalEl.addEventListener('shown.bs.modal', function () {
+            if (!cdekMapInitialized) {
+                initCdekMapOnce();
+            } else if (cdekMap) {
+                // Карта уже есть — просто подгоняем размеры
+                cdekMap.container.fitToViewport();
+            }
+        });
+    }
 
-    // Сбрасываем прошлый выбор
-    cdekSelectedPoint = null;
+    // Показываем/скрываем UI в зависимости от того, есть ли выбранная точка
     const box = document.getElementById('cdekSelectedBox');
+    const addrEl = document.getElementById('cdekSelectedAddress');
     const confirmBtn = document.getElementById('cdekConfirmBtn');
-    if (box) box.style.display = 'none';
-    if (confirmBtn) confirmBtn.disabled = true;
+
+    if (!cdekSelectedPoint) {
+        if (box) box.style.display = 'none';
+        if (confirmBtn) confirmBtn.disabled = true;
+    } else {
+        if (box) box.style.display = 'block';
+        if (addrEl) {
+            addrEl.textContent = cdekSelectedPoint.address
+                || cdekSelectedPoint.name
+                || '';
+        }
+        if (confirmBtn) confirmBtn.disabled = false;
+    }
 
     modal.show();
 }
