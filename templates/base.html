@@ -580,10 +580,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     input.addEventListener('change', function () {
-        // Дополняем уже выбранные новыми
         addFiles(input.files);
-        // Очищаем нативный input, чтобы можно было повторно выбрать тот же файл
-        input.value = '';
     });
 
     // Drag & drop

@@ -334,7 +334,12 @@ def edit_review(request, review_id):
             ReviewMedia.objects.filter(id__in=delete_ids, review=review).delete()
 
         # Добавление новых
+        print('=== edit_review POST ===')
+        print('FILES keys:', list(request.FILES.keys()))
         new_files = request.FILES.getlist('media')
+        print('new_files count:', len(new_files))
+        for f in new_files:
+            print('  file:', f.name, '| content_type:', f.content_type, '| size:', f.size)
         start_order = review.media.count()
         for idx, f in enumerate(new_files):
             content_type = f.content_type or ''

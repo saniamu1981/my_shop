@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, logout
 from django.contrib.auth.forms import PasswordChangeForm
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -174,3 +174,27 @@ def chat_messages(request):
     } for m in qs]
 
     return JsonResponse({'messages': data})
+
+
+@login_required
+@require_POST
+def profile_delete(request):
+    user = request.user
+
+    # Защита: суперпользователь не может удалить свой профиль
+    if user.is_superuser:
+        messages.error(request, 'Суперпользователь не может удалить свой профиль.')
+        return redirect('accounts:profile')
+
+    # Сохраняем email для сообщения
+    email = user.email
+
+    # Разлогиниваем и удаляем пользователя
+    logout(request)
+    user.delete()
+
+    messages.success(
+        request,
+        f'Профиль {email} был удалён. Спасибо, что были с нами.'
+    )
+    return redirect('home')
