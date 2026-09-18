@@ -92,6 +92,24 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         if (hintEl) hintEl.textContent = 'Адрес не был выбран. Укажите его вручную.';
     }
+
+    // ===== Если Самовывоз — снимаем обязательность Имени и Фамилии =====
+    const firstNameEl = document.getElementById('first_name');
+    const lastNameEl  = document.getElementById('last_name');
+
+    if (m === 'pickup') {
+        if (firstNameEl) {
+            firstNameEl.required = false;
+            // Меняем подпись — убираем звёздочку
+            const label = document.querySelector('label[for="first_name"]');
+            if (label) label.textContent = 'Имя';
+        }
+        if (lastNameEl) {
+            lastNameEl.required = false;
+            const label = document.querySelector('label[for="last_name"]');
+            if (label) label.textContent = 'Фамилия';
+        }
+    }
 });
 </script>
 {% endblock %}
