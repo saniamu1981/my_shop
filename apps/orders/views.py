@@ -374,6 +374,12 @@ def buy_now(request, product_id):
     size = request.POST.get('size', '')
     delivery_method = request.POST.get('delivery_method', '')
     delivery_point = request.POST.get('delivery_point', '{}')
+    try:
+        quantity = int(request.POST.get('quantity', 1) or 1)
+    except (TypeError, ValueError):
+        quantity = 1
+    if quantity < 1:
+        quantity = 1
 
     try:
         point_data = json.loads(delivery_point) if delivery_point else {}
@@ -384,7 +390,7 @@ def buy_now(request, product_id):
     request.session['buy_now'] = {
         'product_id': product.id,
         'size': size,
-        'quantity': 1,
+        'quantity': quantity,  # ← было 1
         'delivery_method': delivery_method,
         'delivery_point': point_data,
     }
