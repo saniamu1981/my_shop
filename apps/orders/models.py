@@ -21,7 +21,14 @@ class Order(models.Model):
         ('pickup', 'Самовывоз'),
     )
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders',
+        verbose_name='Пользователь',
+    )
     first_name = models.CharField('Имя', max_length=100, blank=True, default='')
     last_name = models.CharField('Фамилия', max_length=100, blank=True, default='')
     email = models.EmailField()

@@ -331,7 +331,14 @@ class Favorite(models.Model):
 class Review(models.Model):
     """Модель для отзывов на товары"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviews',
+        verbose_name='Пользователь',
+    )
     order = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
     rating = models.PositiveSmallIntegerField('Оценка', choices=[(i, i) for i in range(1, 6)])
     comment = models.TextField('Комментарий')
