@@ -22,8 +22,14 @@
                             <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}">
                         </div>
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Телефон</label>
-                            <input type="text" class="form-control" id="phone" name="phone" value="{{ user.phone }}">
+                            <label for="phone" class="form-label">Телефон *</label>
+                            <input type="tel"
+                                   class="form-control"
+                                   id="phone"
+                                   name="phone"
+                                   placeholder="+7 (___) ___ __ __"
+                                   value="{{ user.phone|default:'' }}"
+                                   required>
                         </div>
                         <button type="submit" class="btn btn-primary">Сохранить изменения</button>
                         <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">Отмена</a>
@@ -33,4 +39,42 @@
         </div>
     </div>
 </div>
+
+<!-- Inputmask -->
+<script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.9/dist/inputmask.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const phoneInput = document.getElementById('phone');
+    if (!phoneInput || !window.Inputmask) return;
+
+    // Настройка через пользовательский алиас
+    Inputmask.extendAliases({
+        ruPhone: {
+            mask: '+7 (999) 999 99 99',
+            placeholder: '+7 (___) ___ __ __',
+            showMaskOnHover: false,
+            showMaskOnFocus: true,
+            clearIncomplete: false,
+            autoUnmask: false,
+            onBeforeMask: function (value) {
+                // Нормализуем начальное значение, если оно из профиля
+                if (!value) return value;
+                let digits = String(value).replace(/\D/g, '');
+                if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+                if (!digits.startsWith('7')) digits = '7' + digits;
+                return digits;
+            },
+            onBeforePaste: function (pastedValue) {
+                // При вставке из буфера — тоже нормализуем
+                let digits = String(pastedValue).replace(/\D/g, '');
+                if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+                if (!digits.startsWith('7')) digits = '7' + digits;
+                return digits;
+            },
+        }
+    });
+
+    Inputmask({ alias: 'ruPhone' }).mask(phoneInput);
+});
+</script>
 {% endblock %}
