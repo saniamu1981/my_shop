@@ -69,7 +69,11 @@
 
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div style="min-width: 0; flex: 1;">
-                            <strong>{{ review.user.get_full_name|default:review.user.email }}</strong>
+                            <strong>
+                                {% if review.user %}
+                                    {{ review.user.get_full_name|default:review.user.email }}
+                                {% endif %}
+                            </strong>
                             {% if user.is_authenticated and review.user == user %}
                                 <span class="badge bg-warning text-dark ms-2">Ваш отзыв</span>
                             {% endif %}
