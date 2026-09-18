@@ -137,14 +137,27 @@ document.addEventListener('DOMContentLoaded', function () {
             onBeforeMask: function (value) {
                 if (!value) return value;
                 let digits = String(value).replace(/\D/g, '');
+
+                // 8XXXXXXXXXX → 7XXXXXXXXXX
                 if (digits.startsWith('8')) digits = '7' + digits.slice(1);
-                if (!digits.startsWith('7')) digits = '7' + digits;
+
+                // 7XXXXXXXXXX (11 цифр) → отрезаем ведущую 7, оставляем 10 цифр для маски
+                if (digits.startsWith('7') && digits.length > 10) {
+                    digits = digits.slice(1);
+                }
+                // Если длина меньше 11 и начинается не с 7 — оставляем как есть
+
                 return digits;
             },
             onBeforePaste: function (pastedValue) {
                 let digits = String(pastedValue).replace(/\D/g, '');
+
                 if (digits.startsWith('8')) digits = '7' + digits.slice(1);
-                if (!digits.startsWith('7')) digits = '7' + digits;
+
+                if (digits.startsWith('7') && digits.length > 10) {
+                    digits = digits.slice(1);
+                }
+
                 return digits;
             },
         }
