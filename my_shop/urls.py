@@ -6,6 +6,16 @@ from django.views.generic import TemplateView
 
 from apps.products import feeds
 
+from django.contrib.sitemaps.views import sitemap
+from apps.products.sitemaps import ProductSitemap, CategorySitemap, StaticViewSitemap
+
+# Словарь, связывающий "секции" с классами Sitemap
+sitemaps = {
+    'products': ProductSitemap,
+    'categories': CategorySitemap,
+    'static': StaticViewSitemap,
+}
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin-panel/', include('admin_panel.urls')),
@@ -17,6 +27,7 @@ urlpatterns = [
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('delivery/', include('delivery.urls')),
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
 ]
 
 if settings.DEBUG:
