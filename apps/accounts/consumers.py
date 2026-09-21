@@ -62,7 +62,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         msg = event['message']
 
-        if msg.get('sender') == 'admin':
+        if msg.get('sender') == 'admin':  # ← проверка
             await self.mark_message_read(msg['id'])
             await self.channel_layer.group_send(
                 f'chat_admin_{self.user.id}',
