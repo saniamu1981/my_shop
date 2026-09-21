@@ -58,7 +58,23 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps(event['message']))
+        """Пришло сообщение в группу. Если sender='user' и админ онлайн — помечаем прочитанным."""
+        msg = event['message']
+
+        # Если это сообщение от пользователя и админ сейчас смотрит — помечаем прочитанным
+        if msg.get('sender') == 'user':
+            await self.mark_message_read(msg['id'])
+            # Уведомляем пользователя, что его сообщение прочитано
+            await self.channel_layer.group_send(
+                f'chat_user_{self.user_id}',
+                {'type': 'messages_read', 'reader': 'admin'}
+            )
+
+        await self.send(text_data=json.dumps(msg))
+
+    @database_sync_to_async
+    def mark_message_read(self, message_id):
+        ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
 
     async def messages_read(self, event):
         read_ids = await self.get_my_read_ids(self.user_id, 'admin')

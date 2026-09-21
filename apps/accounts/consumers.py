@@ -60,7 +60,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps(event['message']))
+        msg = event['message']
+
+        if msg.get('sender') == 'admin':
+            await self.mark_message_read(msg['id'])
+            await self.channel_layer.group_send(
+                f'chat_admin_{self.user.id}',
+                {'type': 'messages_read', 'reader': 'user'}
+            )
+
+        await self.send(text_data=json.dumps(msg))
+
+    @database_sync_to_async
+    def mark_message_read(self, message_id):
+        ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
 
     async def messages_read(self, event):
         """Сообщение о том, что собеседник прочитал наши сообщения."""
