@@ -143,21 +143,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== WebSocket =====
+    let socket = null;
     let reconnectAttempts = 0;
     const MAX_RECONNECT = 10;
 
     function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const ws = new WebSocket(protocol + window.location.host + '/ws/admin/chat/{{ target_user.id }}/');
+        socket = new WebSocket(protocol + window.location.host + '/ws/admin/chat/{{ target_user.id }}/');
 
-        ws.onopen = function () {
-            console.log('WebSocket подключён');
+        socket.onopen = function () {
+            console.log('WebSocket подключён (админский чат)');
             reconnectAttempts = 0;
-            // При открытии — сообщаем, что мы в чате
-            ws.send(JSON.stringify({ type: 'focus' }));
+            socket.send(JSON.stringify({ type: 'focus' }));
         };
 
-        ws.onmessage = function (e) {
+        socket.onmessage = function (e) {
             const data = JSON.parse(e.data);
             if (data.type === 'read_update') {
                 markRead(data.read_ids || []);
@@ -166,45 +166,55 @@ document.addEventListener('DOMContentLoaded', function () {
             appendMessage(data);
         };
 
-        ws.onclose = function (event) {
-            // ...
+        socket.onclose = function (event) {
+            console.warn('WebSocket закрыт. Код:', event.code);
+            if (reconnectAttempts < MAX_RECONNECT) {
+                reconnectAttempts++;
+                const delay = Math.min(1000 * reconnectAttempts, 5000);
+                console.log(`Переподключение через ${delay} мс (попытка ${reconnectAttempts}/${MAX_RECONNECT})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                console.error('Не удалось переподключиться.');
+            }
         };
 
-        // Отслеживаем видимость вкладки
-        document.addEventListener('visibilitychange', function () {
-            if (ws.readyState !== WebSocket.OPEN) return;
-            if (document.visibilityState === 'visible') {
-                ws.send(JSON.stringify({ type: 'focus' }));
-            } else {
-                ws.send(JSON.stringify({ type: 'blur' }));
-            }
-        });
-
-        // Фокус / потеря фокуса окна
-        window.addEventListener('focus', function () {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'focus' }));
-            }
-        });
-        window.addEventListener('blur', function () {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'blur' }));
-            }
-        });
-
-        return ws;
+        socket.onerror = function (err) {
+            console.error('WebSocket ошибка:', err);
+        };
     }
 
-    // Объявляем socket ДО всех использований
-    let socket = connectWebSocket();
+    // Обработчики — ОДИН РАЗ
+    document.addEventListener('visibilitychange', function () {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        if (document.visibilityState === 'visible') {
+            socket.send(JSON.stringify({ type: 'focus' }));
+        } else {
+            socket.send(JSON.stringify({ type: 'blur' }));
+        }
+    });
 
-    // ===== Отправка =====
+    window.addEventListener('focus', function () {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'focus' }));
+        }
+    });
+
+    window.addEventListener('blur', function () {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'blur' }));
+        }
+    });
+
+    // Запускаем
+    connectWebSocket();
+
+    // Отправка
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
 
-        if (socket.readyState === WebSocket.OPEN) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ message: text }));
             input.value = '';
             input.style.height = 'auto';
