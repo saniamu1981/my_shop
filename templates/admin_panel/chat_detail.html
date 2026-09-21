@@ -151,23 +151,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const ws = new WebSocket(protocol + window.location.host + '/ws/admin/chat/{{ target_user.id }}/');
 
         ws.onopen = function () {
-            console.log('WebSocket подключён (админский чат)');
+            console.log('WebSocket подключён');
             reconnectAttempts = 0;
-        };
 
-        ws.onmessage = function (e) {
-            const data = JSON.parse(e.data);
-
-            if (data.type === 'read_update') {
-                markRead(data.read_ids || []);
-                return;
-            }
-
-            appendMessage(data);
+            // Пингуем каждые 30 секунд, чтобы продлить «онлайн»-ключ в Redis
+            if (ws._pingInterval) clearInterval(ws._pingInterval);
+            ws._pingInterval = setInterval(function () {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                }
+            }, 30000);
         };
 
         ws.onclose = function (event) {
-            console.warn('WebSocket закрыт. Код:', event.code);
+            if (ws._pingInterval) clearInterval(ws._pingInterval);
 
             if (reconnectAttempts < MAX_RECONNECT) {
                 reconnectAttempts++;

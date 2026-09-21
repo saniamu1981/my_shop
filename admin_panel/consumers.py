@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.core.cache import cache
 from apps.accounts.models import ChatMessage
 
 
@@ -23,7 +24,10 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        # Помечаем сообщения пользователя как прочитанные
+        # Помечаем админа «онлайн» для этого пользователя
+        await self.set_online_user(self.user_id, True)
+
+        # Помечаем сообщения пользователя как прочитанные (админ открыл чат)
         await self.mark_user_messages_read()
 
         # Уведомляем пользовательский чат, что админ прочитал
@@ -35,11 +39,17 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if hasattr(self, 'group_name'):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+            await self.set_online_user(self.user_id, False)
 
     async def receive(self, text_data):
         try:
             data = json.loads(text_data)
         except json.JSONDecodeError:
+            return
+
+        # Пинг — обновляем «онлайн»-ключ, продлеваем TTL
+        if data.get('type') == 'ping':
+            await self.set_online_user(self.user_id, True)
             return
 
         message_text = (data.get('message') or '').strip()
@@ -48,10 +58,12 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
 
         msg = await self.save_message(self.user_id, 'admin', message_text)
 
+        # Отправляем в группу админа (чтобы админ увидел своё сообщение)
         await self.channel_layer.group_send(
             self.group_name,
             {'type': 'chat_message', 'message': msg}
         )
+        # И в группу пользователя (чтобы пользователь увидел)
         await self.channel_layer.group_send(
             f'chat_user_{self.user_id}',
             {'type': 'chat_message', 'message': msg}
@@ -60,25 +72,28 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         msg = event['message']
 
+        # Пометка прочитанным — только для сообщений от пользователя
+        # И только если пользователь онлайн
         if msg.get('sender') == 'user':
-            await self.mark_message_read(msg['id'])
-            await self.channel_layer.group_send(
-                f'chat_user_{self.user_id}',  # ✅ self.user_id
-                {'type': 'messages_read', 'reader': 'admin'}
-            )
+            user_online = await self.is_user_online(self.user_id)
+            if user_online:
+                await self.mark_message_read(msg['id'])
+                await self.channel_layer.group_send(
+                    f'chat_user_{self.user_id}',
+                    {'type': 'messages_read', 'reader': 'admin'}
+                )
 
         await self.send(text_data=json.dumps(msg))
 
-    @database_sync_to_async
-    def mark_message_read(self, message_id):
-        ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
-
     async def messages_read(self, event):
-        read_ids = await self.get_my_read_ids(self.user_id, 'admin')  # ✅
+        """Пользователь прочитал сообщения админа."""
+        read_ids = await self.get_my_read_ids(self.user_id, 'admin')
         await self.send(text_data=json.dumps({
             'type': 'read_update',
             'read_ids': read_ids,
         }))
+
+    # ============ DB-хелперы ============
 
     @database_sync_to_async
     def save_message(self, user_id, sender, text):
@@ -100,9 +115,33 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
         ).update(is_read=True)
 
     @database_sync_to_async
+    def mark_message_read(self, message_id):
+        ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
+
+    @database_sync_to_async
     def get_my_read_ids(self, user_id, sender):
         return list(
             ChatMessage.objects.filter(
                 user_id=user_id, sender=sender, is_read=True
             ).values_list('id', flat=True)
         )
+
+    # ============ Redis-хелперы (через django cache) ============
+
+    @database_sync_to_async
+    def set_online_user(self, user_id, value):
+        # «Пользователь онлайн» — для пометки сообщений пользователя как прочитанных
+        user_key = f'online_user_{user_id}'
+        # «Админ онлайн для этого пользователя» — для пометки сообщений админа
+        admin_key = f'online_admin_{user_id}'
+
+        if value:
+            cache.set(user_key, True, timeout=60)
+            cache.set(admin_key, True, timeout=60)
+        else:
+            cache.delete(user_key)
+            cache.delete(admin_key)
+
+    @database_sync_to_async
+    def is_user_online(self, user_id):
+        return bool(cache.get(f'online_user_{user_id}'))
