@@ -26,12 +26,22 @@
 
             <div class="card">
                 <div class="card-body p-0">
-                    <div id="chatMessages" class="chat-messages">
+                    <div id="chatMessages" class="chat-messages" data-my-sender="admin">
                         {% for msg in chat_messages %}
-                            <div class="chat-message chat-message-{{ msg.sender }}" data-message-id="{{ msg.id }}">
+                            <div class="chat-message chat-message-{{ msg.sender }}"
+                                 data-message-id="{{ msg.id }}"
+                                 data-is-read="{% if msg.is_read %}1{% else %}0{% endif %}"
+                                 data-sender="{{ msg.sender }}">
                                 <div class="chat-bubble">
                                     <div class="chat-text">{{ msg.message }}</div>
-                                    <div class="chat-time">{{ msg.created|date:"d.m.Y H:i" }}</div>
+                                    <div class="chat-time">
+                                        {{ msg.created|date:"d.m.Y H:i" }}
+                                        {% if msg.sender == 'admin' %}
+                                            <span class="chat-status" data-status>
+                                                {% if msg.is_read %}✓✓ Прочитано{% else %}✓ Отправлено{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
@@ -66,6 +76,12 @@
 .chat-text { font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
 .chat-time { font-size: 10px; opacity: 0.75; margin-top: 4px; text-align: right; }
 #chatInput { min-height: 40px; }
+.chat-status {
+    display: block;         /* переносит на новую строку */
+    margin-top: 4px;         /* отступ сверху, если нужен */
+    font-size: 10px;
+    opacity: 0.85;
+}
 </style>
 
 <script>
@@ -73,67 +89,106 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('chatForm');
     const input = document.getElementById('chatInput');
     const messagesEl = document.getElementById('chatMessages');
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
     let lastMessageId = 0;
+
+    // Находим максимальный id среди уже отрендеренных сообщений
     messagesEl.querySelectorAll('.chat-message').forEach(el => {
         const id = parseInt(el.dataset.messageId || '0', 10);
         if (id > lastMessageId) lastMessageId = id;
     });
 
-    function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
     scrollToBottom();
 
     function appendMessage(msg) {
         const wrap = document.createElement('div');
         wrap.className = 'chat-message chat-message-' + msg.sender;
         wrap.dataset.messageId = msg.id;
-        wrap.innerHTML = `<div class="chat-bubble"><div class="chat-text"></div><div class="chat-time">${msg.created}</div></div>`;
+        wrap.dataset.sender = msg.sender;
+        wrap.dataset.isRead = msg.is_read ? '1' : '0';
+
+        const statusHtml = msg.sender === 'admin'
+            ? `<span class="chat-status" data-status>${msg.is_read ? '✓✓ Прочитано' : '✓ Отправлено'}</span>`
+            : '';
+
+        wrap.innerHTML = `
+            <div class="chat-bubble">
+                <div class="chat-text"></div>
+                <div class="chat-time">
+                    ${msg.created}
+                    ${statusHtml}
+                </div>
+            </div>
+        `;
         wrap.querySelector('.chat-text').textContent = msg.message;
+
         messagesEl.appendChild(wrap);
         scrollToBottom();
+        lastMessageId = Math.max(lastMessageId, msg.id);
     }
 
+    function markRead(readIds) {
+        readIds.forEach(id => {
+            const el = messagesEl.querySelector(`.chat-message[data-message-id="${id}"]`);
+            if (!el) return;
+            if (el.dataset.sender !== 'admin') return;  // только «мои»
+            el.dataset.isRead = '1';
+            const statusEl = el.querySelector('[data-status]');
+            if (statusEl) {
+                statusEl.textContent = '✓✓ Прочитано';
+                statusEl.classList.add('read');
+            }
+        });
+    }
+
+    // ===== WebSocket =====
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const socket = new WebSocket(
+        protocol + window.location.host + '/ws/admin/chat/{{ target_user.id }}/'
+    );
+
+    socket.onopen = function () {
+        console.log('WebSocket подключён (админский чат)');
+    };
+
+    socket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'read_update') {
+            markRead(data.read_ids || []);
+            return;
+        }
+
+        appendMessage(data);
+    };
+
+    socket.onclose = function () {
+        console.warn('WebSocket закрыт, переподключение через 3 сек...');
+        setTimeout(() => window.location.reload(), 3000);
+    };
+
+    socket.onerror = function (err) {
+        console.error('WebSocket ошибка:', err);
+    };
+
+    // Отправка через WebSocket
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
 
-        const fd = new FormData();
-        fd.append('message', text);
-        fd.append('csrfmiddlewaretoken', csrfToken);
-
-        fetch('{% url "admin_panel:chat_admin_send" target_user.id %}', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-            body: fd,
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                appendMessage(data.message);
-                lastMessageId = Math.max(lastMessageId, data.message.id);
-                input.value = '';
-                input.style.height = 'auto';
-            }
-        })
-        .catch(err => console.error(err));
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ message: text }));
+            input.value = '';
+            input.style.height = 'auto';
+        } else {
+            alert('Соединение потеряно. Обновите страницу.');
+        }
     });
 
-    setInterval(function () {
-        fetch('{% url "admin_panel:chat_admin_messages" target_user.id %}?after_id=' + lastMessageId, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        })
-        .then(r => r.json())
-        .then(data => {
-            (data.messages || []).forEach(msg => {
-                appendMessage(msg);
-                lastMessageId = Math.max(lastMessageId, msg.id);
-            });
-        })
-        .catch(err => console.error(err));
-    }, 5000);
-
+    // Enter отправляет, Shift+Enter — новая строка
     input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();

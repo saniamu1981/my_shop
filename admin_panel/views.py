@@ -97,6 +97,7 @@ def chat_admin_send(request, user_id):
             'sender': msg.sender,
             'message': msg.message,
             'created': msg.created.strftime('%d.%m.%Y %H:%M'),
+            'is_read': msg.is_read,
         }
     })
 
@@ -118,6 +119,7 @@ def chat_admin_messages(request, user_id):
         'sender': m.sender,
         'message': m.message,
         'created': m.created.strftime('%d.%m.%Y %H:%M'),
+        'is_read': m.is_read,
     } for m in qs]
 
     return JsonResponse({'messages': data})

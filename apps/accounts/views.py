@@ -146,6 +146,7 @@ def chat_send(request):
             'sender': msg.sender,
             'message': msg.message,
             'created': msg.created.strftime('%d.%m.%Y %H:%M'),
+            'is_read': msg.is_read,
         }
     })
 
@@ -171,6 +172,7 @@ def chat_messages(request):
         'sender': m.sender,
         'message': m.message,
         'created': m.created.strftime('%d.%m.%Y %H:%M'),
+        'is_read': m.is_read,
     } for m in qs]
 
     return JsonResponse({'messages': data})

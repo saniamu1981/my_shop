@@ -37,6 +37,7 @@ SECURE_SSL_REDIRECT = False
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'storages',
+    'channels',
 
     # Наши приложения
     'apps.accounts',
@@ -97,6 +99,25 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'my_shop.wsgi.application'
+
+
+# ============ ASGI / CHANNELS ============
+ASGI_APPLICATION = 'my_shop.asgi.application'
+
+# Адрес Redis: локально — 127.0.0.1, на проде — из переменной окружения
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [REDIS_URL],
+            'capacity': 1500,
+            'expiry': 60,
+        },
+    },
+}
+
 
 # ============ БАЗА ДАННЫХ ============
 DATABASES = {
