@@ -60,11 +60,11 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         msg = event['message']
 
-        if msg.get('sender') == 'user':  # ← проверка
+        if msg.get('sender') == 'user':
             await self.mark_message_read(msg['id'])
             await self.channel_layer.group_send(
-                f'chat_admin_{self.user.id}',
-                {'type': 'messages_read', 'reader': 'user'}
+                f'chat_user_{self.user_id}',  # ✅ self.user_id
+                {'type': 'messages_read', 'reader': 'admin'}
             )
 
         await self.send(text_data=json.dumps(msg))
@@ -74,7 +74,7 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
         ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
 
     async def messages_read(self, event):
-        read_ids = await self.get_my_read_ids(self.user_id, 'admin')
+        read_ids = await self.get_my_read_ids(self.user_id, 'admin')  # ✅
         await self.send(text_data=json.dumps({
             'type': 'read_update',
             'read_ids': read_ids,
