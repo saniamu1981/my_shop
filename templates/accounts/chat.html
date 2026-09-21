@@ -152,7 +152,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const sendBtn = document.getElementById('chatSendBtn');
     let lastMessageId = 0;
 
-    // Находим максимальный id среди уже отрендеренных сообщений
     messagesEl.querySelectorAll('.chat-message').forEach(el => {
         const id = parseInt(el.dataset.messageId || '0', 10);
         if (id > lastMessageId) lastMessageId = id;
@@ -212,34 +211,53 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== WebSocket =====
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const socket = new WebSocket(protocol + window.location.host + '/ws/chat/');
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT = 10;
 
-    socket.onopen = function () {
-        console.log('WebSocket подключён');
-    };
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const ws = new WebSocket(protocol + window.location.host + '/ws/chat/');
 
-    socket.onmessage = function (e) {
-        const data = JSON.parse(e.data);
+        ws.onopen = function () {
+            console.log('WebSocket подключён (пользовательский чат)');
+            reconnectAttempts = 0;
+        };
 
-        if (data.type === 'read_update') {
-            markRead(data.read_ids || []);
-            return;
-        }
+        ws.onmessage = function (e) {
+            const data = JSON.parse(e.data);
 
-        appendMessage(data);
-    };
+            if (data.type === 'read_update') {
+                markRead(data.read_ids || []);
+                return;
+            }
 
-    socket.onclose = function () {
-        console.warn('WebSocket закрыт, переподключение через 3 сек...');
-        setTimeout(() => window.location.reload(), 3000);
-    };
+            appendMessage(data);
+        };
 
-    socket.onerror = function (err) {
-        console.error('WebSocket ошибка:', err);
-    };
+        ws.onclose = function (event) {
+            console.warn('WebSocket закрыт. Код:', event.code);
 
-    // Отправка через WebSocket
+            if (reconnectAttempts < MAX_RECONNECT) {
+                reconnectAttempts++;
+                const delay = Math.min(1000 * reconnectAttempts, 5000);
+                console.log(`Переподключение через ${delay} мс (попытка ${reconnectAttempts}/${MAX_RECONNECT})`);
+                setTimeout(connectWebSocket, delay);
+            } else {
+                console.error('Не удалось переподключиться.');
+            }
+        };
+
+        ws.onerror = function (err) {
+            console.error('WebSocket ошибка:', err);
+        };
+
+        return ws;
+    }
+
+    // Объявляем socket ДО всех использований
+    let socket = connectWebSocket();
+
+    // ===== Отправка =====
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         const text = input.value.trim();
@@ -250,11 +268,10 @@ document.addEventListener('DOMContentLoaded', function () {
             input.value = '';
             input.style.height = 'auto';
         } else {
-            alert('Соединение потеряно. Обновите страницу.');
+            alert('Соединение потеряно. Подождите несколько секунд.');
         }
     });
 
-    // Enter отправляет, Shift+Enter — новая строка
     input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
