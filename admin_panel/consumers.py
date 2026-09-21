@@ -130,17 +130,11 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def set_online_user(self, user_id, value):
-        # «Пользователь онлайн» — для пометки сообщений пользователя как прочитанных
-        user_key = f'online_user_{user_id}'
-        # «Админ онлайн для этого пользователя» — для пометки сообщений админа
-        admin_key = f'online_admin_{user_id}'
-
+        key = f'online_user_{user_id}'
         if value:
-            cache.set(user_key, True, timeout=60)
-            cache.set(admin_key, True, timeout=60)
+            cache.set(key, True, timeout=60)  # TTL 60 сек
         else:
-            cache.delete(user_key)
-            cache.delete(admin_key)
+            cache.delete(key)
 
     @database_sync_to_async
     def is_user_online(self, user_id):
