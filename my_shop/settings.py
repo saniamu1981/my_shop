@@ -105,13 +105,21 @@ WSGI_APPLICATION = 'my_shop.wsgi.application'
 ASGI_APPLICATION = 'my_shop.asgi.application'
 
 # Адрес Redis: локально — 127.0.0.1, на проде — из переменной окружения
-REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+REDIS_HOST = os.getenv('REDIS_HOST', '127.0.0.1')
+REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
+REDIS_USER = os.getenv('REDIS_USER', 'default')
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
 
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [REDIS_URL],
+            'hosts': [{
+                'host': REDIS_HOST,
+                'port': REDIS_PORT,
+                'username': REDIS_USER,
+                'password': REDIS_PASSWORD,
+            }],
             'capacity': 1500,
             'expiry': 60,
         },
