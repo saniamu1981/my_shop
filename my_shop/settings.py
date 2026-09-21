@@ -120,6 +120,9 @@ CHANNEL_LAYERS = {
                 'port': REDIS_PORT,
                 'username': REDIS_USER,
                 'password': REDIS_PASSWORD,
+                'protocol': 2,          # ← ключевая строка
+                'socket_timeout': 10,
+                'socket_connect_timeout': 10,
             }],
             'capacity': 1500,
             'expiry': 60,
