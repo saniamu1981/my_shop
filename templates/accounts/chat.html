@@ -221,32 +221,44 @@ document.addEventListener('DOMContentLoaded', function () {
         ws.onopen = function () {
             console.log('WebSocket подключён');
             reconnectAttempts = 0;
+            // При открытии — сообщаем, что мы в чате
+            ws.send(JSON.stringify({ type: 'focus' }));
+        };
 
-            // Пингуем каждые 30 секунд, чтобы продлить «онлайн»-ключ в Redis
-            if (ws._pingInterval) clearInterval(ws._pingInterval);
-            ws._pingInterval = setInterval(function () {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'ping' }));
-                }
-            }, 30000);
+        ws.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'read_update') {
+                markRead(data.read_ids || []);
+                return;
+            }
+            appendMessage(data);
         };
 
         ws.onclose = function (event) {
-            if (ws._pingInterval) clearInterval(ws._pingInterval);
+            // ...
+        };
 
-            if (reconnectAttempts < MAX_RECONNECT) {
-                reconnectAttempts++;
-                const delay = Math.min(1000 * reconnectAttempts, 5000);
-                console.log(`Переподключение через ${delay} мс (попытка ${reconnectAttempts}/${MAX_RECONNECT})`);
-                setTimeout(connectWebSocket, delay);
+        // Отслеживаем видимость вкладки
+        document.addEventListener('visibilitychange', function () {
+            if (ws.readyState !== WebSocket.OPEN) return;
+            if (document.visibilityState === 'visible') {
+                ws.send(JSON.stringify({ type: 'focus' }));
             } else {
-                console.error('Не удалось переподключиться.');
+                ws.send(JSON.stringify({ type: 'blur' }));
             }
-        };
+        });
 
-        ws.onerror = function (err) {
-            console.error('WebSocket ошибка:', err);
-        };
+        // Фокус / потеря фокуса окна
+        window.addEventListener('focus', function () {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'focus' }));
+            }
+        });
+        window.addEventListener('blur', function () {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'blur' }));
+            }
+        });
 
         return ws;
     }

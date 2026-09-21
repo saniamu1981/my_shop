@@ -130,14 +130,6 @@ CHANNEL_LAYERS = {
     },
 }
 
-# ============ КЭШ (Redis) ============
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': f'redis://{REDIS_USER}:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1',
-    }
-}
-
 
 # ============ БАЗА ДАННЫХ ============
 DATABASES = {

@@ -5,10 +5,7 @@ from .models import ChatMessage
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    """
-    WebSocket-чат пользователя с поддержкой.
-    Группа: chat_user_<user_id>
-    """
+    """Пользовательский чат. Группа: chat_user_<user_id>"""
 
     async def connect(self):
         self.user = self.scope['user']
@@ -18,17 +15,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         self.group_name = f'chat_user_{self.user.id}'
+        self.in_focus = False   # ← добавили
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        # Помечаем сообщения от админа как прочитанные
-        await self.mark_admin_messages_read()
-
-        # Уведомляем админский чат, что пользователь прочитал
+        await self.mark_messages_read(sender='admin')
         await self.channel_layer.group_send(
             f'chat_admin_{self.user.id}',
-            {'type': 'messages_read', 'reader': 'user'}
+            {'type': 'messages_read'}
         )
 
     async def disconnect(self, close_code):
@@ -41,19 +36,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except json.JSONDecodeError:
             return
 
-        message_text = (data.get('message') or '').strip()
-        if not message_text:
+        # Обработка focus / blur
+        if data.get('type') == 'focus':
+            self.in_focus = True
+            await self.mark_messages_read(sender='admin')
+            await self.channel_layer.group_send(
+                f'chat_admin_{self.user.id}',
+                {'type': 'messages_read'}
+            )
+            return
+        if data.get('type') == 'blur':
+            self.in_focus = False
             return
 
-        msg = await self.save_message(self.user.id, 'user', message_text)
+        text = (data.get('message') or '').strip()
+        if not text:
+            return
 
-        # Рассылаем сообщение в группу пользователя
+        msg = await self.save_message(self.user.id, 'user', text)
+
         await self.channel_layer.group_send(
             self.group_name,
             {'type': 'chat_message', 'message': msg}
         )
-
-        # И в группу админа — чтобы админ увидел мгновенно
         await self.channel_layer.group_send(
             f'chat_admin_{self.user.id}',
             {'type': 'chat_message', 'message': msg}
@@ -62,22 +67,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         msg = event['message']
 
-        if msg.get('sender') == 'admin':  # ← проверка
-            await self.mark_message_read(msg['id'])
+        # Пометка прочитанным — только если пользователь в фокусе
+        if msg.get('sender') == 'admin' and self.in_focus:   # ← добавили in_focus
+            await self.mark_one_read(msg['id'])
             await self.channel_layer.group_send(
                 f'chat_admin_{self.user.id}',
-                {'type': 'messages_read', 'reader': 'user'}
+                {'type': 'messages_read'}
             )
 
         await self.send(text_data=json.dumps(msg))
 
-    @database_sync_to_async
-    def mark_message_read(self, message_id):
-        ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
-
     async def messages_read(self, event):
-        """Сообщение о том, что собеседник прочитал наши сообщения."""
-        read_ids = await self.get_my_read_ids(self.user.id, 'user')
+        read_ids = await self.get_read_ids(sender='user')
         await self.send(text_data=json.dumps({
             'type': 'read_update',
             'read_ids': read_ids,
@@ -85,9 +86,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def save_message(self, user_id, sender, text):
-        msg = ChatMessage.objects.create(
-            user_id=user_id, sender=sender, message=text
-        )
+        msg = ChatMessage.objects.create(user_id=user_id, sender=sender, message=text)
         return {
             'id': msg.id,
             'sender': msg.sender,
@@ -97,15 +96,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
 
     @database_sync_to_async
-    def mark_admin_messages_read(self):
+    def mark_messages_read(self, sender):
         ChatMessage.objects.filter(
-            user_id=self.user.id, sender='admin', is_read=False
+            user_id=self.user.id, sender=sender, is_read=False
         ).update(is_read=True)
 
     @database_sync_to_async
-    def get_my_read_ids(self, user_id, sender):
+    def mark_one_read(self, message_id):
+        ChatMessage.objects.filter(id=message_id, is_read=False).update(is_read=True)
+
+    @database_sync_to_async
+    def get_read_ids(self, sender):
         return list(
             ChatMessage.objects.filter(
-                user_id=user_id, sender=sender, is_read=True
+                user_id=self.user.id, sender=sender, is_read=True
             ).values_list('id', flat=True)
         )
