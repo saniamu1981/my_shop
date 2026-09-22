@@ -1,6 +1,4 @@
-{% load static %}
-
-<div class="list-group">
+<div class="list-group profile-sidebar">
     <a href="{% url 'accounts:profile' %}"
        class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
         👤 Профиль
@@ -15,14 +13,16 @@
     </a>
 
     {% if user.is_staff or user.is_superuser %}
-        <a href="{% url 'admin_panel:chat_list' %}" class="list-group-item list-group-item-action">
+        <a href="{% url 'admin_panel:chat_list' %}"
+           class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'chat_list' %}active{% endif %}">
             💬 Чат с пользователями
             {% if chat_unread_count %}
                 <span class="badge bg-danger float-end">{{ chat_unread_count }}</span>
             {% endif %}
         </a>
     {% else %}
-        <a href="{% url 'accounts:chat' %}" class="list-group-item list-group-item-action ...">
+        <a href="{% url 'accounts:chat' %}"
+           class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'chat' %}active{% endif %}">
             💬 Чат с поддержкой
             {% if chat_unread_count %}
                 <span class="badge bg-danger float-end">{{ chat_unread_count }}</span>
@@ -30,5 +30,7 @@
         </a>
     {% endif %}
 
-    <a href="{% url 'account_logout' %}" class="list-group-item list-group-item-action text-danger">🚪 Выйти</a>
+    <a href="{% url 'account_logout' %}" class="list-group-item list-group-item-action text-danger">
+        🚪 Выйти
+    </a>
 </div>

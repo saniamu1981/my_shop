@@ -644,4 +644,37 @@ footer {
     flex-shrink: 0;
     margin-top: 50px;
 }
+
+
+/* ============ САЙДБАР ПРОФИЛЯ ============ */
+
+/* На мобильном — компактнее */
+@media (max-width: 767.98px) {
+    .profile-sidebar .list-group-item {
+        font-size: 14px;
+        padding: 10px 14px;
+        border-radius: 8px !important;
+        margin-bottom: 4px;
+        border: 1px solid #e9ecef;
+    }
+
+    .profile-sidebar .list-group-item.active {
+        background: #007bff;
+        border-color: #007bff;
+        color: #fff;
+    }
+
+    /* Бейдж — компактный */
+    .profile-sidebar .badge {
+        font-size: 11px;
+        padding: 3px 7px;
+    }
+}
+
+/* На десктопе — обычный вид */
+@media (min-width: 768px) {
+    .profile-sidebar .list-group-item {
+        font-size: 15px;
+    }
+}
 </style>
