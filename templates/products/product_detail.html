@@ -79,9 +79,9 @@
                             https://via.placeholder.com/500x500?text=Нет+фото
                         {% endif %}"
                          alt="{{ product.name }}"
-                         style="width: 100%; height: 100%; max-width: 450px; max-height: 450px; object-fit: contain; display: block; border-radius: 12px; margin: 0; padding: 0;">
+                         style="width: 100%; height: auto; max-width: 100%; max-height: 450px; object-fit: contain; display: block; border-radius: 12px; margin: 0 auto; padding: 0;">
 
-                    <div style="width: 100%;">
+                    <div style="width: 100%; max-width: 450px; margin: 0 auto;">
                         <!-- Видео (скрыто по умолчанию) -->
                         <video id="mainVideo" controls style="width: 100%; height: 100%; max-height: 450px; display: none; border-radius: 12px; background: #000; object-fit: contain;">
                             <source id="videoSource" src="" type="video/mp4">
@@ -2325,25 +2325,26 @@ document.addEventListener('DOMContentLoaded', function() {
     background: transparent !important;
     overflow: hidden;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: center;          /* ← центр по вертикали */
+    justify-content: center;      /* ← центр по горизонтали */
     border-radius: 12px;
     padding: 0;
     min-height: 450px;
     max-width: 450px;
-    width: 100%;
+    width: 100%;                  /* ← на всю ширину контейнера */
     position: relative;
+    margin: 0 auto;               /* ← центрирование самого блока */
 }
 
 .main-image-wrapper img {
-    width: auto;
+    width: 100%;              /* ← растягиваем на всю ширину */
     height: auto;
     max-width: 450px;
     max-height: 450px;
     object-fit: contain;
     display: block;
     border-radius: 12px;
-    margin: 0;
+    margin: 0 auto;           /* ← центрируем */
     padding: 0;
 }
 
@@ -3553,6 +3554,46 @@ document.addEventListener('DOMContentLoaded', function() {
     .quality-documents {
         margin-top: 15px !important;
         padding: 15px !important;
+    }
+
+    /* Главное фото — на всю ширину с центрированием */
+    .main-image-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .main-image-wrapper img {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 420px !important;
+        object-fit: contain !important;
+        margin: 0 auto !important;
+        display: block !important;
+    }
+
+    /* Внутренний div для видео — тоже на всю ширину */
+    .main-image-wrapper > div {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .main-image-wrapper video {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 420px !important;
+    }
+
+    /* Убираем лишние отступы у галереи */
+    .gallery-container {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 }
 
