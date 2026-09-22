@@ -3599,7 +3599,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Планшет — средний вариант */
 @media (min-width: 768px) and (max-width: 991.98px) {
-    .product-gallery-col { width: 45% !important; }
+    .product-gallery-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
     .product-info-col { width: 55% !important; }
     .product-actions-col { width: 100% !important; margin-top: 20px; }
 }
