@@ -26,9 +26,9 @@
         </ol>
     </nav>
 
-    <div class="row">
+    <div class="row product-row">
         <!-- Галерея изображений -->
-        <div class="col-12 col-md-6 product-gallery-col" style="width: 33%;">
+        <div class="col product-gallery-col" style="width: 35%;">
             <div class="gallery-container" style="display: flex; gap: 8px; align-items: flex-start;">
                 <!-- Миниатюры слева с прокруткой -->
                 <div class="thumbnails-wrapper" style="display: flex; flex-direction: column; align-items: center; height: 450px; justify-content: space-between; flex-shrink: 0;">
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Информация о товаре -->
-        <div class="col-12 col-md-6 product-info-col" style="width: 42%;">
+        <div class="col product-info-col" style="width: 40%;">
             <h3 class="mb-3">{{ product.name }}</h3>
             <p class="text-muted">
                 Категория: <a href="{{ product.category.get_absolute_url }}" class="category-link">{{ product.category.name }}</a>
@@ -263,7 +263,7 @@
         </div>
 
         <!-- Кнопки -->
-        <div class="col-12 col-md-6 product-actions-col" style="width: 25%;">
+        <div class="col product-actions-col" style="width: 25%;">
             <div class="product-actions">
 
                 {% if product.available and product.has_sizes_in_stock %}
@@ -3608,6 +3608,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     .product-info-col { width: 55% !important; }
     .product-actions-col { width: 100% !important; margin-top: 20px; }
+}
+
+
+/* ============ 3 КОЛОНКИ НА ОДНОЙ СТРОКЕ (десктоп) ============ */
+@media (min-width: 768px) {
+    .product-gallery-col,
+    .product-info-col,
+    .product-actions-col {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        box-sizing: border-box;
+    }
+
+    .product-gallery-col {
+        width: 32% !important;
+        flex: 0 0 32% !important;
+        max-width: 32% !important;
+    }
+
+    .product-info-col {
+        width: 45% !important;
+        flex: 0 0 45% !important;
+        max-width: 45% !important;
+    }
+
+    .product-actions-col {
+        width: 23% !important;
+        flex: 0 0 23% !important;
+        max-width: 23% !important;
+    }
 }
 </style>
 {% endblock %}
