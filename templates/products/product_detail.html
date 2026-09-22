@@ -28,7 +28,7 @@
 
     <div class="row">
         <!-- Галерея изображений -->
-        <div class="col-md-6" style="width: 35%;">
+        <div class="col-12 col-md-6 product-gallery-col" style="width: 35%;">
             <div class="gallery-container" style="display: flex; gap: 8px; align-items: flex-start;">
                 <!-- Миниатюры слева с прокруткой -->
                 <div class="thumbnails-wrapper" style="display: flex; flex-direction: column; align-items: center; height: 450px; justify-content: space-between; flex-shrink: 0;">
@@ -81,7 +81,7 @@
                          alt="{{ product.name }}"
                          style="width: 100%; height: 100%; max-width: 450px; max-height: 450px; object-fit: contain; display: block; border-radius: 12px; margin: 0; padding: 0;">
 
-                    <div style="width: 339px;">
+                    <div style="width: 100%;">
                         <!-- Видео (скрыто по умолчанию) -->
                         <video id="mainVideo" controls style="width: 100%; height: 100%; max-height: 450px; display: none; border-radius: 12px; background: #000; object-fit: contain;">
                             <source id="videoSource" src="" type="video/mp4">
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Информация о товаре -->
-        <div class="col-md-6" style="width: 40%;">
+        <div class="col-12 col-md-6 product-info-col" style="width: 40%;">
             <h3 class="mb-3">{{ product.name }}</h3>
             <p class="text-muted">
                 Категория: <a href="{{ product.category.get_absolute_url }}" class="category-link">{{ product.category.name }}</a>
@@ -263,7 +263,7 @@
         </div>
 
         <!-- Кнопки -->
-        <div class="col-md-6" style="width: 25%;">
+        <div class="col-12 col-md-6 product-actions-col" style="width: 25%;">
             <div class="product-actions">
 
                 {% if product.available and product.has_sizes_in_stock %}
@@ -1331,6 +1331,12 @@ function initThumbnailScroll() {
 
     if (!container || !list) return;
 
+    // На мобильном миниатюры горизонтальные — своя логика прокрутки через touch
+    if (window.innerWidth < 768) {
+        // Нативный скролл через overflow-x: auto
+        return;
+    }
+
     function updateScrollButtons() {
         const maxScroll = list.scrollHeight - container.clientHeight;
         const currentScroll = container.scrollTop;
@@ -2190,10 +2196,14 @@ document.addEventListener('DOMContentLoaded', function() {
     initBuyNow();
     initThumbnailScroll();
     initLightbox();
-    initSpecsCut();
     initReviewModalOpen();
     initMediaViewer();
     initQuestProd();
+
+    // Обрезку характеристик инициализируем только на планшете и десктопе
+    if (window.innerWidth >= 768) {
+        initSpecsCut();
+    }
 });
 
 
@@ -2315,12 +2325,13 @@ document.addEventListener('DOMContentLoaded', function() {
     background: transparent !important;
     overflow: hidden;
     display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
+    align-items: center;
+    justify-content: center;
     border-radius: 12px;
     padding: 0;
     min-height: 450px;
     max-width: 450px;
+    width: 100%;
     position: relative;
 }
 
@@ -3394,6 +3405,162 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Если медиа нет — контейнер остаётся пустым, но по высоте таким же */
 .review-media-container:empty {
     min-height: 48px;
+}
+
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ КАРТОЧКИ ТОВАРА ============ */
+
+@media (max-width: 767.98px) {
+    /* Колонки — на всю ширину */
+    .product-gallery-col,
+    .product-info-col,
+    .product-actions-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+
+    /* Галерея — вертикально, миниатюры снизу */
+    .gallery-container {
+        flex-direction: column-reverse !important;
+        gap: 8px !important;
+    }
+
+    .thumbnails-wrapper {
+        flex-direction: row !important;
+        height: auto !important;
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .thumbnails-container {
+        width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .thumbnails {
+        flex-direction: row !important;
+        width: auto !important;
+    }
+
+    .thumbnail-item {
+        flex: 0 0 56px !important;
+    }
+
+    .thumbnail-item img {
+        width: 56px !important;
+        height: 56px !important;
+        object-fit: cover;
+    }
+
+    .scroll-btn {
+        display: none !important;
+    }
+
+    /* Главное фото на всю ширину */
+    .main-image-wrapper {
+        max-width: 100% !important;
+        min-height: auto !important;
+        width: 100% !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .main-image-wrapper img {
+        max-width: 100% !important;
+        max-height: 380px !important;
+        width: 100% !important;
+    }
+
+    .main-image-wrapper > div {
+        width: 100% !important;
+    }
+
+    /* Заголовок и цена */
+    .product-info-col h3 {
+        font-size: 20px !important;
+        margin-top: 15px;
+        margin-bottom: 10px !important;
+    }
+
+    .product-info-col h2 {
+        font-size: 26px !important;
+    }
+
+    /* Блок действий */
+    .product-actions {
+        margin-top: 20px;
+        padding: 15px !important;
+    }
+
+    /* Характеристики — полностью, без обрезки */
+    .product-specs {
+        margin-top: 15px !important;
+        padding: 15px !important;
+    }
+    .product-specs .specs-toggle-link {
+        display: none !important;
+    }
+    .product-specs .specs-grid-wrapper {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    .product-specs .torn-edge {
+        display: none !important;
+    }
+
+    /* Хлебные крошки */
+    .breadcrumb-nav {
+        margin-bottom: 10px;
+    }
+    .breadcrumb-item {
+        font-size: 12px;
+    }
+    .breadcrumb-link svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Описание — компактнее */
+    .mb-4 h5 {
+        font-size: 16px;
+    }
+    .mb-4 p {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* Отзывы — 1 в ряд */
+    .reviews-section .col-md-6.col-lg-3 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .reviews-section h4 {
+        font-size: 20px;
+    }
+
+    /* Кнопки действий — покрупнее */
+    .product-actions .btn-lg {
+        padding: 10px 15px !important;
+        font-size: 15px !important;
+    }
+
+    /* Документы качества */
+    .quality-documents {
+        margin-top: 15px !important;
+        padding: 15px !important;
+    }
+}
+
+/* Планшет — средний вариант */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .product-gallery-col { width: 45% !important; }
+    .product-info-col { width: 55% !important; }
+    .product-actions-col { width: 100% !important; margin-top: 20px; }
 }
 </style>
 {% endblock %}
