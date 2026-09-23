@@ -3,10 +3,10 @@
 {% block content %}
 <div class="container">
     <h1 class="mb-4">Чат с поддержкой</h1>
-    <div class="row">
+    <div class="row g-3">
         <!-- Сайдбар как в профиле -->
-        <div class="col-md-3">
-            <div class="list-group">
+        <div class="col-12 col-md-3 profile-sidebar-col">
+            <div class="list-group profile-sidebar">
                 <a href="{% url 'accounts:profile' %}" class="list-group-item list-group-item-action">👤 Профиль</a>
                 <a href="{% url 'accounts:edit_profile' %}" class="list-group-item list-group-item-action">✏️ Редактировать профиль</a>
                 <a href="{% url 'accounts:change_password' %}" class="list-group-item list-group-item-action">🔒 Сменить пароль</a>
@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <div class="col-md-9">
+        <<div class="col-12 col-md-9 profile-content-col">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">💬 Чат с поддержкой</h5>
@@ -53,14 +53,14 @@
                 </div>
 
                 <div class="card-footer">
-                    <form id="chatForm" class="d-flex gap-2">
+                    <form id="chatForm" class="d-flex gap-2 chat-form">
                         {% csrf_token %}
                         <textarea id="chatInput"
                                   class="form-control"
                                   rows="1"
                                   placeholder="Введите сообщение..."
                                   style="resize: none; max-height: 120px;"></textarea>
-                        <button type="submit" class="btn btn-primary" id="chatSendBtn">
+                        <button type="submit" class="btn btn-primary chat-send-btn" id="chatSendBtn">
                             Отправить
                         </button>
                     </form>
@@ -142,6 +142,127 @@
 .chat-message-admin .chat-status { color: #6c757d; }
 .chat-message-user .chat-status.read { color: #b8e0ff; font-weight: 600; }
 .chat-message-admin .chat-status.read { color: #198754; font-weight: 600; }
+
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ЧАТА ============ */
+
+@media (max-width: 767.98px) {
+    /* Контейнер — без лишних отступов */
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    /* Заголовок страницы */
+    h1.mb-4 {
+        font-size: 22px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Шапка карточки чата */
+    .card-header {
+        padding: 12px 16px !important;
+    }
+    .card-header h5 {
+        font-size: 16px !important;
+    }
+    .card-header small {
+        font-size: 11px !important;
+    }
+
+    /* Окно сообщений — меньше высота, чтобы влезало на экран */
+    .chat-messages {
+        height: 55vh !important;
+        min-height: 300px;
+        padding: 12px !important;
+        gap: 8px !important;
+    }
+
+    /* Сообщения — шире (было 70%) */
+    .chat-message {
+        max-width: 85% !important;
+    }
+
+    .chat-bubble {
+        padding: 8px 12px !important;
+        border-radius: 12px !important;
+    }
+
+    .chat-text {
+        font-size: 14px !important;
+        line-height: 1.4 !important;
+    }
+
+    .chat-time {
+        font-size: 10px !important;
+    }
+
+    .chat-status {
+        font-size: 10px !important;
+    }
+
+    /* Пустой чат — компактнее */
+    #chatEmpty {
+        padding: 30px 15px !important;
+    }
+    #chatEmpty div:first-child {
+        font-size: 36px !important;
+    }
+    #chatEmpty p {
+        font-size: 13px;
+    }
+
+    /* Форма ввода: textarea + кнопка «Отправить» */
+    .chat-form {
+        gap: 8px !important;
+    }
+
+    #chatInput {
+        font-size: 16px !important;   /* ← важно для iOS, чтобы не зумило */
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+        min-height: 44px !important;
+    }
+
+    .chat-send-btn {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    /* Карточка — убрать лишние отступы у footer */
+    .card-footer {
+        padding: 12px !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* Ещё компактнее для очень узких экранов */
+    .chat-messages {
+        height: 50vh !important;
+        padding: 10px !important;
+    }
+
+    .chat-message {
+        max-width: 90% !important;
+    }
+
+    .chat-bubble {
+        padding: 7px 10px !important;
+    }
+
+    #chatInput {
+        padding: 8px 10px !important;
+        min-height: 40px !important;
+    }
+
+    .chat-send-btn {
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+    }
+}
 </style>
 
 <script>
