@@ -3,18 +3,18 @@
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-12 col-md-8">
             <div class="card">
                 <div class="card-header">
                     <h4 class="mb-0">✏️ Редактировать отзыв</h4>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-4">
+                    <div class="d-flex align-items-center mb-4 review-product-header">
                         {% if product.image %}
                             <img src="{{ product.image.url }}" alt="{{ product.name }}"
-                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                                 class="review-product-img">
                         {% endif %}
-                        <div>
+                        <div class="review-product-info">
                             <h5 class="mb-0">{{ product.name }}</h5>
                             <p class="text-muted small mb-0">{{ product.price }} ₽</p>
                         </div>
@@ -50,9 +50,9 @@
                         {% if review.media.all %}
                         <div class="mb-3">
                             <label class="form-label fw-bold">Прикреплённые файлы</label>
-                            <div class="d-flex flex-wrap gap-2">
+                            <div class="d-flex flex-wrap gap-2 review-media-list">
                                 {% for m in review.media.all %}
-                                    <div class="position-relative" style="width: 100px; height: 100px;">
+                                    <div class="position-relative review-media-item">
                                         {% if m.media_type == 'image' %}
                                             <img src="{{ m.image.url }}" alt="Фото отзыва"
                                                  style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
@@ -96,11 +96,11 @@
                             <div id="mediaPreview" class="media-preview-grid"></div>
                         </div>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-column flex-sm-row gap-2 mt-3 review-form-actions">
                             <button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
                             <a href="{% url 'products:product_detail' category_slug=product.category.slug product_slug=product.slug %}"
                                class="btn btn-secondary">Отмена</a>
-                            <button type="button" class="btn btn-danger ms-auto"
+                            <button type="button" class="btn btn-danger review-delete-btn"
                                     onclick="if(confirm('Вы уверены, что хотите удалить отзыв?')){
                                         document.getElementById('delete-form').submit();
                                     }">
@@ -192,6 +192,161 @@ function initEditRatingStars() {
 .rating-stars .btn:hover {
     background: #ffed4a;
     border-color: #ffed4a;
+}
+
+
+/* ============ СУЩЕСТВУЮЩИЕ МЕДИА ============ */
+.review-media-list {
+    /* для десктопа — размер задаётся в inline-стиле, здесь только контейнер */
+}
+.review-media-item {
+    width: 100px;
+    height: 100px;
+    position: relative;
+}
+.review-media-item img,
+.review-media-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+}
+
+/* Кнопка удаления на медиа */
+.review-media-item .btn {
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ РЕДАКТИРОВАНИЯ ОТЗЫВА ============ */
+
+@media (max-width: 767.98px) {
+    /* Контейнер — без лишних отступов */
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    /* Шапка карточки */
+    .card-header {
+        padding: 12px 16px !important;
+    }
+    .card-header h4 {
+        font-size: 18px !important;
+    }
+
+    /* Тело карточки — компактнее */
+    .card-body {
+        padding: 16px !important;
+    }
+
+    /* Шапка товара — картинка меньше */
+    .review-product-img {
+        width: 50px !important;
+        height: 50px !important;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .review-product-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .review-product-info h5 {
+        font-size: 15px !important;
+        word-break: break-word;
+    }
+
+    .review-product-info p {
+        font-size: 13px;
+    }
+
+    /* Форма — поля крупные */
+    .form-control {
+        font-size: 16px !important;   /* важно для iOS, чтобы не зумило */
+        padding: 10px 12px;
+        border-radius: 8px;
+    }
+
+    .form-label {
+        font-size: 14px;
+    }
+
+    .mb-3 {
+        margin-bottom: 14px !important;
+    }
+
+    /* Звёзды — компактнее, чтобы 5 помещались */
+    .rating-stars .btn {
+        font-size: 20px !important;
+        padding: 5px 8px !important;
+        min-width: 40px !important;
+    }
+
+    /* Зона загрузки файлов */
+    .media-upload-zone {
+        padding: 18px 12px !important;
+    }
+
+    .media-upload-icon {
+        font-size: 28px !important;
+    }
+
+    .media-upload-title {
+        font-size: 13px !important;
+    }
+
+    .media-upload-hint {
+        font-size: 11px !important;
+    }
+
+    /* Существующие медиа — компактнее */
+    .review-media-item {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    /* Превью новых файлов — компактнее */
+    .media-preview-item {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    /* Кнопки формы — на всю ширину */
+    .review-form-actions .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 15px;
+        border-radius: 8px;
+    }
+
+    /* Кнопка «Удалить» — красная рамка, чтобы отличалась */
+    .review-delete-btn {
+        margin-top: 4px;
+    }
+}
+
+@media (max-width: 400px) {
+    /* Очень узкие экраны */
+    .rating-stars .btn {
+        font-size: 18px !important;
+        padding: 4px 6px !important;
+        min-width: 36px !important;
+    }
+    .rating-stars {
+        gap: 3px !important;
+    }
+
+    .review-media-item,
+    .media-preview-item {
+        width: 70px !important;
+        height: 70px !important;
+    }
 }
 </style>
 {% endblock %}
