@@ -16,6 +16,7 @@ urlpatterns = [
     path('profile/', include('apps.accounts.urls')),
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
+    path('', include('pwa.urls')),
 ]
 
 if settings.DEBUG:

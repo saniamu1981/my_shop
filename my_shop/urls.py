@@ -28,6 +28,7 @@ urlpatterns = [
     path('delivery/', include('delivery.urls')),
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('webpush/', include('webpush.urls')),
 ]
 
 if settings.DEBUG:

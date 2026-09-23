@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'storages',
     'channels',
+    'pwa',
+    'webpush',
 
     # Наши приложения
     'apps.accounts',
@@ -357,3 +359,29 @@ else:
 YOOKASSA_SHOP_ID = os.environ.get('YOOKASSA_SHOP_ID', '1431740')
 YOOKASSA_SECRET_KEY = os.environ.get('YOOKASSA_SECRET_KEY', 'live_80p7fCyD9xUWWqbT0KNs-5AZlhA7ebzwo2qW6zjhtVY')
 YOOKASSA_RETURN_URL = os.environ.get('YOOKASSA_RETURN_URL', 'https://maidlingerie.ru')
+
+
+
+PWA_APP_NAME = 'Maidlingerie'
+PWA_APP_DESCRIPTION = "Магазин женской одежды и костюмов"
+PWA_APP_THEME_COLOR = '#212529'  # Цвет вашего навбара
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_START_URL = '/'
+PWA_APP_ICONS = [
+    {'src': '/static/icons/icon-192x192.png', 'sizes': '192x192', 'type': 'image/png'},
+    {'src': '/static/icons/icon-512x512.png', 'sizes': '512x512', 'type': 'image/png'},
+]
+PWA_APP_ICONS_APPLE = [
+    {'src': '/static/icons/icon-180x180.png', 'sizes': '180x180', 'type': 'image/png'},
+]
+
+WEBPUSH_SETTINGS = {
+    "VAPID_PUBLIC_KEY": "BM_oA_fgJu0Qx9zXtrsl4vhSgq9MWSTjv4mBRYR7GnepLvhpo7LqOcbJgV_ivk4eg9oxBaNmMYdSUc5G--ojTAo",
+    "VAPID_PRIVATE_KEY": """-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgxAQj+zuNc5XBGGFn
+QlKJwd79H6dJpz7iqDl3K2eE/WWhRANCAATP6AP34CbtEMfc17a7JeL4UoKvTFkk
+47+JgUWEexp3qS74aaOy6jnGyYFf4r5OHoPaMQWjZjGHUlHORvvqI0wK
+-----END PRIVATE KEY-----""",
+    "VAPID_ADMIN_EMAIL": "info@maidlingerie.ru"
+}
