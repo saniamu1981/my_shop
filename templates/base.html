@@ -471,9 +471,36 @@
 
     <footer class="bg-dark text-white text-center py-3 mt-5">
         <div class="container">
-            <p class="mb-0">© 2026 Maidlingerie. ИП Музырёв А.С. ИНН 250106952261. ОГРНИП 323784700349198</p>
+            <p class="mb-0">
+                © 2026 Maidlingerie.
+                <a href="#" class="footer-about-link" data-bs-toggle="modal" data-bs-target="#aboutInfoModal">
+                    <i class="bi bi-info-circle" style="margin-right: 3px;"></i> Контакты
+                </a>
+            </p>
         </div>
     </footer>
+
+        <!-- Модалка «О нас» -->
+    <div class="modal fade" id="aboutInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🛍 О нас</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>ИП Музырев А.С.</strong></p>
+                    <p><strong>ИНН:</strong> 250106952261</p>
+                    <p><strong>ОГРНИП:</strong> 323784700349198</p>
+                    <p><strong>Телефон:</strong> <a href="tel:+79218479907">+7 (921) 847-99-07</a></p>
+                    <p class="mb-0"><strong>Адрес:</strong> 196628, г. Санкт-Петербург, Колпинское шоссе, д. 34</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
@@ -679,6 +706,54 @@ footer {
 @media (min-width: 768px) {
     .profile-sidebar .list-group-item {
         font-size: 15px;
+    }
+}
+
+
+/* ============ ССЫЛКА «О НАС» В ФУТЕРЕ ============ */
+
+.footer-about-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 22px;
+}
+
+.footer-about-link:hover {
+    color: #ffc107;
+    text-decoration: none;
+}
+
+.footer-about-link i {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.footer-about-link:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
+    border-radius: 3px;
+}
+
+/* Модалка «О нас» — на мобильном компактнее */
+@media (max-width: 575.98px) {
+    #aboutInfoModal .modal-dialog {
+        margin: 8px;
+    }
+    #aboutInfoModal .modal-body {
+        padding: 16px;
+        font-size: 14px;
+    }
+    #aboutInfoModal .modal-body p {
+        margin-bottom: 8px;
+        word-break: break-word;
+    }
+    #aboutInfoModal .modal-footer .btn {
+        width: 100%;
     }
 }
 </style>
