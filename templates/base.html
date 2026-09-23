@@ -648,9 +648,32 @@ footer {
 
 /* ============ САЙДБАР ПРОФИЛЯ ============ */
 
-/* На мобильном — компактнее */
+/* На мобильном — компактнее и растянут на всю ширину */
 @media (max-width: 767.98px) {
-    .profile-sidebar .list-group-item {
+    /* Колонка сайдбара — на всю ширину */
+    .profile-sidebar-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Сам list-group — тоже на всю ширину */
+    .profile-sidebar,
+    .profile-sidebar-col .list-group {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .profile-sidebar .list-group-item,
+    .profile-sidebar-col .list-group-item {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
         font-size: 14px;
         padding: 10px 14px;
         border-radius: 8px !important;
@@ -664,10 +687,17 @@ footer {
         color: #fff;
     }
 
-    /* Бейдж — компактный */
-    .profile-sidebar .badge {
+    /* Бейдж — компактный и справа */
+    .profile-sidebar .list-group-item .badge {
+        margin-left: auto;
         font-size: 11px;
         padding: 3px 7px;
+    }
+
+    /* Кнопка «Выйти» — красная */
+    .profile-sidebar .list-group-item.text-danger {
+        color: #dc3545 !important;
+        border-color: #f5c2c7;
     }
 }
 
