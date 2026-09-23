@@ -181,6 +181,17 @@
         }
 
         @media (max-width: 576px) {
+            body {
+                padding-top: 64px;
+            }
+            .nav-icon-wrapper .badge-icon {
+                top: -6px;
+                right: -6px;
+                min-width: 16px;
+                height: 16px;
+                font-size: 9px;
+                border-width: 1.5px;
+            }
             .navbar-brand {
                 font-size: 16px;
             }
@@ -196,60 +207,6 @@
             }
         }
 
-        /* Адаптивность для карточек */
-        @media (max-width: 992px) {
-            .col-md-3 {
-                flex: 0 0 33.333%;
-                max-width: 33.333%;
-            }
-            .card-img-wrapper {
-                height: 220px !important;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .col-sm-6 {
-                flex: 0 0 50%;
-                max-width: 50%;
-            }
-            .card-img-wrapper {
-                height: 200px !important;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .col-sm-6 {
-                flex: 0 0 50%;
-                max-width: 50%;
-            }
-            .card-img-wrapper {
-                height: 180px !important;
-            }
-            .product-card .card-body {
-                padding: 10px;
-            }
-            .product-card .card-title {
-                font-size: 12px !important;
-                min-height: 32px !important;
-            }
-            .product-card .card-text {
-                font-size: 11px !important;
-            }
-            .product-card .mt-auto {
-                font-size: 14px !important;
-            }
-            .product-card .btn {
-                font-size: 11px !important;
-                padding: 4px 0 !important;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .col-sm-6 {
-                flex: 0 0 100%;
-                max-width: 100%;
-            }
-        }
 
     /* Зона загрузки файлов */
     .media-upload-zone {
@@ -361,12 +318,29 @@
         background: #dc3545;
         transform: scale(1.1);
     }
+
+
+    .main-content-container {
+        max-width: 1400px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    @media (max-width: 767.98px) {
+        .main-content-container {
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+    }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">🛍️ Maidlingerie - женская одежда, белье, костюмы для ролевых игр.</a>
+            <a class="navbar-brand" href="{% url 'home' %}">
+                🛍️ <span class="d-none d-md-inline">Maidlingerie - женская одежда, белье, костюмы для ролевых игр.</span>
+                <span class="d-md-none">Maidlingerie</span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -481,7 +455,7 @@
         </div>
     </nav>
 
-    <div class="container-fluid mt-4" style="max-width: 1400px; padding-left: 10px; padding-right: 10px;">
+    <div class="container-fluid mt-4 main-content-container">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
