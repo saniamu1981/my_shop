@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
+from django.contrib.staticfiles.views import serve as staticfiles_serve
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
@@ -29,8 +30,11 @@ urlpatterns = [
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('webpush/', include('webpush.urls')),
+    path('', include('pwa.urls')),  # ← манифест PWA
+
+    # Service Worker должен отдаваться из корня домена
+    re_path(r'^serviceworker\.js$', staticfiles_serve, {'path': 'webpush/serviceworker.js'}),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
