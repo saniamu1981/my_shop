@@ -4,41 +4,41 @@
 <div class="container">
     <h1 class="mb-4">Панель администратора</h1>
 
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="card text-white bg-primary">
+    <div class="row g-3 dashboard-kpi-row">
+        <div class="col-12 col-md-4">
+            <div class="card text-white bg-primary dashboard-kpi">
                 <div class="card-body">
-                    <h5 class="card-title">Товары</h5>
-                    <p class="card-text display-4">{{ total_products }}</p>
+                    <h6 class="card-title mb-1">Товары</h6>
+                    <p class="card-text dashboard-kpi-value">{{ total_products }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
-            <div class="card text-white bg-success">
+        <div class="col-12 col-md-4">
+            <div class="card text-white bg-success dashboard-kpi">
                 <div class="card-body">
-                    <h5 class="card-title">Все заказы</h5>
-                    <p class="card-text display-4">{{ total_orders }}</p>
+                    <h6 class="card-title mb-1">Все заказы</h6>
+                    <p class="card-text dashboard-kpi-value">{{ total_orders }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
-            <div class="card text-white bg-warning">
+        <div class="col-12 col-md-4">
+            <div class="card text-white bg-warning dashboard-kpi">
                 <div class="card-body">
-                    <h5 class="card-title">Новые заказы</h5>
-                    <p class="card-text display-4">{{ pending_orders }}</p>
+                    <h6 class="card-title mb-1">Новые заказы</h6>
+                    <p class="card-text dashboard-kpi-value">{{ pending_orders }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
+    <div class="row g-3 mt-4 dashboard-content-row">
+        <div class="col-12 col-md-6">
+            <div class="card h-100">
                 <div class="card-header">
-                    <h5>Быстрые действия</h5>
+                    <h5 class="mb-0">Быстрые действия</h5>
                 </div>
                 <div class="card-body">
-                    <div class="d-grid gap-2">
+                    <div class="d-grid gap-2 dashboard-actions">
                         <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">➕ Добавить товар</a>
                         <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">➕ Добавить категорию</a>
                         <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">📋 Просмотр заказов</a>
@@ -47,19 +47,106 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card">
+        <div class="col-12 col-md-6">
+            <div class="card h-100">
                 <div class="card-header">
-                    <h5>Информация</h5>
+                    <h5 class="mb-0">Информация</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body dashboard-info">
                     <p><strong>Всего товаров:</strong> {{ total_products }}</p>
                     <p><strong>Всего заказов:</strong> {{ total_orders }}</p>
                     <p><strong>Новых заказов:</strong> {{ pending_orders }}</p>
-                    <p><strong>Текущий пользователь:</strong> {{ user.username }}</p>
+                    <p class="mb-0"><strong>Текущий пользователь:</strong> {{ user.username }}</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ПАНЕЛИ АДМИНИСТРАТОРА ============ */
+
+@media (max-width: 767.98px) {
+    /* Контейнер — без лишних отступов */
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    /* Заголовок страницы */
+    h1.mb-4 {
+        font-size: 22px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* KPI-карточки — компактнее */
+    .dashboard-kpi .card-body {
+        padding: 16px !important;
+    }
+
+    .dashboard-kpi .card-title {
+        font-size: 14px !important;
+        opacity: 0.9;
+    }
+
+    .dashboard-kpi-value {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* Заголовки карточек — компактнее */
+    .dashboard-content-row .card-header {
+        padding: 12px 16px !important;
+    }
+
+    .dashboard-content-row .card-header h5 {
+        font-size: 16px !important;
+    }
+
+    /* Тело карточки — компактнее */
+    .dashboard-content-row .card-body {
+        padding: 16px !important;
+    }
+
+    /* Кнопки быстрых действий — крупные */
+    .dashboard-actions .btn {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 8px;
+        text-align: left;
+    }
+
+    /* Информация — компактнее */
+    .dashboard-info p {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .dashboard-info p strong {
+        font-weight: 600;
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* Ещё компактнее */
+    .dashboard-kpi .card-body {
+        padding: 12px 14px !important;
+    }
+
+    .dashboard-kpi-value {
+        font-size: 28px !important;
+    }
+
+    .dashboard-content-row .card-body {
+        padding: 14px !important;
+    }
+
+    .dashboard-actions .btn {
+        font-size: 13px;
+        padding: 9px 12px;
+    }
+}
+</style>
 {% endblock %}
