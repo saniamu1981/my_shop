@@ -16,6 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
 from apps.products.models import Product, Review, ReviewMedia
+from webpush import send_user_notification
+from django.contrib.auth import get_user_model
 
 
 # ============ Настройка ЮKassa ============
@@ -139,6 +141,24 @@ def create_order(request):
                 price=item['price'],
                 quantity=item['quantity'],
             )
+
+        # ===== Уведомление админам о новом заказе =====
+        try:
+            User = get_user_model()
+            admins = User.objects.filter(is_staff=True, is_active=True)
+            payload = {
+                "head": "🛍 Новый заказ!",
+                "body": f"Заказ №{order.id} на сумму {order.total_price} ₽",
+                "icon": "/static/icons/icon-192x192.png",
+                "url": f"/admin-panel/orders/{order.id}/",  # куда вести при клике
+            }
+            for admin in admins:
+                try:
+                    send_user_notification(user=admin, payload=payload, ttl=1000)
+                except Exception as e:
+                    print(f'Webpush error for {admin.email}: {e}')
+        except Exception as e:
+            print(f'Webpush general error: {e}')
 
         # ---- Чистим источники ----
         if buy_now_data:

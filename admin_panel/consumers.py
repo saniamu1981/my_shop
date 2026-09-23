@@ -2,6 +2,8 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from apps.accounts.models import ChatMessage
+from webpush import send_user_notification
+from django.contrib.auth import get_user_model
 
 
 class AdminChatConsumer(AsyncWebsocketConsumer):
@@ -54,6 +56,9 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
 
         msg = await self.save_message(self.user_id, 'admin', text)
 
+        # Уведомление пользователю, что админ ответил
+        await self.notify_user(msg)
+
         await self.channel_layer.group_send(
             self.group_name,
             {'type': 'chat_message', 'message': msg}
@@ -82,6 +87,25 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
             'type': 'read_update',
             'read_ids': read_ids,
         }))
+
+    @database_sync_to_async
+    def notify_user(self, msg):
+        User = get_user_model()
+        try:
+            target_user = User.objects.get(id=self.user_id)
+        except User.DoesNotExist:
+            return
+
+        payload = {
+            "head": "💬 Ответ поддержки",
+            "body": msg['message'][:80],
+            "icon": "/static/icons/icon-192x192.png",
+            "url": "/profile/chat/",
+        }
+        try:
+            send_user_notification(user=target_user, payload=payload, ttl=1000)
+        except Exception as e:
+            print(f'Webpush error for {target_user.email}: {e}')
 
     @database_sync_to_async
     def save_message(self, user_id, sender, text):
