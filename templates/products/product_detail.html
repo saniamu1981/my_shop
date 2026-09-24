@@ -1184,6 +1184,10 @@ function initBuyNow() {
 
     const offerGoBtn = document.getElementById('offerGoBtn');
 
+    const consentWarningModalEl = document.getElementById('consentWarningModal');
+    const consentWarningModal = consentWarningModalEl ? new bootstrap.Modal(consentWarningModalEl) : null;
+    const consentGoBtn = document.getElementById('consentGoBtn');
+
     buyNowBtn.addEventListener('click', function (e) {
         e.preventDefault();
 
@@ -1323,6 +1327,18 @@ function initBuyNow() {
         })
         .then(response => response.json())
         .then(data => {
+            if (data.consent_required) {
+                if (consentWarningModal) {
+                    if (consentGoBtn && data.profile_url) {
+                        consentGoBtn.href = data.profile_url;
+                    }
+                    consentWarningModal.show();
+                } else {
+                    alert(data.message || 'Необходимо согласие на обработку персональных данных');
+                    if (data.profile_url) window.location.href = data.profile_url;
+                }
+                return;
+            }
             if (data.offer_required) {
                 if (offerWarningModal) {
                     if (offerGoBtn && data.profile_url) {
