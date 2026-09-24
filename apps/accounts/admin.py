@@ -29,10 +29,28 @@ class OfferAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'first_name', 'last_name', 'is_staff', 'offer_status')
-    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    list_display = (
+        'email',
+        'first_name',
+        'last_name',
+        'is_staff',
+        'personal_data_consent_display',   # ← НОВЫЙ СТОЛБЕЦ
+        'offer_status',
+    )
+    list_filter = (
+        'is_staff',
+        'is_superuser',
+        'is_active',
+        'personal_data_consent',            # ← НОВЫЙ ФИЛЬТР
+    )
     search_fields = ('email', 'first_name', 'last_name', 'phone')
 
+    # ===== Согласие на обработку ПД =====
+    @admin.display(description='Согласие на ПД', boolean=True)
+    def personal_data_consent_display(self, obj):
+        return obj.personal_data_consent
+
+    # ===== Статус оферты =====
     def offer_status(self, obj):
         active = Offer.objects.filter(is_active=True).first()
 
