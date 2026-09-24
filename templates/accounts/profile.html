@@ -21,32 +21,31 @@
 
             {# ===== Пуш-уведомления ===== #}
             <div class="card mt-3">
-                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3 webpush-card-body">
-                    <div class="webpush-info">
-                        <h5 class="card-title mb-1">🔔 Пуш-уведомления</h5>
-                        <p class="text-muted mb-0" style="font-size: 14px;">
-                            Уведомления о статусе заказов, ответах в чате и акциях.
-                        </p>
-                    </div>
+                <div class="card-body">
+                    <h5 class="card-title mb-1">🔔 Пуш-уведомления</h5>
+                    <p class="text-muted mb-3" style="font-size: 14px;">
+                        Уведомления о статусе заказов, ответах в чате и акциях.
+                    </p>
 
-                    <div class="d-flex align-items-center gap-3 webpush-actions">
-                        <span class="badge webpush-badge {% if user.webpush_enabled %}bg-success{% else %}bg-secondary{% endif %}"
-                              id="webpushStatusBadge">
-                            {% if user.webpush_enabled %}✅ Включены{% else %}❌ Выключены{% endif %}
-                        </span>
-
-                        <div class="form-check form-switch mb-0 webpush-switch">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   role="switch"
-                                   id="webpushToggle"
-                                   {% if user.webpush_enabled %}checked{% endif %}
-                                   style="width: 48px; height: 24px; cursor: pointer;">
-                            <label class="form-check-label visually-hidden" for="webpushToggle">
-                                Включить пуш-уведомления
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="webpushToggle" {% if user.webpush_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="webpushToggle">
+                                Получать уведомления
                             </label>
                         </div>
+
+                        <button id="webpush-subscribe-button" type="button"
+                                class="btn btn-outline-primary btn-sm"
+                                data-url="{% url 'save_webpush_info' %}"
+                                data-group="user">
+                            Загрузка...
+                        </button>
                     </div>
+
+                    <div id="webpush-message"
+                         style="display:none; font-size:12px; color:#0d6efd; margin-top:8px;"></div>
                 </div>
             </div>
 

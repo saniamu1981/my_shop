@@ -91,8 +91,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def notify_admins(self, msg):
+        print(f'[chat] notify_admins вызван, user={self.user.email}, msg_id={msg["id"]}')
         User = get_user_model()
         admins = User.objects.filter(is_staff=True, is_active=True)
+        print(f'[chat] найдено админов: {admins.count()}')
         payload = {
             "head": "💬 Новое сообщение",
             "body": f"{self.user.email}: {msg['message'][:80]}",
@@ -100,6 +102,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "url": f"/admin-panel/chats/{self.user.id}/",
         }
         for admin in admins:
+            print(f'[chat] отправка push админу {admin.email}')
             send_push_safe(admin, payload)
 
     @database_sync_to_async
