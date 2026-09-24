@@ -89,6 +89,23 @@ def create_order(request):
         messages.warning(request, 'Для оформления заказа необходимо принять оферту.')
         return redirect('accounts:profile')
 
+    # ===== Проверка согласия на обработку ПД =====
+    if not request.user.personal_data_consent:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            from django.urls import reverse
+            return JsonResponse({
+                'success': False,
+                'consent_required': True,
+                'profile_url': reverse('accounts:profile'),
+                'message': 'Для оформления заказа необходимо согласие на обработку персональных данных.',
+            })
+        messages.warning(
+            request,
+            'Для оформления заказа необходимо согласие на обработку персональных данных. '
+            'Дайте согласие в личном кабинете.'
+        )
+        return redirect('accounts:profile')
+
     # ===== POST — создаём заказ =====
     if request.method == 'POST':
         delivery_method = request.POST.get('delivery_method', '')
@@ -398,6 +415,24 @@ def buy_now(request, product_id):
             }, status=200)
 
         messages.warning(request, 'Для оформления заказа необходимо принять оферту.')
+        return redirect('accounts:profile')
+
+    # ===== Проверка согласия на обработку ПД =====
+    if not request.user.personal_data_consent:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            from django.urls import reverse
+            return JsonResponse({
+                'success': False,
+                'consent_required': True,
+                'profile_url': reverse('accounts:profile'),
+                'message': 'Для оформления заказа необходимо согласие на обработку персональных данных.',
+            }, status=200)
+
+        messages.warning(
+            request,
+            'Для оформления заказа необходимо согласие на обработку персональных данных. '
+            'Дайте согласие в личном кабинете.'
+        )
         return redirect('accounts:profile')
 
     # ===== Собираем данные =====

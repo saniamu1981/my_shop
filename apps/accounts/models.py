@@ -41,6 +41,10 @@ class CustomUser(AbstractUser):
         'Дата согласия на обработку ПД',
         null=True, blank=True,
     )
+    personal_data_consent_revoked_at = models.DateTimeField(
+        'Дата отзыва согласия на обработку ПД',
+        null=True, blank=True,
+    )
 
     # Связь с принятой офертой
     offer_accepted = models.ForeignKey(

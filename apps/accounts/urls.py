@@ -13,4 +13,5 @@ urlpatterns = [
     path('chat/messages/', views.chat_messages, name='chat_messages'),
     path('profile/delete/', views.profile_delete, name='profile_delete'),
     path('give-personal-data-consent/', views.give_personal_data_consent, name='give_personal_data_consent'),
+    path('revoke-personal-data-consent/', views.revoke_personal_data_consent, name='revoke_personal_data_consent'),
 ]

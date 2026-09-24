@@ -39,6 +39,12 @@
                             <span class="badge bg-success consent-badge">
                                 ✅ Дано
                             </span>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm consent-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#revokeConsentModal">
+                                Отозвать
+                            </button>
                         {% else %}
                             <span class="badge bg-danger consent-badge">
                                 ❌ Не дано
@@ -282,6 +288,44 @@
     }
 }
 </style>
+
+<!-- Модалка отзыва согласия на ПД -->
+<div class="modal fade" id="revokeConsentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">⚠️ Отзыв согласия на обработку ПД</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-shield-exclamation" style="font-size: 48px; color: #ffc107;"></i>
+                <h4 class="mt-3">Отозвать согласие?</h4>
+                <p class="text-muted mb-3">
+                    Мы прекратим обработку ваших персональных данных, <strong>кроме тех,
+                    что нужны для исполнения уже оформленных заказов и требований
+                    законодательства</strong> (например, бухгалтерских документов).
+                </p>
+                <p class="text-muted mb-0 small">
+                    Без согласия вы не сможете оформлять новые заказы.
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Отмена
+                </button>
+
+                <form method="post"
+                      action="{% url 'accounts:revoke_personal_data_consent' %}"
+                      style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">
+                        Да, отозвать согласие
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if not user.is_superuser %}
 <div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-hidden="true">

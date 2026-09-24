@@ -924,6 +924,14 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(r => r.json())
         .then(data => {
+            if (data.consent_required) {
+                if (data.profile_url) {
+                    window.location.href = data.profile_url;
+                } else {
+                    alert(data.message || 'Необходимо согласие на обработку персональных данных');
+                }
+                return;
+            }
             if (data.offer_required) {
                 if (offerWarningModal) {
                     if (offerGoBtn && data.offer_url) offerGoBtn.href = data.offer_url;
@@ -984,6 +992,14 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(r => r.json())
         .then(data => {
+            if (data.consent_required) {
+                if (data.profile_url) {
+                    window.location.href = data.profile_url;
+                } else {
+                    alert(data.message || 'Необходимо согласие на обработку персональных данных');
+                }
+                return;
+            }
             if (data.offer_required) {
                 if (offerWarningModal) {
                     if (offerGoBtn && data.offer_url) offerGoBtn.href = data.offer_url;

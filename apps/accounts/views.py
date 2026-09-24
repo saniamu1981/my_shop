@@ -95,6 +95,31 @@ def give_personal_data_consent(request):
 
 
 @login_required
+@require_POST
+def revoke_personal_data_consent(request):
+    """Пользователь отзывает согласие на обработку персональных данных."""
+    user = request.user
+
+    if user.personal_data_consent:
+        user.personal_data_consent = False
+        user.personal_data_consent_revoked_at = timezone.now()
+        user.save(update_fields=[
+            'personal_data_consent',
+            'personal_data_consent_revoked_at',
+        ])
+        messages.warning(
+            request,
+            'Согласие на обработку персональных данных отозвано. '
+            'Мы прекратим обработку данных, кроме тех, что нужны для исполнения '
+            'заказа и требований законодательства.'
+        )
+    else:
+        messages.info(request, 'Согласие уже было отозвано ранее.')
+
+    return redirect('accounts:profile')
+
+
+@login_required
 def edit_profile(request):
     if request.method == 'POST':
         user = request.user
