@@ -78,6 +78,23 @@ def offer_detail(request, offer_id):
 
 
 @login_required
+@require_POST
+def give_personal_data_consent(request):
+    """Пользователь даёт согласие на обработку персональных данных."""
+    user = request.user
+
+    if not user.personal_data_consent:
+        user.personal_data_consent = True
+        user.personal_data_consent_at = timezone.now()
+        user.save(update_fields=['personal_data_consent', 'personal_data_consent_at'])
+        messages.success(request, 'Согласие на обработку персональных данных получено.')
+    else:
+        messages.info(request, 'Согласие уже было дано ранее.')
+
+    return redirect('accounts:profile')
+
+
+@login_required
 def edit_profile(request):
     if request.method == 'POST':
         user = request.user

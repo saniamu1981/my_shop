@@ -20,15 +20,39 @@
             </div>
 
             <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title">📄 Согласие на обработку ПД</h5>
-                    {% if user.personal_data_consent %}
-                        <p class="mb-0 text-success">
-                            ✅ Дано {{ user.personal_data_consent_at|date:"d.m.Y H:i" }}
-                        </p>
-                    {% else %}
-                        <p class="mb-0 text-danger">❌ Не дано</p>
-                    {% endif %}
+                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3 consent-card-body">
+                    <div class="consent-info">
+                        <h5 class="card-title mb-1">📄 Согласие на обработку ПД</h5>
+                        {% if user.personal_data_consent %}
+                            <p class="text-muted mb-0" style="font-size: 14px;">
+                                Дано {{ user.personal_data_consent_at|date:"d.m.Y H:i" }}
+                            </p>
+                        {% else %}
+                            <p class="text-muted mb-0" style="font-size: 14px;">
+                                Для оформления заказа необходимо согласие.
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 consent-actions">
+                        {% if user.personal_data_consent %}
+                            <span class="badge bg-success consent-badge">
+                                ✅ Дано
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger consent-badge">
+                                ❌ Не дано
+                            </span>
+                            <form method="post"
+                                  action="{% url 'accounts:give_personal_data_consent' %}"
+                                  style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm consent-btn">
+                                    Дать согласие
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
@@ -232,6 +256,29 @@
     }
     #deleteProfileModal .modal-footer form button {
         width: 100%;
+    }
+
+    /* Блок согласия на ПД — колонка, кнопка на всю ширину */
+    .consent-card-body {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    .consent-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+    .consent-badge {
+        text-align: center;
+        padding: 8px 14px !important;
+        font-size: 14px !important;
+        border-radius: 20px;
+    }
+    .consent-btn {
+        width: 100%;
+        padding: 8px 14px;
+        font-size: 14px;
     }
 }
 </style>
