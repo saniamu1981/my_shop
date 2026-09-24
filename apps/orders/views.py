@@ -150,7 +150,7 @@ def create_order(request):
                 "head": "🛍 Новый заказ!",
                 "body": f"Заказ №{order.id} на сумму {order.total_price} ₽",
                 "icon": "/static/icons/icon-192x192.png",
-                "url": f"/admin/orders/order/{order.id}/change/",  # куда вести при клике
+                "url": f"/admin-panel/orders/{order.id}/",  # куда вести при клике
             }
             for admin in admins:
                 try:

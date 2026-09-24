@@ -32,6 +32,16 @@ class Offer(models.Model):
 class CustomUser(AbstractUser):
     phone = models.CharField('Телефон', max_length=20, blank=True, null=True)
 
+    # ===== Согласие на обработку персональных данных =====
+    personal_data_consent = models.BooleanField(
+        'Согласие на обработку персональных данных',
+        default=False,
+    )
+    personal_data_consent_at = models.DateTimeField(
+        'Дата согласия на обработку ПД',
+        null=True, blank=True,
+    )
+
     # Связь с принятой офертой
     offer_accepted = models.ForeignKey(
         Offer,

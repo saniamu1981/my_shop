@@ -133,6 +133,10 @@ CHANNEL_LAYERS = {
 }
 
 
+ACCOUNT_FORMS = {
+    'signup': 'apps.accounts.forms.CustomSignupForm',
+}
+
 # ============ БАЗА ДАННЫХ ============
 DATABASES = {
     'default': {

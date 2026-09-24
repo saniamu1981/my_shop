@@ -19,6 +19,19 @@
                 </div>
             </div>
 
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">📄 Согласие на обработку ПД</h5>
+                    {% if user.personal_data_consent %}
+                        <p class="mb-0 text-success">
+                            ✅ Дано {{ user.personal_data_consent_at|date:"d.m.Y H:i" }}
+                        </p>
+                    {% else %}
+                        <p class="mb-0 text-danger">❌ Не дано</p>
+                    {% endif %}
+                </div>
+            </div>
+
             {% if active_offer %}
             <div class="card mt-3">
                 <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3 offer-card-body">
