@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from apps.accounts.models import ChatMessage
-from webpush import send_user_notification
+from apps.accounts.utils import send_push_safe
 from django.contrib.auth import get_user_model
 
 
@@ -102,10 +102,7 @@ class AdminChatConsumer(AsyncWebsocketConsumer):
             "icon": "/static/icons/icon-192x192.png",
             "url": "/profile/chat/",
         }
-        try:
-            send_user_notification(user=target_user, payload=payload, ttl=1000)
-        except Exception as e:
-            print(f'Webpush error for {target_user.email}: {e}')
+        send_push_safe(target_user, payload)
 
     @database_sync_to_async
     def save_message(self, user_id, sender, text):
