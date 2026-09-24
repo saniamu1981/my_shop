@@ -16,8 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
 from apps.products.models import Product, Review, ReviewMedia
-from webpush import send_user_notification
 from django.contrib.auth import get_user_model
+from apps.accounts.utils import send_push_safe
 
 
 # ============ Настройка ЮKassa ============
@@ -170,10 +170,7 @@ def create_order(request):
                 "url": f"/admin-panel/orders/{order.id}/",  # куда вести при клике
             }
             for admin in admins:
-                try:
-                    send_user_notification(user=admin, payload=payload, ttl=1000)
-                except Exception as e:
-                    print(f'Webpush error for {admin.email}: {e}')
+                send_push_safe(admin, payload)
         except Exception as e:
             print(f'Webpush general error: {e}')
 

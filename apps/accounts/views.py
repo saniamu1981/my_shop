@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from apps.accounts.models import Offer, ChatMessage
 from apps.orders.models import Order
 from apps.products.models import Review
+import json
 
 
 @login_required
@@ -242,3 +243,24 @@ def profile_delete(request):
         f'Профиль {email} был удалён. Спасибо, что были с нами.'
     )
     return redirect('home')
+
+
+@login_required
+@require_POST
+def toggle_webpush(request):
+    """Переключение пуш-уведомлений пользователя (AJAX)."""
+    try:
+        data = json.loads(request.body or '{}')
+    except (ValueError, TypeError):
+        data = {}
+
+    enabled = bool(data.get('enabled', True))
+
+    user = request.user
+    user.webpush_enabled = enabled
+    user.save(update_fields=['webpush_enabled'])
+
+    return JsonResponse({
+        'success': True,
+        'webpush_enabled': user.webpush_enabled,
+    })

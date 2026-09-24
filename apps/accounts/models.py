@@ -32,6 +32,12 @@ class Offer(models.Model):
 class CustomUser(AbstractUser):
     phone = models.CharField('Телефон', max_length=20, blank=True, null=True)
 
+    # ===== Пуш-уведомления =====
+    webpush_enabled = models.BooleanField(
+        'Пуш-уведомления включены',
+        default=True,
+    )
+
     # ===== Согласие на обработку персональных данных =====
     personal_data_consent = models.BooleanField(
         'Согласие на обработку персональных данных',
