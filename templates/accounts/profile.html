@@ -103,6 +103,13 @@
                                 </button>
                             </form>
                         {% endif %}
+
+                        <button type="button"
+                                class="btn btn-outline-primary btn-sm offer-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#consentInfoModal">
+                            Прочитать
+                        </button>
                     </div>
                 </div>
             </div>
@@ -194,6 +201,45 @@
 <!--            {% else %}-->
 <!--                <p class="text-muted">У вас пока нет заказов</p>-->
 <!--            {% endif %}-->
+        </div>
+    </div>
+</div>
+
+<!-- Модалка «Согласие на обработку ПД» -->
+<div class="modal fade" id="consentInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📄 Согласие на обработку персональных данных</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Оператор:</strong> ИП Музырев А.С., ИНН 250106952261, ОГРНИП 323784700349198.</p>
+                <p><strong>Адрес:</strong> 196628, г. Санкт-Петербург, Колпинское шоссе, д. 34.</p>
+                <p>
+                    Пользователь даёт согласие на обработку своих персональных данных
+                    (фамилия, имя, отчество, email, телефон, адрес доставки)
+                    в целях оформления и доставки заказов, обратной связи по заказам,
+                    а также в целях информирования о статусе заказов.
+                </p>
+                <p>
+                    Обработка персональных данных осуществляется в соответствии
+                    с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».
+                </p>
+                <p>
+                    Согласие действует до момента его отзыва пользователем.
+                    Отозвать согласие можно, отправив обращение на email оператора
+                    или через личный кабинет.
+                </p>
+                <p class="mb-0">
+                    Обработка включает: сбор, запись, систематизацию, накопление,
+                    хранение, уточнение, использование, передачу (в объёме,
+                    необходимом для доставки), блокирование, удаление.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
         </div>
     </div>
 </div>
@@ -373,6 +419,72 @@
     .webpush-actions-col #webpush-toggle-block {
         justify-content: center;
         margin-top: 12px;
+    }
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ МОДАЛКИ ПД ============ */
+
+@media (max-width: 767.98px) {
+    #consentInfoModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #consentInfoModal .modal-header {
+        padding: 12px 14px;
+    }
+
+    #consentInfoModal .modal-title {
+        font-size: 15px;
+        line-height: 1.35;
+        word-break: break-word;
+        /* Кнопка закрытия не должна сжиматься */
+        padding-right: 8px;
+    }
+
+    #consentInfoModal .modal-body {
+        padding: 14px 12px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    #consentInfoModal .modal-body p {
+        font-size: 14px;
+        margin-bottom: 10px;
+        word-break: break-word;
+    }
+
+    #consentInfoModal .modal-body p strong {
+        font-weight: 600;
+    }
+
+    #consentInfoModal .modal-body p.mb-0 {
+        margin-bottom: 0;
+    }
+
+    #consentInfoModal .modal-footer {
+        padding: 12px;
+    }
+
+    #consentInfoModal .modal-footer .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+}
+
+/* Очень узкие экраны (iPhone SE и подобные) */
+@media (max-width: 380px) {
+    #consentInfoModal .modal-title {
+        font-size: 14px;
+    }
+    #consentInfoModal .modal-body,
+    #consentInfoModal .modal-body p {
+        font-size: 13px;
+    }
+    #consentInfoModal .modal-footer .btn {
+        font-size: 13.5px;
+        padding: 9px 12px;
     }
 }
 </style>

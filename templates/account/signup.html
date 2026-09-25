@@ -165,4 +165,72 @@
         </div>
     </div>
 </div>
+
+<style>
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ МОДАЛКИ ПД ============ */
+
+@media (max-width: 767.98px) {
+    #consentInfoModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #consentInfoModal .modal-header {
+        padding: 12px 14px;
+    }
+
+    #consentInfoModal .modal-title {
+        font-size: 15px;
+        line-height: 1.35;
+        word-break: break-word;
+        /* Кнопка закрытия не должна сжиматься */
+        padding-right: 8px;
+    }
+
+    #consentInfoModal .modal-body {
+        padding: 14px 12px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    #consentInfoModal .modal-body p {
+        font-size: 14px;
+        margin-bottom: 10px;
+        word-break: break-word;
+    }
+
+    #consentInfoModal .modal-body p strong {
+        font-weight: 600;
+    }
+
+    #consentInfoModal .modal-body p.mb-0 {
+        margin-bottom: 0;
+    }
+
+    #consentInfoModal .modal-footer {
+        padding: 12px;
+    }
+
+    #consentInfoModal .modal-footer .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+}
+
+/* Очень узкие экраны (iPhone SE и подобные) */
+@media (max-width: 380px) {
+    #consentInfoModal .modal-title {
+        font-size: 14px;
+    }
+    #consentInfoModal .modal-body,
+    #consentInfoModal .modal-body p {
+        font-size: 13px;
+    }
+    #consentInfoModal .modal-footer .btn {
+        font-size: 13.5px;
+        padding: 9px 12px;
+    }
+}
+</style>
 {% endblock %}

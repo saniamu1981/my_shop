@@ -435,9 +435,9 @@
                     <label for="accept3">
                         Я согласен(на) с условиями оплаты, доставки и возврата,
                         а также с
-                        <a href="#" target="_blank" rel="noopener">офертой</a>
+                        <a href="{% url 'accounts:profile' %}" target="_blank" rel="noopener">офертой</a>
                         и
-                        <a href="#" target="_blank" rel="noopener">политикой обработки персональных данных</a>.
+                        <a href="{% url 'accounts:profile' %}" target="_blank" rel="noopener">политикой обработки персональных данных</a>.
                     </label>
                 </div>
 
@@ -468,6 +468,54 @@
                         id="acceptConfirmBtn"
                         disabled>
                     Подтверждаю и продолжить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка чтения согласия на ПД -->
+<div class="modal fade" id="consentInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📄 Согласие на обработку персональных данных</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Оператор:</strong> ИП Музырев А.С., ИНН 250106952261, ОГРНИП 323784700349198.</p>
+                <p><strong>Адрес:</strong> 196628, г. Санкт-Петербург, Колпинское шоссе, д. 34.</p>
+                <p>
+                    Пользователь даёт согласие на обработку своих персональных данных
+                    (фамилия, имя, отчество, email, телефон, адрес доставки)
+                    в целях оформления и доставки заказов, обратной связи по заказам,
+                    а также в целях информирования о статусе заказов.
+                </p>
+                <p>
+                    Обработка персональных данных осуществляется в соответствии
+                    с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».
+                </p>
+                <p>
+                    Согласие действует до момента его отзыва пользователем.
+                    Отозвать согласие можно, отправив обращение на email оператора
+                    или через личный кабинет.
+                </p>
+                <p class="mb-0">
+                    Обработка включает: сбор, запись, систематизацию, накопление,
+                    хранение, уточнение, использование, передачу (в объёме,
+                    необходимом для доставки), блокирование, удаление.
+                </p>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Закрыть
+                </button>
+                <button type="button"
+                        class="btn btn-success"
+                        id="consentAcceptBtn">
+                    Дать согласие
                 </button>
             </div>
         </div>
@@ -1344,8 +1392,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function updateConfirmState() {
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            confirmBtn.disabled = !allChecked;
+
+            // Блокируем, если в модалке есть блоки о необходимости ПД или оферты
+            const hasConsentAlert = document.getElementById('consentAlertBox');
+            const hasOfferAlert = document.getElementById('offerAlertBox');
+            const hasBlockers = hasConsentAlert || hasOfferAlert;
+
+            confirmBtn.disabled = !allChecked || !!hasBlockers;
         }
+
+        // ← НОВОЕ: делаем функцию глобальной
+        window.updateAcceptConfirmState = updateConfirmState;
 
         checkboxes.forEach(cb => {
             cb.addEventListener('change', updateConfirmState);
@@ -1384,19 +1441,41 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     })();
 
-    // ============ СОГЛАСИЕ НА ОБРАБОТКУ ПД (AJAX) ============
+    // ============ ЧТЕНИЕ И ПРИНЯТИЕ СОГЛАСИЯ НА ПД ИЗ АКЦЕПТА ============
     (function () {
-        const consentBtn = document.getElementById('consentGiveBtn');
-        if (!consentBtn) return;
+        const consentGiveBtn = document.getElementById('consentGiveBtn');
+        const consentInfoModalEl = document.getElementById('consentInfoModal');
+        if (!consentGiveBtn || !consentInfoModalEl) return;
 
-        consentBtn.addEventListener('click', function () {
-            const url = this.dataset.url;
+        const consentAcceptBtn = document.getElementById('consentAcceptBtn');
+
+        let consentModal = null;
+        let acceptModalWasOpen = false;
+
+        // Открытие модалки с текстом ПД
+        consentGiveBtn.addEventListener('click', function () {
+            // Запоминаем, что акцепт открыт
+            const acceptModalEl = document.getElementById('purchaseAcceptModal');
+            acceptModalWasOpen = acceptModalEl && acceptModalEl.classList.contains('show');
+
+            // Прячем акцепт (не закрываем — вернёмся)
+            if (acceptModalWasOpen) {
+                const acceptInstance = bootstrap.Modal.getInstance(acceptModalEl);
+                if (acceptInstance) acceptInstance.hide();
+            }
+
+            consentModal = bootstrap.Modal.getOrCreateInstance(consentInfoModalEl);
+            consentModal.show();
+        });
+
+        // Дача согласия
+        consentAcceptBtn.addEventListener('click', function () {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
 
             this.disabled = true;
             this.textContent = 'Отправка...';
 
-            fetch(url, {
+            fetch('{% url "accounts:give_personal_data_consent" %}', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrfToken || '',
@@ -1406,8 +1485,26 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
+                    // Убираем блок-напоминание из акцепта
                     const box = document.getElementById('consentAlertBox');
                     if (box) box.remove();
+
+                    // Разблокировать кнопку «Подтверждаю», если всё остальное ок
+                    if (typeof window.updateAcceptConfirmState === 'function') {
+                        window.updateAcceptConfirmState();
+                    }
+
+                    // Закрываем модалку ПД
+                    if (consentModal) consentModal.hide();
+
+                    // Возвращаемся в акцепт
+                    if (acceptModalWasOpen) {
+                        setTimeout(() => {
+                            const acceptModalEl = document.getElementById('purchaseAcceptModal');
+                            const acceptInstance = bootstrap.Modal.getOrCreateInstance(acceptModalEl);
+                            acceptInstance.show();
+                        }, 350);
+                    }
                 } else {
                     alert(data.message || 'Не удалось дать согласие. Попробуйте ещё раз.');
                     this.disabled = false;
