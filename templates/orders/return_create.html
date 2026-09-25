@@ -4,10 +4,16 @@
 
 {% block content %}
 <div class="container py-4">
-    <nav aria-label="breadcrumb" class="mb-3">
+    <nav aria-label="Breadcrumb" class="breadcrumb-nav mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'orders:order_list' %}">Мои заказы</a></li>
-            <li class="breadcrumb-item active">Возврат по заказу №{{ order.id }}</li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'orders:order_list' %}" class="breadcrumb-link">
+                    Мои заказы
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                Возврат по заказу №{{ order.id }}
+            </li>
         </ol>
     </nav>
 
@@ -45,10 +51,17 @@
 
                         <!-- Состав заказа -->
                         <h5 class="mb-3">📦 Товары к возврату</h5>
+
                         <div class="return-items-list mb-4">
                             {% for item in order_items %}
-                                <div class="return-item-row">
+                                <label class="return-item-row" for="item-{{ item.id }}">
                                     <div class="d-flex align-items-center gap-3">
+                                        <input type="checkbox"
+                                               name="item_ids"
+                                               value="{{ item.id }}"
+                                               id="item-{{ item.id }}"
+                                               class="return-item-checkbox"
+                                               checked>
                                         {% if item.product and item.product.image %}
                                             <img src="{{ item.product.image.url }}"
                                                  alt="{{ item.product.name }}"
@@ -72,13 +85,12 @@
                                             {{ item.get_cost }} ₽
                                         </div>
                                     </div>
-                                </div>
+                                </label>
                             {% endfor %}
                         </div>
 
                         <div class="alert alert-info small mb-4">
-                            Пока возврат оформляется на <strong>весь заказ</strong>.
-                            Если нужно вернуть только часть товаров — напишите об этом в комментарии.
+                            Отметьте галочками товары, которые хотите вернуть.
                         </div>
 
                         <!-- Причина -->
@@ -226,6 +238,12 @@
 .return-item-row {
     padding: 12px 14px;
     border-bottom: 1px solid #f0f0f0;
+    display: block;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.return-item-row:hover {
+    background: #f8f9fa;
 }
 .return-item-row:last-child {
     border-bottom: none;
@@ -236,6 +254,13 @@
     object-fit: cover;
     border-radius: 6px;
     flex-shrink: 0;
+}
+.return-item-checkbox {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    margin: 0;
 }
 .return-item-name {
     font-size: 14px;
@@ -350,6 +375,74 @@
     #submitReturnBtn { font-size: 15px; padding: 12px; }
     .form-control, .form-select {
         font-size: 16px !important;  /* iOS — не зумит */
+    }
+}
+
+/* Breadcrumb стили */
+.breadcrumb-nav {
+    margin-bottom: 20px;
+    padding: 8px 0;
+}
+
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    background: transparent;
+    border-radius: 0;
+    gap: 4px;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #999;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    padding: 0 8px;
+    color: #ccc;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.breadcrumb-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: none;
+}
+
+.breadcrumb-link:hover {
+    color: #005bff;
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: #333;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+@media (max-width: 576px) {
+    .breadcrumb-item {
+        font-size: 12px;
+    }
+    .breadcrumb-item + .breadcrumb-item::before {
+        padding: 0 4px;
+        font-size: 14px;
+    }
+    .breadcrumb-link svg {
+        width: 14px;
+        height: 14px;
     }
 }
 </style>

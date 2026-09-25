@@ -619,14 +619,9 @@ def create_return(request, order_id):
         )
         return redirect('orders:order_list')
 
-    # Если уже есть активная заявка по этому заказу — редиректим на неё
-    existing = order.returns.exclude(status='cancelled').first()
-    if existing:
-        messages.info(
-            request,
-            f'Заявка на возврат по заказу №{order.id} уже создана. '
-            f'Ожидайте решения администратора.'
-        )
+    # Разрешаем создавать новую заявку, если есть ещё что возвращать
+    if order.returnable_items_count == 0:
+        messages.info(request, f'По заказу №{order.id} все товары уже отправлены на возврат.')
         return redirect('orders:order_list')
 
     # ===== POST — создаём заявку =====
@@ -640,9 +635,21 @@ def create_return(request, order_id):
             ret.status = 'new'
             ret.save()
 
-            # ===== Позиции — все товары из заказа =====
-            # (позже сделаем выбор отдельных товаров — пока все)
-            for item in order.items.all():
+            # ===== Позиции — выбор отдельных товаров =====
+            selected_ids = request.POST.getlist('item_ids')
+
+            # Если ничего не передано — берём все доступные к возврату
+            if not selected_ids:
+                returnable = order.returnable_items
+            else:
+                # Ограничиваем: только те, что реально доступны для возврата
+                returnable = order.returnable_items.filter(id__in=selected_ids)
+
+            if not returnable.exists():
+                messages.error(request, 'Не выбрано ни одного товара для возврата.')
+                return redirect('orders:order_list')
+
+            for item in returnable:
                 ReturnItem.objects.create(
                     return_request=ret,
                     order_item=item,
@@ -694,13 +701,16 @@ def create_return(request, order_id):
         form = ReturnCreateForm()
 
     # ===== Считаем доступные для возврата товары =====
-    order_items = order.items.select_related('product').all()
+    order_items = order.returnable_items.select_related('product').all()
+
+    # Предвыбранные item_ids из URL (при клике «Создать заявку» из модалки)
+    preselected_ids = request.GET.getlist('item_ids')
     total_quantity = sum(i.quantity for i in order_items)
 
     return render(request, 'orders/return_create.html', {
         'order': order,
         'form': form,
         'order_items': order_items,
-        'total_quantity': total_quantity,
+        'total_quantity': sum(i.quantity for i in order_items),
         'max_photos': 10,
     })

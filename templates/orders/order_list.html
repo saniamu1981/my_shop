@@ -75,7 +75,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if order.has_active_return %}
+                                {% if order.all_items_returned %}
                                     <span class="badge bg-info text-dark" style="font-size: 12px;">
                                         ↩️ Заявка создана
                                     </span>
@@ -199,7 +199,7 @@
                         {% endif %}
                     </div>
 
-                    {% if order.has_active_return %}
+                    {% if order.all_items_returned %}
                         <div class="mt-2">
                             <span class="badge bg-info text-dark w-100 text-center"
                                   style="font-size: 13px; padding: 8px; border-radius: 6px; display: block;">

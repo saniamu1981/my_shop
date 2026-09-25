@@ -81,6 +81,28 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def returnable_items(self):
+        """Позиции заказа, которые ещё не возвращены и доступны для возврата."""
+        # id позиций, уже отправленных в активные возвраты
+        returned_item_ids = set(
+            self.returns.exclude(status='cancelled')
+            .values_list('items__order_item_id', flat=True)
+        )
+        # убираем None на всякий случай
+        returned_item_ids.discard(None)
+
+        return self.items.exclude(id__in=returned_item_ids)
+
+    @property
+    def returnable_items_count(self):
+        return self.returnable_items.count()
+
+    @property
+    def all_items_returned(self):
+        """Все ли товары заказа уже в активном возврате."""
+        return self.returnable_items_count == 0 and self.items.exists()
+
+    @property
     def return_deadline(self):
         """Дата/время, когда истекает срок подачи заявки на возврат."""
         if not self.delivered_at:
@@ -91,12 +113,14 @@ class Order(models.Model):
 
     @property
     def can_return(self):
-        """Может ли пользователь сейчас подать заявку на возврат."""
         if self.status != 'delivered' or not self.delivered_at:
             return False
         from django.utils import timezone
         deadline = self.return_deadline
-        return deadline and timezone.now() <= deadline
+        if not deadline or timezone.now() > deadline:
+            return False
+        # Есть ли ещё что возвращать?
+        return self.returnable_items_count > 0
 
     def can_cancel(self):
         return self.status in ['created', 'paid', 'confirmed'] and not self.status == 'cancelled'
