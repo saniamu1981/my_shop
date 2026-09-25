@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="jumbotron bg-light rounded-lg m-3 home-jumbotron">
+<div class="jumbotron bg-light rounded-lg m-3 p-4 home-jumbotron">
     <h1 class="display-4 home-title">Добро пожаловать в наш магазин!</h1>
     <p class="lead home-lead">Лучшие товары по лучшим ценам</p>
     <hr class="my-4">
@@ -481,6 +481,10 @@
     .modal-header .modal-title {
         font-size: 16px !important;
     }
+}
+
+.home-jumbotron {
+    padding: 32px 24px;
 }
 
 @media (max-width: 575.98px) {

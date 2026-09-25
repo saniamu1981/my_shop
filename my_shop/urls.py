@@ -21,7 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin-panel/', include('admin_panel.urls')),
     path('accounts/', include('allauth.urls')),
-    path('products/', include('apps.products.urls')),  # <-- Убедитесь, что есть /products/
+    path('products/', include('apps.products.urls')),
     path('cart/', include('apps.cart.urls')),
     path('orders/', include('apps.orders.urls')),
     path('profile/', include('apps.accounts.urls')),
@@ -30,12 +30,14 @@ urlpatterns = [
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('webpush/', include('webpush.urls')),
-    path('', include('pwa.urls')),  # ← манифест PWA
 
-    # PWA service worker — из корня
-    re_path(r'^serviceworker\.js$', staticfiles_serve, {'path': 'serviceworker.js'}),
+    # === PWA ===
+    # Вместо 'path('', include('pwa.urls'))' —
+    # отдаём service worker и manifest сами
+    path('manifest.json', include('pwa.urls')),
+    path('serviceworker.js', staticfiles_serve, {'path': 'webpush/webpush_serviceworker.js'}, name='serviceworker'),
 
-    # Webpush service worker — отдельный URL для webpush
+    # Webpush
     re_path(r'^webpush/serviceworker\.js$', staticfiles_serve, {'path': 'webpush/webpush_serviceworker.js'}),
 ]
 

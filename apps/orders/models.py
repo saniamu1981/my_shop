@@ -7,6 +7,7 @@ class Order(models.Model):
     STATUS_CHOICES = (
         ('created', 'Создан'),
         ('paid', 'Оплачен'),
+        ('confirmed', 'Подтверждён'),
         ('shipped', 'Отправлен'),
         ('delivered', 'Доставлен'),
         ('cancelled', 'Отменен'),
@@ -98,7 +99,7 @@ class Order(models.Model):
         return deadline and timezone.now() <= deadline
 
     def can_cancel(self):
-        return self.status in ['created', 'paid'] and not self.status == 'cancelled'
+        return self.status in ['created', 'paid', 'confirmed'] and not self.status == 'cancelled'
 
     def cancel(self):
         if self.can_cancel():

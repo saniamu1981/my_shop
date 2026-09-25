@@ -29,9 +29,21 @@
                             <td>{{ order.created|date:"d.m.Y H:i" }}</td>
                             <td>{{ order.total_price }} ₽</td>
                             <td>
-                                <span class="badge bg-{% if order.status == 'paid' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'delivered' %}primary{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">
-                                    {{ order.get_status_display }}
-                                </span>
+                                {% if order.status == 'created' %}
+                                    <span class="badge bg-warning text-dark">🆕 Создан</span>
+                                {% elif order.status == 'paid' %}
+                                    <span class="badge bg-success">💳 Оплачен</span>
+                                {% elif order.status == 'confirmed' %}
+                                    <span class="badge bg-info text-dark">✅ Подтверждён</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary">📦 Отправлен</span>
+                                {% elif order.status == 'delivered' %}
+                                    <span class="badge bg-success">🏁 Доставлен</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger">❌ Отменён</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ order.get_status_display }}</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if order.status == 'cancelled' %}
@@ -133,9 +145,21 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-1 mb-3">
-                        <span class="badge bg-{% if order.status == 'paid' %}success{% elif order.status == 'shipped' %}info{% elif order.status == 'delivered' %}primary{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">
-                            {{ order.get_status_display }}
-                        </span>
+                        {% if order.status == 'created' %}
+                            <span class="badge bg-warning text-dark">🆕 Создан</span>
+                        {% elif order.status == 'paid' %}
+                            <span class="badge bg-success">💳 Оплачен</span>
+                        {% elif order.status == 'confirmed' %}
+                            <span class="badge bg-info text-dark">✅ Подтверждён</span>
+                        {% elif order.status == 'shipped' %}
+                            <span class="badge bg-primary">📦 Отправлен</span>
+                        {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success">🏁 Доставлен</span>
+                        {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-danger">❌ Отменён</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ order.get_status_display }}</span>
+                        {% endif %}
 
                         {% if order.status == 'cancelled' %}
                             <span class="badge bg-secondary">❌ Отменен</span>

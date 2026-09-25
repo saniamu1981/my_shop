@@ -19,7 +19,7 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'first_name', 'last_name', 'phone')
     readonly_fields = ('created', 'updated', 'total_price')
     inlines = [OrderItemInline]
-    actions = ['mark_as_paid', 'mark_as_shipped', 'mark_as_delivered']
+    actions = ['mark_as_paid', 'mark_as_confirmed', 'mark_as_shipped', 'mark_as_delivered']
 
     fieldsets = (
         ('Информация о заказе', {
@@ -33,6 +33,11 @@ class OrderAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def mark_as_confirmed(self, request, queryset):
+        queryset.update(status='confirmed')
+
+    mark_as_confirmed.short_description = 'Отметить как подтверждённые'
 
     def mark_as_paid(self, request, queryset):
         queryset.update(paid=True, status='paid')
