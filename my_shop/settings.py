@@ -95,6 +95,7 @@ TEMPLATES = [
                 'apps.orders.context_processors.orders_count',
                 'apps.products.context_processors.favorites_count',
                 'apps.accounts.context_processors.unread_chat_count',
+                'apps.accounts.context_processors.offer_status',
             ],
         },
     },

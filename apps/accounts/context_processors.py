@@ -1,4 +1,5 @@
 from .models import ChatMessage
+from .models import Offer
 
 
 def unread_chat_count(request):
@@ -20,3 +21,20 @@ def unread_chat_count(request):
         ).count()
 
     return {'chat_unread_count': count}
+
+def offer_status(request):
+    """Передаёт во все шаблоны active_offer и флаг offer_accepted."""
+    if not request.user.is_authenticated:
+        return {
+            'active_offer': None,
+            'offer_accepted': False,
+        }
+
+    active_offer = Offer.objects.filter(is_active=True).first()
+    offer_accepted = bool(
+        active_offer and request.user.offer_accepted_id == active_offer.id
+    )
+    return {
+        'active_offer': active_offer,
+        'offer_accepted': offer_accepted,
+    }

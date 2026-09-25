@@ -61,17 +61,27 @@ def profile(request):
 
 @login_required
 def offer_detail(request, offer_id):
-    """Страница просмотра текста оферты + кнопка «Принять»."""
+    """Страница просмотра текста оферты + кнопка «Принять» (поддерживает AJAX)."""
     offer = get_object_or_404(Offer, id=offer_id)
 
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
     if request.method == 'POST':
-        # Пользователь нажал «Принять»
         request.user.offer_accepted = offer
         request.user.offer_accepted_at = timezone.now()
         request.user.save(update_fields=['offer_accepted', 'offer_accepted_at'])
+
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'offer_id': offer.id,
+            })
+
         messages.success(request, 'Оферта успешно принята')
         return redirect('accounts:profile')
 
+    # GET
+    # Если это AJAX — рендерим шаблон и отдаём HTML, но без base.html
     return render(request, 'accounts/offer_detail.html', {
         'offer': offer,
         'already_accepted': request.user.offer_accepted_id == offer.id,
@@ -88,8 +98,13 @@ def give_personal_data_consent(request):
         user.personal_data_consent = True
         user.personal_data_consent_at = timezone.now()
         user.save(update_fields=['personal_data_consent', 'personal_data_consent_at'])
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
         messages.success(request, 'Согласие на обработку персональных данных получено.')
     else:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'already': True})
         messages.info(request, 'Согласие уже было дано ранее.')
 
     return redirect('accounts:profile')

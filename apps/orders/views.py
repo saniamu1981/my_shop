@@ -214,10 +214,28 @@ def create_order(request):
         cart_context = list(cart)
         total_price = cart.get_total_price()
 
+    # Достаём данные доставки из URL (если пришли с product_detail)
+    dp_address = request.GET.get('dp_address', '')
+    dp_method = request.GET.get('delivery_method', '')
+    dp_code = request.GET.get('dp_code', '')
+    dp_name = request.GET.get('dp_name', '')
+
+    # Если в URL ничего нет — пробуем взять из сессии (buy_now)
+    if not dp_address and buy_now_data:
+        bp = buy_now_data.get('delivery_point') or {}
+        dp_address = bp.get('address', '')
+        dp_code = bp.get('code', '')
+        dp_name = bp.get('name', '')
+        dp_method = buy_now_data.get('delivery_method', '')
+
     return render(request, 'orders/order_create.html', {
         'cart': cart_context,
         'total_price': total_price,
         'buy_now': bool(buy_now_data),
+        'dp_address': dp_address,
+        'dp_code': dp_code,
+        'dp_name': dp_name,
+        'dp_method': dp_method,
     })
 
 

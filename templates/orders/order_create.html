@@ -11,8 +11,10 @@
                     <form method="post" id="checkoutForm">
                         {% csrf_token %}
                         <input type="hidden" name="from" value="{{ request.GET.from|default:'' }}">
-                        <input type="hidden" name="delivery_method" id="checkout_delivery_method">
-                        <input type="hidden" name="delivery_point"  id="checkout_delivery_point">
+                        <input type="hidden" name="delivery_method" id="checkout_delivery_method"
+                               value="{{ dp_method|default:'' }}">
+                        <input type="hidden" name="delivery_point"  id="checkout_delivery_point"
+                               value="{% if dp_code or dp_address %}{{ dp_code }}|{{ dp_name }}|{{ dp_address }}{% endif %}">
 
                         <div class="mb-3">
                             <label for="first_name" class="form-label">Имя *</label>
@@ -41,7 +43,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="address" class="form-label">Адрес доставки *</label>
-                            <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+                            <textarea class="form-control" id="address" name="address" rows="3" required>{{ dp_address|default:'' }}</textarea>
                             <div class="form-text" id="addressHint">
                                 Адрес подставится автоматически после выбора пункта выдачи.
                             </div>
@@ -162,36 +164,49 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const m = sessionStorage.getItem('checkout_delivery_method') || '';
-    let p = sessionStorage.getItem('checkout_delivery_point') || '{}';
+    // 1. Пробуем sessionStorage (актуально при buy_now)
+    let m = sessionStorage.getItem('checkout_delivery_method') || '';
+    let p = sessionStorage.getItem('checkout_delivery_point') || '';
 
-    document.getElementById('checkout_delivery_method').value = m;
-    document.getElementById('checkout_delivery_point').value  = p;
+    // 2. Если в sessionStorage пусто — берём из URL / рендера Django
+    const hiddenMethod  = document.getElementById('checkout_delivery_method');
+    const hiddenPoint   = document.getElementById('checkout_delivery_point');
+    const addressEl     = document.getElementById('address');
+    const hintEl        = document.getElementById('addressHint');
 
+    if (m && !hiddenMethod.value) hiddenMethod.value = m;
+    if (p && !hiddenPoint.value)  hiddenPoint.value  = p;
+
+    // Парсим точку
     let point = {};
-    try { point = JSON.parse(p); } catch (e) { point = {}; }
+    try {
+        point = JSON.parse(p || '{}');
+    } catch (e) { point = {}; }
 
-    const addressEl = document.getElementById('address');
-    const hintEl    = document.getElementById('addressHint');
-
-    if (point && point.address) {
+    // Если адрес уже есть в textarea (отрендерен Django) — ничего не делаем
+    if (addressEl.value && addressEl.value.trim()) {
+        if (hintEl) {
+            hintEl.textContent = 'Адрес подставлен из выбранного пункта выдачи' +
+                (m === 'pickup' ? ' (Самовывоз)' : (m === 'sdek' ? ' (СДЭК)' : '')) +
+                '. Можно отредактировать.';
+        }
+    } else if (point.address) {
         addressEl.value = point.address;
         if (hintEl) {
             hintEl.textContent = 'Адрес подставлен из выбранного пункта выдачи (' +
                 (m === 'sdek' ? 'СДЭК' : 'Самовывоз') + '). Можно отредактировать.';
         }
     } else {
-        if (hintEl) hintEl.textContent = 'Адрес не был выбран. Укажите его вручную.';
+        if (hintEl) hintEl.textContent = 'Укажите адрес вручную.';
     }
 
-    // ===== Если Самовывоз — снимаем обязательность Имени и Фамилии =====
+    // ===== Самовывоз: убираем звёздочки у Имени/Фамилии =====
     const firstNameEl = document.getElementById('first_name');
     const lastNameEl  = document.getElementById('last_name');
 
-    if (m === 'pickup') {
+    if (m === 'pickup' || hiddenMethod.value === 'pickup') {
         if (firstNameEl) {
             firstNameEl.required = false;
-            // Меняем подпись — убираем звёздочку
             const label = document.querySelector('label[for="first_name"]');
             if (label) label.textContent = 'Имя';
         }

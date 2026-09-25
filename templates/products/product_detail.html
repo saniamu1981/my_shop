@@ -775,6 +775,145 @@
     </div>
 </div>
 
+<!-- Модалка акцепта (подтверждение покупателя) -->
+<div class="modal fade" id="purchaseAcceptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">✅ Подтверждение заказа</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            {# ===== Блоки-напоминания о ПД и оферте ===== #}
+
+            {% if not user.personal_data_consent %}
+            <div class="accept-alert accept-alert-warning" id="consentAlertBox">
+                <div class="accept-alert-icon">⚠️</div>
+                <div class="accept-alert-text">
+                    <strong>Не дано согласие на обработку персональных данных</strong><br>
+                    Без него оформить заказ нельзя.
+                </div>
+                <button type="button"
+                        class="accept-alert-btn"
+                        id="consentGiveBtn"
+                        data-url="{% url 'accounts:give_personal_data_consent' %}">
+                    Дать согласие
+                </button>
+            </div>
+            {% endif %}
+
+            {% if active_offer and not offer_accepted %}
+            <div class="accept-alert accept-alert-info" id="offerAlertBox">
+                <div class="accept-alert-icon">📄</div>
+                <div class="accept-alert-text">
+                    <strong>Не принята оферта</strong><br>
+                    {{ active_offer.title }}{% if active_offer.version %} ({{ active_offer.version }}){% endif %}
+                </div>
+                <button type="button"
+                        class="accept-alert-btn"
+                        id="offerReadBtn"
+                        data-offer-id="{{ active_offer.id }}">
+                    Прочитать
+                </button>
+            </div>
+            {% endif %}
+
+            <div class="modal-body">
+                <p class="text-muted mb-3" style="font-size: 14px;">
+                    Перед оформлением заказа, пожалуйста, подтвердите следующие пункты:
+                </p>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept1" checked>
+                    <label for="accept1">
+                        Я ознакомлен(а) с характеристиками товара и составом заказа
+                        (размер, цвет, количество, стоимость).
+                    </label>
+                </div>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept2" checked>
+                    <label for="accept2">
+                        Я подтверждаю правильность указанных данных доставки
+                        (адрес, получатель, контактный телефон).
+                    </label>
+                </div>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept3" checked>
+                    <label for="accept3">
+                        Я согласен(на) с условиями оплаты, доставки и возврата,
+                        а также с
+                        <a href="#" target="_blank" rel="noopener">офертой</a>
+                        и
+                        <a href="#" target="_blank" rel="noopener">политикой обработки персональных данных</a>.
+                    </label>
+                </div>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept4" checked>
+                    <label for="accept4">
+                        Я понимаю, что товары надлежащего качества из категории
+                        <strong>нижнего белья и купальников</strong> возврату и обмену
+                        не подлежат (Постановление Правительства РФ № 2463).
+                    </label>
+                </div>
+
+                <div id="acceptError"
+                     class="text-danger small mt-3"
+                     style="display: none;">
+                    Пожалуйста, подтвердите все пункты.
+                </div>
+            </div>
+
+            <div class="modal-footer justify-content-between">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <button type="button"
+                        class="btn btn-success"
+                        id="acceptConfirmBtn"
+                        disabled>
+                    Подтверждаю и продолжить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка чтения оферты из акцепта -->
+<div class="modal fade" id="offerReadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📄 Оферта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="offerReadBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Загрузка текста оферты...</p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Закрыть
+                </button>
+                <button type="button"
+                        class="btn btn-success"
+                        id="offerAcceptBtn"
+                        disabled>
+                    Принять оферту
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .review-item {
     transition: all 0.3s ease;
@@ -796,6 +935,256 @@
 .reviews-section .bi-star {
     color: #ddd;
 }
+
+.accept-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    margin-bottom: 6px;
+}
+.accept-item:hover {
+    background: #f8f9fa;
+}
+.accept-item input[type="checkbox"] {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.accept-item label {
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: pointer;
+    color: #212529;
+    margin: 0;
+}
+.accept-item label a {
+    color: #0d6efd;
+    text-decoration: underline;
+}
+
+.accept-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin: 10px 16px 10px 16px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+.accept-alert-warning {
+    background: #fff5f5;
+    border: 1px solid #f5c2c7;
+}
+.accept-alert-info {
+    background: #f0f7ff;
+    border: 1px solid #b6d4fe;
+}
+.accept-alert-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+.accept-alert-text {
+    flex: 1;
+    min-width: 0;
+}
+.accept-alert-text strong {
+    display: block;
+    margin-bottom: 2px;
+}
+.accept-alert-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    background: #0d6efd;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.accept-alert-btn:hover {
+    background: #0b5ed7;
+    color: #fff;
+}
+.accept-alert-warning .accept-alert-btn {
+    background: #dc3545;
+}
+.accept-alert-warning .accept-alert-btn:hover {
+    background: #bb2d3b;
+}
+
+@media (max-width: 576px) {
+    .accept-alert {
+        flex-wrap: wrap;
+    }
+    .accept-alert-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ АКЦЕПТА И ОФЕРТЫ ============ */
+
+@media (max-width: 767.98px) {
+
+    /* ===== Блоки-напоминания (ПД, оферта) ===== */
+    .accept-alert {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 12px;
+        margin: 0 4px 8px 4px;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+
+    .accept-alert-icon {
+        font-size: 20px;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
+
+    .accept-alert-text {
+        /* Текст занимает всю ширину строки рядом с иконкой */
+        flex: 1 1 calc(100% - 32px);
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    .accept-alert-text strong {
+        font-size: 13px;
+        margin-bottom: 1px;
+    }
+
+    /* Кнопка уходит на новую строку, растянута на всю ширину */
+    .accept-alert-btn {
+        flex: 1 1 100%;
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 13px;
+        border-radius: 8px;
+        margin-top: 4px;
+        text-align: center;
+    }
+
+    /* ===== Модалка акцепта ===== */
+    #purchaseAcceptModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #purchaseAcceptModal .modal-body {
+        padding: 14px 12px;
+    }
+
+    #purchaseAcceptModal .modal-body > p.text-muted {
+        font-size: 13px !important;
+        margin-bottom: 10px !important;
+    }
+
+    #purchaseAcceptModal .accept-item {
+        padding: 10px 10px;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    #purchaseAcceptModal .accept-item label {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    #purchaseAcceptModal .accept-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+    }
+
+    #purchaseAcceptModal .modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    #purchaseAcceptModal .modal-footer .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    /* ===== Модалка чтения оферты ===== */
+    #offerReadModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #offerReadModal .modal-body {
+        padding: 14px 12px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    #offerReadModal .modal-body p,
+    #offerReadModal .modal-body li {
+        font-size: 14px;
+        word-break: break-word;
+    }
+
+    #offerReadModal .modal-body h1,
+    #offerReadModal .modal-body h2,
+    #offerReadModal .modal-body h3,
+    #offerReadModal .modal-body h4,
+    #offerReadModal .modal-body h5 {
+        font-size: 15px;
+        margin-top: 12px;
+        margin-bottom: 6px;
+    }
+
+    #offerReadModal .modal-body ul,
+    #offerReadModal .modal-body ol {
+        padding-left: 20px;
+    }
+
+    #offerReadModal .modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    #offerReadModal .modal-footer .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    /* Спиннер и текст загрузки оферты */
+    #offerReadBody .text-center.py-4 {
+        padding: 20px 0 !important;
+    }
+}
+
+/* Очень узкие экраны (iPhone SE и подобные) */
+@media (max-width: 380px) {
+    .accept-alert-text strong {
+        font-size: 12.5px;
+    }
+    .accept-alert-btn {
+        font-size: 12.5px;
+        padding: 8px 10px;
+    }
+    #purchaseAcceptModal .accept-item label,
+    #offerReadModal .modal-body p {
+        font-size: 13px;
+    }
+}
 </style>
 
 <!-- Скрытая форма для "Купить сейчас" -->
@@ -807,14 +1196,64 @@
 </form>
 
 <script>
-// ============ РАБОТА С ВЫБОРОМ ОБЛАСТИ, ГОРОДА И ПОИСКОМ ============
+// ============ ОБЩИЕ ПЕРЕМЕННЫЕ ============
 let selectedRegion = null;
 let selectedCity = null;
 let allPoints = [];
 let searchTimeout = null;
 
-// ============ ОБЩИЕ ФУНКЦИИ ============
+// ============ МОДАЛКА АКЦЕПТА ============
+window.openAcceptModal = function (onConfirm) {
+    const modalEl = document.getElementById('purchaseAcceptModal');
+    if (!modalEl) {
+        // Если модалки нет в HTML — просто выполняем действие
+        if (typeof onConfirm === 'function') onConfirm();
+        return;
+    }
 
+    const checkboxes = modalEl.querySelectorAll('.accept-checkbox');
+    const errorEl = modalEl.querySelector('#acceptError');
+
+    // Все чекбоксы по умолчанию включены
+    checkboxes.forEach(cb => cb.checked = true);
+    if (errorEl) errorEl.style.display = 'none';
+
+    // Обновляем состояние кнопки
+    const confirmBtnOld = modalEl.querySelector('#acceptConfirmBtn');
+    const confirmBtn = confirmBtnOld.cloneNode(true);
+    confirmBtnOld.parentNode.replaceChild(confirmBtn, confirmBtnOld);
+
+    function updateConfirmState() {
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        confirmBtn.disabled = !allChecked;
+    }
+
+    checkboxes.forEach(cb => {
+        // Удаляем старые слушатели клонированием было неудобно — просто перезаписываем onchange
+        cb.onchange = updateConfirmState;
+    });
+
+    updateConfirmState();
+
+    confirmBtn.addEventListener('click', function () {
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        if (!allChecked) {
+            if (errorEl) errorEl.style.display = 'block';
+            return;
+        }
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        if (typeof onConfirm === 'function') {
+            setTimeout(onConfirm, 250);
+        }
+    });
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+};
+
+// ============ ОБЩИЕ ФУНКЦИИ ============
 function showNotification(message, type = 'info') {
     const container = document.getElementById('cdek-widget-container');
     if (!container) return;
@@ -1039,7 +1478,6 @@ function initDelivery() {
     const deliveryLabel = document.getElementById('delivery-label');
 
     deliveryInputs.forEach(input => {
-        // ===== change — обновляем состояние и визуал =====
         input.addEventListener('change', function () {
             selectedDelivery = this.value;
             const label = this.closest('.delivery-item').querySelector('label');
@@ -1054,14 +1492,11 @@ function initDelivery() {
                     deliveryLabel.textContent = '🚚 Самовывоз';
                 }
             }
-            // Карту здесь НЕ открываем — это делает click на label
         });
 
-        // ===== click по label — открывает карту и при первом, и при повторном выборе =====
         const label = document.querySelector(`label[for="${input.id}"]`);
         if (label) {
             label.addEventListener('click', function () {
-                // Ждём, пока браузер применит input.checked
                 setTimeout(() => {
                     if (input.checked && input.value === 'sdek') {
                         openCdekModal();
@@ -1071,7 +1506,6 @@ function initDelivery() {
         }
     });
 
-    // Если при загрузке radio уже выбран — открываем карту/данные
     const sdekRadio = document.getElementById('delivery-sdek');
     if (sdekRadio && sdekRadio.checked) {
         openCdekModal();
@@ -1084,11 +1518,9 @@ function initDelivery() {
 
 // ============ САМОВЫВОЗ ============
 function setPickupData() {
-    // Данные для самовывоза
     const pickupAddress = 'г. Санкт-Петербург, Колпинское шоссе, д. 34, корп. 1';
     const pickupPhone = '+7 (921) 847-99-07';
 
-    // Заполняем скрытые поля для самовывоза
     const pointCode = document.getElementById('pickup-point-code');
     const pointName = document.getElementById('pickup-point-name');
     const pointAddress = document.getElementById('pickup-point-address-input');
@@ -1097,7 +1529,6 @@ function setPickupData() {
     if (pointName) pointName.value = 'Самовывоз';
     if (pointAddress) pointAddress.value = pickupAddress;
 
-    // Отображаем адрес на странице
     const addressDisplay = document.getElementById('pickup-address-display');
     const phoneDisplay = document.getElementById('pickup-phone-display');
 
@@ -1115,12 +1546,10 @@ function initAddToCart() {
     if (!form || !btn || !sizeWarningModalEl) return;
 
     function showWarningModal() {
-        // Скрываем все открытые модалки и убираем backdrop'и, если остались
         document.querySelectorAll('.modal.show').forEach(m => {
             const inst = bootstrap.Modal.getInstance(m);
             if (inst) inst.hide();
         });
-        // На всякий случай убираем backdrop вручную
         setTimeout(() => {
             document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
             document.body.classList.remove('modal-open');
@@ -1159,6 +1588,7 @@ function initAddToCart() {
     });
 }
 
+// ============ КУПИТЬ СЕЙЧАС ============
 function initBuyNow() {
     const buyNowBtn = document.getElementById('buyNowBtn');
     const buyNowForm = document.getElementById('buyNowForm');
@@ -1167,17 +1597,14 @@ function initBuyNow() {
 
     if (!buyNowBtn) return;
 
-    // Флаг авторизации, приходит из Django-шаблона
     const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
 
-    // Модалка авторизации
     const loginRequiredModalEl = document.getElementById('loginRequiredModal');
     const loginRequiredModal = loginRequiredModalEl ? new bootstrap.Modal(loginRequiredModalEl) : null;
     const loginRequiredGoBtn = document.getElementById('loginRequiredGoBtn');
 
-    // Модалки-предупреждения (объявляем здесь!)
-    const sizeWarningModalEl    = document.getElementById('sizeWarningModal');
-    const offerWarningModalEl   = document.getElementById('offerWarningModal');
+    const sizeWarningModalEl  = document.getElementById('sizeWarningModal');
+    const offerWarningModalEl = document.getElementById('offerWarningModal');
 
     const sizeWarningModal  = sizeWarningModalEl  ? new bootstrap.Modal(sizeWarningModalEl)  : null;
     const offerWarningModal = offerWarningModalEl ? new bootstrap.Modal(offerWarningModalEl) : null;
@@ -1191,7 +1618,7 @@ function initBuyNow() {
     buyNowBtn.addEventListener('click', function (e) {
         e.preventDefault();
 
-        // ===== 0. Проверка авторизации =====
+        // ===== 1. Авторизация =====
         if (!isAuthenticated) {
             if (loginRequiredModal) {
                 if (loginRequiredGoBtn) {
@@ -1200,14 +1627,13 @@ function initBuyNow() {
                 }
                 loginRequiredModal.show();
             } else {
-                // fallback: если модалка не найдена — сразу редирект
                 const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
                 window.location.href = '/accounts/login/?next=' + nextUrl;
             }
             return;
         }
 
-        // ===== 1. Проверка размера =====
+        // ===== 2. Размер =====
         const buyNowSizeInput = document.getElementById('buyNowSize');
         const selectedSize = buyNowSizeInput?.value;
         if (!selectedSize) {
@@ -1227,7 +1653,7 @@ function initBuyNow() {
             return;
         }
 
-        // ===== 2. Проверка способа доставки =====
+        // ===== 3. Способ доставки =====
         if (!selectedDelivery) {
             const deliveryWarnEl = document.getElementById('deliveryWarningModal');
             if (deliveryWarnEl) {
@@ -1238,11 +1664,10 @@ function initBuyNow() {
             return;
         }
 
-        // ===== 3. Собираем пункт выдачи =====
+        // ===== 4. Пункт выдачи =====
         let pointCode = null, pointName = null, pointAddress = null;
 
         if (selectedDelivery === 'sdek') {
-            // Новая система — используем cdekSelectedPoint из модалки с картой
             if (typeof cdekSelectedPoint !== 'undefined' && cdekSelectedPoint) {
                 pointCode    = cdekSelectedPoint.code || '';
                 pointName    = cdekSelectedPoint.name || '';
@@ -1255,111 +1680,116 @@ function initBuyNow() {
         }
 
         if (!pointCode) {
-        const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
+            const deliveryName = selectedDelivery === 'sdek' ? 'СДЭК' : 'Самовывоз';
 
-        // Показываем модалку предупреждения о доставке
-        const deliveryWarnEl = document.getElementById('deliveryWarningModal');
-        if (deliveryWarnEl) {
-            // Меняем текст на актуальный
-            const bodyP = deliveryWarnEl.querySelector('.modal-body p.text-muted');
-            if (bodyP) {
-                bodyP.textContent = `Пожалуйста, выберите пункт выдачи ${deliveryName} перед оформлением заказа.`;
+            const deliveryWarnEl = document.getElementById('deliveryWarningModal');
+            if (deliveryWarnEl) {
+                const bodyP = deliveryWarnEl.querySelector('.modal-body p.text-muted');
+                if (bodyP) {
+                    bodyP.textContent = `Пожалуйста, выберите пункт выдачи ${deliveryName} перед оформлением заказа.`;
+                }
+                const h4 = deliveryWarnEl.querySelector('.modal-body h4');
+                if (h4) h4.textContent = `Не выбран пункт выдачи ${deliveryName}!`;
+
+                bootstrap.Modal.getOrCreateInstance(deliveryWarnEl).show();
+            } else {
+                alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
             }
-            const h4 = deliveryWarnEl.querySelector('.modal-body h4');
-            if (h4) h4.textContent = `Не выбран пункт выдачи ${deliveryName}!`;
 
-            bootstrap.Modal.getOrCreateInstance(deliveryWarnEl).show();
-        } else {
-            alert(`Пожалуйста, выберите пункт выдачи ${deliveryName}!`);
+            const container = document.getElementById(
+                selectedDelivery === 'sdek' ? 'delivery-label' : 'pickup-info-container'
+            );
+            if (container) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                container.style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    container.style.borderColor = '#e0e0e0';
+                }, 3000);
+            }
+            return;
         }
 
-        // Прокручиваем к соответствующему блоку
-        const container = document.getElementById(
-            selectedDelivery === 'sdek' ? 'delivery-label' : 'pickup-info-container'
-        );
-        if (container) {
-            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            container.style.borderColor = '#dc3545';
-            setTimeout(() => {
-                container.style.borderColor = '#e0e0e0';
-            }, 3000);
-        }
-        return;
-    }
+        // ===== 5. ВСЁ ОК → Акцепт =====
+        openAcceptModal(function () {
+            // Данные в форму
+            if (buyNowDeliveryInput) buyNowDeliveryInput.value = selectedDelivery;
+            if (buyNowDeliveryPointInput) {
+                buyNowDeliveryPointInput.value = JSON.stringify({
+                    code: pointCode || '',
+                    name: pointName || '',
+                    address: pointAddress || '',
+                });
+            }
 
-        // ===== 4. Заполняем скрытую форму =====
-        if (buyNowDeliveryInput) buyNowDeliveryInput.value = selectedDelivery;
-        if (buyNowDeliveryPointInput) {
-            buyNowDeliveryPointInput.value = JSON.stringify({
+            // sessionStorage
+            sessionStorage.setItem('checkout_delivery_method', selectedDelivery);
+            sessionStorage.setItem('checkout_delivery_point', JSON.stringify({
                 code: pointCode || '',
                 name: pointName || '',
                 address: pointAddress || '',
+            }));
+
+            // Отправка
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            const formData = new FormData(buyNowForm);
+
+            formData.set('delivery_method', selectedDelivery);
+            formData.set('delivery_point', JSON.stringify({
+                code: pointCode || '',
+                name: pointName || '',
+                address: pointAddress || '',
+            }));
+
+            fetch(buyNowForm.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.consent_required) {
+                    if (consentWarningModal) {
+                        if (consentGoBtn && data.profile_url) {
+                            consentGoBtn.href = data.profile_url;
+                        }
+                        consentWarningModal.show();
+                    } else {
+                        alert(data.message || 'Необходимо согласие на обработку персональных данных');
+                        if (data.profile_url) window.location.href = data.profile_url;
+                    }
+                    return;
+                }
+                if (data.offer_required) {
+                    if (offerWarningModal) {
+                        if (offerGoBtn && data.profile_url) {
+                            offerGoBtn.href = data.profile_url;
+                        }
+                        offerWarningModal.show();
+                    } else {
+                        alert(data.message || 'Необходимо принять оферту');
+                        if (data.profile_url) window.location.href = data.profile_url;
+                    }
+                    return;
+                }
+                if (data.success && data.redirect_url) {
+                    // Добавляем данные доставки в URL, чтобы страница сразу знала адрес
+                    const url = new URL(data.redirect_url, window.location.origin);
+                    url.searchParams.set('delivery_method', selectedDelivery);
+                    url.searchParams.set('dp_code', pointCode || '');
+                    url.searchParams.set('dp_name', pointName || '');
+                    url.searchParams.set('dp_address', pointAddress || '');
+                    window.location.href = url.toString();
+                    return;
+                }
+                alert(data.message || 'Не удалось создать заказ');
+            })
+            .catch(error => {
+                console.error('Ошибка buy_now:', error);
+                alert('Ошибка сети. Попробуйте еще раз.');
             });
-        }
-
-        // Данные о доставке — в sessionStorage, их подхватит order_create.html
-        sessionStorage.setItem('checkout_delivery_method', selectedDelivery);
-        sessionStorage.setItem('checkout_delivery_point', JSON.stringify({
-            code: pointCode || '',
-            name: pointName || '',
-            address: pointAddress || '',
-        }));
-
-        // ===== 5. Отправляем AJAX-запрос =====
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        const formData = new FormData(buyNowForm);
-
-        // Убеждаемся, что в buyNowForm есть поле delivery_point (актуальное)
-        formData.set('delivery_method', selectedDelivery);
-        formData.set('delivery_point', JSON.stringify({
-            code: pointCode || '',
-            name: pointName || '',
-            address: pointAddress || '',
-        }));
-
-        fetch(buyNowForm.action, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken || '',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: formData,
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.consent_required) {
-                if (consentWarningModal) {
-                    if (consentGoBtn && data.profile_url) {
-                        consentGoBtn.href = data.profile_url;
-                    }
-                    consentWarningModal.show();
-                } else {
-                    alert(data.message || 'Необходимо согласие на обработку персональных данных');
-                    if (data.profile_url) window.location.href = data.profile_url;
-                }
-                return;
-            }
-            if (data.offer_required) {
-                if (offerWarningModal) {
-                    if (offerGoBtn && data.profile_url) {
-                        offerGoBtn.href = data.profile_url;
-                    }
-                    offerWarningModal.show();
-                } else {
-                    alert(data.message || 'Необходимо принять оферту');
-                    if (data.profile_url) window.location.href = data.profile_url;
-                }
-                return;
-            }
-            if (data.success && data.redirect_url) {
-                window.location.href = data.redirect_url;
-                return;
-            }
-            alert(data.message || 'Не удалось создать заказ');
-        })
-        .catch(error => {
-            console.error('Ошибка buy_now:', error);
-            alert('Ошибка сети. Попробуйте еще раз.');
         });
     });
 }
@@ -1374,9 +1804,7 @@ function initThumbnailScroll() {
 
     if (!container || !list) return;
 
-    // На мобильном миниатюры горизонтальные — своя логика прокрутки через touch
     if (window.innerWidth < 768) {
-        // Нативный скролл через overflow-x: auto
         return;
     }
 
@@ -1415,6 +1843,7 @@ function initThumbnailScroll() {
     });
 }
 
+// ============ ОБРЕЗКА ХАРАКТЕРИСТИК ============
 function initSpecsCut() {
     const specsBlock = document.getElementById('productSpecs');
     const specsWrapper = document.getElementById('specsGridWrapper');
@@ -1428,45 +1857,35 @@ function initSpecsCut() {
         return;
     }
 
-    // Флаг: сейчас блок в развёрнутом состоянии пользователем?
     let userExpanded = false;
 
     function computeCut() {
-        // Реальная высота блока характеристик без обрезки
         specsBlock.classList.remove('collapsed', 'expanded');
         specsWrapper.style.maxHeight = 'none';
 
         const specsRect = specsBlock.getBoundingClientRect();
         const photoRect = mainImageWrapper.getBoundingClientRect();
 
-        // Насколько нижний край фото ниже верхнего края блока характеристик
         let cut = photoRect.bottom - specsRect.top;
 
-        // Учитываем padding самого блока сверху
         const styles = getComputedStyle(specsBlock);
         const paddingTop = parseFloat(styles.paddingTop) || 0;
         cut -= paddingTop;
 
-        // Уменьшаем обрезку — блок заканчивается выше низа фото
         const OFFSET = 70;
         cut -= OFFSET;
 
-        // Не меньше 100px — защита от бессмыслицы
         if (cut < 100) cut = 100;
 
-        // Записываем в CSS-переменную
         specsBlock.style.setProperty('--specs-cut', cut + 'px');
 
-        // Смотрим: реальная высота сетки больше обрезки?
         const gridHeight = specsGrid.getBoundingClientRect().height;
 
         console.log('[specs-cut] cut =', cut, 'grid height =', gridHeight);
 
         if (gridHeight > cut) {
-            // Есть что обрезать — показываем кнопку
             toggleBtn.style.display = '';
 
-            // Если пользователь развернул — возвращаем развёрнутое состояние
             if (userExpanded) {
                 specsBlock.classList.add('expanded');
                 toggleBtn.textContent = 'Свернуть';
@@ -1475,24 +1894,20 @@ function initSpecsCut() {
                 toggleBtn.textContent = 'Развернуть';
             }
         } else {
-            // Характеристик мало — обрезать нечего, кнопка не нужна
             toggleBtn.style.display = 'none';
         }
 
         specsWrapper.style.maxHeight = '';
     }
 
-    // ============ ОБРАБОТЧИК КЛИКА ПО КНОПКЕ ============
     if (toggleBtn) {
         toggleBtn.addEventListener('click', function () {
             if (specsBlock.classList.contains('collapsed')) {
-                // Разворачиваем
                 specsBlock.classList.remove('collapsed');
                 specsBlock.classList.add('expanded');
                 toggleBtn.textContent = 'Свернуть';
                 userExpanded = true;
             } else {
-                // Сворачиваем
                 specsBlock.classList.remove('expanded');
                 specsBlock.classList.add('collapsed');
                 toggleBtn.textContent = 'Развернуть';
@@ -1501,19 +1916,16 @@ function initSpecsCut() {
         });
     }
 
-    // Пересчёт при ресайзе
     let t;
     window.addEventListener('resize', () => {
         clearTimeout(t);
         t = setTimeout(computeCut, 120);
     });
 
-    // Ждём, пока загрузится фото — от его высоты зависит обрезка
     if (mainImage && !mainImage.complete) {
         mainImage.addEventListener('load', computeCut, { once: true });
     }
 
-    // И через rAF на случай, если шрифты/картинки ещё подгружаются
     requestAnimationFrame(() => requestAnimationFrame(computeCut));
 }
 
@@ -1607,7 +2019,7 @@ function initLightbox() {
     });
 }
 
-// ============ ОТКРЫТИЕ МОДАЛА ПОЛНОГО ОТЗЫВА ============
+// ============ МОДАЛ ПОЛНОГО ОТЗЫВА ============
 function initReviewModalOpen() {
     const reviewModalEl = document.getElementById('reviewModal');
     if (!reviewModalEl) return;
@@ -1616,12 +2028,9 @@ function initReviewModalOpen() {
 
     document.querySelectorAll('.review-card-clickable').forEach(card => {
         card.addEventListener('click', function (e) {
-            // Если клик был по кнопке редактирования или по ссылке внутри карточки —
-            // не открываем модал
             if (e.target.closest('.review-edit-btn')) return;
             if (e.target.closest('a')) return;
 
-            // Заполняем модал данными
             const user = card.dataset.reviewUser || '';
             const rating = parseInt(card.dataset.reviewRating || '0', 10);
             const date = card.dataset.reviewDate || '';
@@ -1663,17 +2072,15 @@ function initMediaViewer() {
     const prevBtn = document.getElementById('mediaViewerPrev');
     const nextBtn = document.getElementById('mediaViewerNext');
 
-    let items = [];     // [{type: 'image'|'video', url: '...'}]
+    let items = [];
     let currentIndex = 0;
 
-    // Обработчик клика по медиа внутри модалки отзыва
     const modalMediaEl = document.getElementById('modal-review-media');
     if (modalMediaEl) {
         modalMediaEl.addEventListener('click', function (e) {
             const target = e.target.closest('img, video, [data-media-type="video"]');
             if (!target) return;
 
-            // Собираем список всех медиа из модалки отзыва
             items = [];
             modalMediaEl.querySelectorAll('img, [data-media-url]').forEach(el => {
                 const url = el.dataset.mediaUrl || el.src;
@@ -1683,7 +2090,6 @@ function initMediaViewer() {
 
             if (!items.length) return;
 
-            // Определяем индекс кликнутого
             const clickedUrl = target.dataset.mediaUrl || target.src;
             const idx = items.findIndex(x => x.url === clickedUrl);
             currentIndex = idx >= 0 ? idx : 0;
@@ -1718,11 +2124,9 @@ function initMediaViewer() {
 
         counterEl.textContent = `${currentIndex + 1} / ${items.length}`;
 
-        // Кнопки
         prevBtn.disabled = currentIndex === 0;
         nextBtn.disabled = currentIndex === items.length - 1;
 
-        // Миниатюры
         thumbsEl.innerHTML = '';
         items.forEach((it, i) => {
             let thumb;
@@ -1745,7 +2149,6 @@ function initMediaViewer() {
             thumbsEl.appendChild(thumb);
         });
 
-        // Прячем стрелки и миниатюры, если медиа одно
         if (items.length === 1) {
             viewerEl.classList.add('single-item');
         } else {
@@ -1753,7 +2156,6 @@ function initMediaViewer() {
         }
     }
 
-    // Стрелки
     prevBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         if (currentIndex > 0) {
@@ -1770,7 +2172,6 @@ function initMediaViewer() {
         }
     });
 
-    // Клавиатура
     document.addEventListener('keydown', function (e) {
         if (!viewerEl.classList.contains('show')) return;
 
@@ -1787,7 +2188,6 @@ function initMediaViewer() {
         }
     });
 
-    // Останавливаем видео при закрытии модалки
     viewerEl.addEventListener('hidden.bs.modal', function () {
         contentEl.innerHTML = '';
     });
@@ -1805,7 +2205,6 @@ function initQuestProd() {
     const errorEl = document.getElementById('questProdError');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
 
-    // Первая строка — шаблон сообщения
     const productName = '{{ product.name|escapejs }}';
     const productSku = '{{ product.sku|default:""|escapejs }}';
 
@@ -1814,7 +2213,6 @@ function initQuestProd() {
     prefix += `, Название: ${productName}`;
 
     questBtn.addEventListener('click', function () {
-        // Проверка авторизации
         if (!{% if user.is_authenticated %}true{% else %}false{% endif %}) {
             const loginModalEl = document.getElementById('loginRequiredModal');
             if (loginModalEl) {
@@ -1832,12 +2230,10 @@ function initQuestProd() {
             return;
         }
 
-        // Сбрасываем предыдущее состояние
         textarea.value = '';
         errorEl.style.display = 'none';
         questModal.show();
 
-        // Автофокус на поле после открытия
         questModalEl.addEventListener('shown.bs.modal', function handler() {
             textarea.focus();
             questModalEl.removeEventListener('shown.bs.modal', handler);
@@ -1852,7 +2248,6 @@ function initQuestProd() {
             return;
         }
 
-        // Склеиваем префикс и текст пользователя
         const fullMessage = prefix + '\n\n' + userText;
 
         sendBtn.disabled = true;
@@ -1891,8 +2286,7 @@ function initQuestProd() {
     });
 }
 
-
-// ============ КАРТА ПВЗ СДЭК (v2) ============
+// ============ КАРТА ПВЗ СДЭК ============
 const CDEK_CITY_DEFAULT = 'Санкт-Петербург';
 
 let cdekMap = null;
@@ -1901,7 +2295,6 @@ let cdekAllPoints = [];
 let cdekSelectedPoint = null;
 let cdekMapInitialized = false;
 
-// Загрузка списка городов (упрощённо — из вашего API)
 function loadCdekCities() {
     const select = document.getElementById('cdekCitySelect');
     if (!select) return;
@@ -1921,7 +2314,6 @@ function loadCdekCities() {
             return;
         }
 
-        // Группируем по региону через optgroup для удобства
         const grouped = {};
         cities.forEach(c => {
             const region = c.region || 'Другие';
@@ -1941,7 +2333,6 @@ function loadCdekCities() {
             select.appendChild(group);
         });
 
-        // Выбираем город по умолчанию и сразу загружаем ПВЗ
         select.value = CDEK_CITY_DEFAULT;
         loadCdekPointsForCity(CDEK_CITY_DEFAULT);
     })
@@ -1951,7 +2342,6 @@ function loadCdekCities() {
     });
 }
 
-// Загрузка ПВЗ по городу и отрисовка на карте
 function loadCdekPointsForCity(cityName) {
     if (!cityName) return;
 
@@ -1973,16 +2363,13 @@ function loadCdekPointsForCity(cityName) {
     });
 }
 
-// Инициализация карты
 function initCdekMapOnce() {
     if (cdekMapInitialized) return;
     if (typeof ymaps === 'undefined') return;
 
-    // Ставим флаг СРАЗУ, чтобы второй вызов не прошёл
     cdekMapInitialized = true;
 
     ymaps.ready(function () {
-        // Если карта уже создана — не создаём повторно
         if (cdekMap) {
             cdekMap.container.fitToViewport();
             return;
@@ -1998,7 +2385,6 @@ function initCdekMapOnce() {
     });
 }
 
-// Отрисовка ПВЗ на карте
 function drawCdekPointsOnMap(points) {
     if (!cdekMap) return;
 
@@ -2033,16 +2419,13 @@ function drawCdekPointsOnMap(points) {
         cdekPlacemarks.push({ point: p, placemark });
     });
 
-    // Подгоняем карту под метки
     const bounds = ymaps.geoQuery(cdekMap.geoObjects).getBounds();
     if (bounds) {
         cdekMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
     }
 }
 
-// Выбор точки
 function selectCdekPointFromMap(point, placemark) {
-    // Перекрашиваем все метки в синий
     cdekPlacemarks.forEach(({ placemark: pm }) => {
         pm.options.set('preset', 'islands#blueIcon');
     });
@@ -2050,38 +2433,32 @@ function selectCdekPointFromMap(point, placemark) {
 
     cdekSelectedPoint = point;
 
-    // Показываем выбранный адрес
     const box = document.getElementById('cdekSelectedBox');
     const addrEl = document.getElementById('cdekSelectedAddress');
     if (box) box.style.display = 'block';
     if (addrEl) addrEl.textContent = point.address || point.name || '';
 
-    // Активируем кнопку «Подтвердить»
     const confirmBtn = document.getElementById('cdekConfirmBtn');
     if (confirmBtn) confirmBtn.disabled = false;
 }
 
-// Открытие модалки с картой
 function openCdekModal() {
     const modalEl = document.getElementById('cdekPvzModal');
     if (!modalEl) return;
 
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-    // Навешиваем обработчик shown.bs.modal только один раз
     if (!modalEl.dataset.shownBound) {
         modalEl.dataset.shownBound = '1';
         modalEl.addEventListener('shown.bs.modal', function () {
             if (!cdekMapInitialized) {
                 initCdekMapOnce();
             } else if (cdekMap) {
-                // Карта уже есть — просто подгоняем размеры
                 cdekMap.container.fitToViewport();
             }
         });
     }
 
-    // Показываем/скрываем UI в зависимости от того, есть ли выбранная точка
     const box = document.getElementById('cdekSelectedBox');
     const addrEl = document.getElementById('cdekSelectedAddress');
     const confirmBtn = document.getElementById('cdekConfirmBtn');
@@ -2102,12 +2479,9 @@ function openCdekModal() {
     modal.show();
 }
 
-// Обработчики внутри модалки
 document.addEventListener('DOMContentLoaded', function () {
-    // Заполняем список городов
     loadCdekCities();
 
-    // Смена города → перезагрузка ПВЗ
     const citySelect = document.getElementById('cdekCitySelect');
     if (citySelect) {
         citySelect.addEventListener('change', function () {
@@ -2115,7 +2489,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Поиск по адресу
     const searchInput = document.getElementById('cdekSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function () {
@@ -2133,7 +2506,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Подтверждение выбора
     const confirmBtn = document.getElementById('cdekConfirmBtn');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function () {
@@ -2143,13 +2515,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const name    = cdekSelectedPoint.name || '';
             const address = cdekSelectedPoint.address || cdekSelectedPoint.full_address || '';
 
-            // 1. Записываем в JSON-поле (как было)
             const hidden = document.getElementById('buyNowDeliveryPoint');
             if (hidden) {
                 hidden.value = JSON.stringify({ code, name, address });
             }
 
-            // 2. ВАЖНО: заполняем скрытые поля, которые читает initBuyNow()
             const pointCodeInput    = document.getElementById('cdek-point-code');
             const pointNameInput    = document.getElementById('cdek-point-name');
             const pointAddressInput = document.getElementById('cdek-point-address-input');
@@ -2159,17 +2529,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (pointCodeInput)    pointCodeInput.value    = code;
             if (pointNameInput)    pointNameInput.value    = name;
             if (pointAddressInput) pointAddressInput.value = address;
-            // город/регион можно вытащить из cdekSelectedPoint, если они там есть:
             if (pointCityInput)    pointCityInput.value    = cdekSelectedPoint.city || '';
             if (pointRegionInput)  pointRegionInput.value  = cdekSelectedPoint.region || '';
 
-            // 3. Обновляем надпись у селекта доставки
             const label = document.getElementById('delivery-label');
             if (label) {
                 label.textContent = '🚚 СДЭК: ' + (address || name);
             }
 
-            // 4. Закрываем модалку карты
             const modalEl = document.getElementById('cdekPvzModal');
             const inst = bootstrap.Modal.getInstance(modalEl);
             if (inst) inst.hide();
@@ -2177,8 +2544,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-
-// Загрузка всех ПВЗ России
 function loadAllRussiaPoints() {
     const countEl = document.getElementById('cdekPointsCount');
     const btn = document.getElementById('cdekShowAllBtn');
@@ -2198,7 +2563,6 @@ function loadAllRussiaPoints() {
         if (countEl) countEl.textContent = `Найдено пунктов: ${cdekAllPoints.length}`;
         drawCdekPointsOnMap(cdekAllPoints);
 
-        // Расширяем карту на всю Россию
         if (cdekMap && cdekAllPoints.length) {
             const latLngs = cdekAllPoints.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
             const bounds = ymaps.util.bounds.fromPoints(latLngs);
@@ -2230,7 +2594,6 @@ if (showAllBtn) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM загружен, инициализация...');
 
-    // Инициализация компонентов
     initGallery();
     initFavorite();
     initSizeSelection();
@@ -2243,15 +2606,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initMediaViewer();
     initQuestProd();
 
-    // Обрезку характеристик инициализируем только на планшете и десктопе
     if (window.innerWidth >= 768) {
         initSpecsCut();
     }
 });
 
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Показать все отзывы
     const showAllBtn = document.getElementById('showAllReviewsBtn');
     if (showAllBtn) {
         showAllBtn.addEventListener('click', function() {
@@ -2285,6 +2645,168 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ============ СОГЛАСИЕ НА ОБРАБОТКУ ПД (AJAX) ============
+(function () {
+    const consentBtn = document.getElementById('consentGiveBtn');
+    if (!consentBtn) return;
+
+    consentBtn.addEventListener('click', function () {
+        const url = this.dataset.url;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+        this.disabled = true;
+        this.textContent = 'Отправка...';
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Убираем блок из модалки
+                const box = document.getElementById('consentAlertBox');
+                if (box) box.remove();
+            } else {
+                alert(data.message || 'Не удалось дать согласие. Попробуйте ещё раз.');
+                this.disabled = false;
+                this.textContent = 'Дать согласие';
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка принятия согласия на ПД:', err);
+            alert('Ошибка сети. Попробуйте ещё раз.');
+            this.disabled = false;
+            this.textContent = 'Дать согласие';
+        });
+    });
+})();
+
+// ============ ЧТЕНИЕ И ПРИНЯТИЕ ОФЕРТЫ ИЗ АКЦЕПТА ============
+(function() {
+    const offerReadBtn = document.getElementById('offerReadBtn');
+    const offerReadModalEl = document.getElementById('offerReadModal');
+    if (!offerReadBtn || !offerReadModalEl) return;
+
+    const offerReadBody = document.getElementById('offerReadBody');
+    const offerAcceptBtn = document.getElementById('offerAcceptBtn');
+
+    let offerReadModal = null;
+    let acceptModalWasOpen = false;
+
+    // Открытие оферты
+    offerReadBtn.addEventListener('click', function () {
+        const offerId = this.dataset.offerId;
+        if (!offerId) return;
+
+        // Запоминаем, что акцепт был открыт
+        const acceptModalEl = document.getElementById('purchaseAcceptModal');
+        acceptModalWasOpen = acceptModalEl && acceptModalEl.classList.contains('show');
+
+        // Прячем акцепт, но не закрываем — чтобы вернуться
+        if (acceptModalWasOpen) {
+            const acceptInstance = bootstrap.Modal.getInstance(acceptModalEl);
+            if (acceptInstance) acceptInstance.hide();
+        }
+
+        // Сбрасываем модалку оферты
+        offerReadBody.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Загрузка текста оферты...</p>
+            </div>
+        `;
+        offerAcceptBtn.disabled = true;
+
+        // Показываем модалку
+        offerReadModal = bootstrap.Modal.getOrCreateInstance(offerReadModalEl);
+        offerReadModal.show();
+
+        // Загружаем текст
+        fetch(`/profile/offer/${offerId}/?ajax=1`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Ошибка загрузки');
+            return r.text();
+        })
+        .then(html => {
+            // Пытаемся извлечь только тело оферты
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const content = doc.querySelector('.offer-content, .card-body');
+            if (content) {
+                offerReadBody.innerHTML = content.innerHTML;
+            } else {
+                offerReadBody.innerHTML = html;
+            }
+
+            // Активируем кнопку принятия
+            offerAcceptBtn.disabled = false;
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки оферты:', err);
+            offerReadBody.innerHTML = `
+                <div class="alert alert-danger">
+                    Не удалось загрузить текст оферты. Попробуйте позже.
+                </div>
+            `;
+        });
+    });
+
+    // Принятие оферты
+    offerAcceptBtn.addEventListener('click', function () {
+        const offerId = offerReadBtn.dataset.offerId;
+        if (!offerId) return;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+        this.disabled = true;
+        this.textContent = 'Отправка...';
+
+        fetch(`/profile/offer/${offerId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Скрываем блок-предупреждение про оферту
+                const offerAlert = document.getElementById('offerAlertBox');
+                if (offerAlert) offerAlert.remove();
+
+                // Закрываем модалку оферты
+                if (offerReadModal) offerReadModal.hide();
+
+                // Возвращаемся в акцепт
+                if (acceptModalWasOpen) {
+                    setTimeout(() => {
+                        const acceptModalEl = document.getElementById('purchaseAcceptModal');
+                        const acceptInstance = bootstrap.Modal.getOrCreateInstance(acceptModalEl);
+                        acceptInstance.show();
+                    }, 350);
+                }
+            } else {
+                alert(data.message || 'Не удалось принять оферту.');
+                this.disabled = false;
+                this.textContent = 'Принять оферту';
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка принятия оферты:', err);
+            alert('Ошибка сети. Попробуйте ещё раз.');
+            this.disabled = false;
+            this.textContent = 'Принять оферту';
+        });
+    });
+})();
 </script>
 
 <style>

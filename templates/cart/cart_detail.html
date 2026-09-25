@@ -366,6 +366,145 @@
     </div>
 </div>
 
+<!-- Модалка акцепта (подтверждение покупателя) -->
+<div class="modal fade" id="purchaseAcceptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">✅ Подтверждение заказа</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            {# ===== Блоки-напоминания о ПД и оферте ===== #}
+
+            {% if not user.personal_data_consent %}
+            <div class="accept-alert accept-alert-warning" id="consentAlertBox">
+                <div class="accept-alert-icon">⚠️</div>
+                <div class="accept-alert-text">
+                    <strong>Не дано согласие на обработку персональных данных</strong><br>
+                    Без него оформить заказ нельзя.
+                </div>
+                <button type="button"
+                        class="accept-alert-btn"
+                        id="consentGiveBtn"
+                        data-url="{% url 'accounts:give_personal_data_consent' %}">
+                    Дать согласие
+                </button>
+            </div>
+            {% endif %}
+
+            {% if active_offer and not offer_accepted %}
+            <div class="accept-alert accept-alert-info" id="offerAlertBox">
+                <div class="accept-alert-icon">📄</div>
+                <div class="accept-alert-text">
+                    <strong>Не принята оферта</strong><br>
+                    {{ active_offer.title }}{% if active_offer.version %} ({{ active_offer.version }}){% endif %}
+                </div>
+                <button type="button"
+                        class="accept-alert-btn"
+                        id="offerReadBtn"
+                        data-offer-id="{{ active_offer.id }}">
+                    Прочитать
+                </button>
+            </div>
+            {% endif %}
+
+            <div class="modal-body">
+                <p class="text-muted mb-3" style="font-size: 14px;">
+                    Перед оформлением заказа, пожалуйста, подтвердите следующие пункты:
+                </p>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept1" checked>
+                    <label for="accept1">
+                        Я ознакомлен(а) с характеристиками товара и составом заказа
+                        (размер, цвет, количество, стоимость).
+                    </label>
+                </div>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept2" checked>
+                    <label for="accept2">
+                        Я подтверждаю правильность указанных данных доставки
+                        (адрес, получатель, контактный телефон).
+                    </label>
+                </div>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept3" checked>
+                    <label for="accept3">
+                        Я согласен(на) с условиями оплаты, доставки и возврата,
+                        а также с
+                        <a href="#" target="_blank" rel="noopener">офертой</a>
+                        и
+                        <a href="#" target="_blank" rel="noopener">политикой обработки персональных данных</a>.
+                    </label>
+                </div>
+
+                <div class="accept-item">
+                    <input type="checkbox" class="accept-checkbox" id="accept4" checked>
+                    <label for="accept4">
+                        Я понимаю, что товары надлежащего качества из категории
+                        <strong>нижнего белья и купальников</strong> возврату и обмену
+                        не подлежат (Постановление Правительства РФ № 2463).
+                    </label>
+                </div>
+
+                <div id="acceptError"
+                     class="text-danger small mt-3"
+                     style="display: none;">
+                    Пожалуйста, подтвердите все пункты.
+                </div>
+            </div>
+
+            <div class="modal-footer justify-content-between">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Отмена
+                </button>
+                <button type="button"
+                        class="btn btn-success"
+                        id="acceptConfirmBtn"
+                        disabled>
+                    Подтверждаю и продолжить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка чтения оферты из акцепта -->
+<div class="modal fade" id="offerReadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📄 Оферта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="offerReadBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Загрузка текста оферты...</p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Закрыть
+                </button>
+                <button type="button"
+                        class="btn btn-success"
+                        id="offerAcceptBtn"
+                        disabled>
+                    Принять оферту
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .delivery-method-option {
     cursor: pointer;
@@ -619,6 +758,256 @@
         height: 70px !important;
     }
 }
+
+.accept-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    margin-bottom: 6px;
+}
+.accept-item:hover {
+    background: #f8f9fa;
+}
+.accept-item input[type="checkbox"] {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.accept-item label {
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: pointer;
+    color: #212529;
+    margin: 0;
+}
+.accept-item label a {
+    color: #0d6efd;
+    text-decoration: underline;
+}
+
+.accept-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin: 10px 16px 10px 16px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+.accept-alert-warning {
+    background: #fff5f5;
+    border: 1px solid #f5c2c7;
+}
+.accept-alert-info {
+    background: #f0f7ff;
+    border: 1px solid #b6d4fe;
+}
+.accept-alert-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+.accept-alert-text {
+    flex: 1;
+    min-width: 0;
+}
+.accept-alert-text strong {
+    display: block;
+    margin-bottom: 2px;
+}
+.accept-alert-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    background: #0d6efd;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.accept-alert-btn:hover {
+    background: #0b5ed7;
+    color: #fff;
+}
+.accept-alert-warning .accept-alert-btn {
+    background: #dc3545;
+}
+.accept-alert-warning .accept-alert-btn:hover {
+    background: #bb2d3b;
+}
+
+@media (max-width: 576px) {
+    .accept-alert {
+        flex-wrap: wrap;
+    }
+    .accept-alert-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ АКЦЕПТА И ОФЕРТЫ ============ */
+
+@media (max-width: 767.98px) {
+
+    /* ===== Блоки-напоминания (ПД, оферта) ===== */
+    .accept-alert {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 12px;
+        margin: 0 4px 8px 4px;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+
+    .accept-alert-icon {
+        font-size: 20px;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
+
+    .accept-alert-text {
+        /* Текст занимает всю ширину строки рядом с иконкой */
+        flex: 1 1 calc(100% - 32px);
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    .accept-alert-text strong {
+        font-size: 13px;
+        margin-bottom: 1px;
+    }
+
+    /* Кнопка уходит на новую строку, растянута на всю ширину */
+    .accept-alert-btn {
+        flex: 1 1 100%;
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 13px;
+        border-radius: 8px;
+        margin-top: 4px;
+        text-align: center;
+    }
+
+    /* ===== Модалка акцепта ===== */
+    #purchaseAcceptModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #purchaseAcceptModal .modal-body {
+        padding: 14px 12px;
+    }
+
+    #purchaseAcceptModal .modal-body > p.text-muted {
+        font-size: 13px !important;
+        margin-bottom: 10px !important;
+    }
+
+    #purchaseAcceptModal .accept-item {
+        padding: 10px 10px;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    #purchaseAcceptModal .accept-item label {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    #purchaseAcceptModal .accept-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+    }
+
+    #purchaseAcceptModal .modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    #purchaseAcceptModal .modal-footer .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    /* ===== Модалка чтения оферты ===== */
+    #offerReadModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #offerReadModal .modal-body {
+        padding: 14px 12px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    #offerReadModal .modal-body p,
+    #offerReadModal .modal-body li {
+        font-size: 14px;
+        word-break: break-word;
+    }
+
+    #offerReadModal .modal-body h1,
+    #offerReadModal .modal-body h2,
+    #offerReadModal .modal-body h3,
+    #offerReadModal .modal-body h4,
+    #offerReadModal .modal-body h5 {
+        font-size: 15px;
+        margin-top: 12px;
+        margin-bottom: 6px;
+    }
+
+    #offerReadModal .modal-body ul,
+    #offerReadModal .modal-body ol {
+        padding-left: 20px;
+    }
+
+    #offerReadModal .modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    #offerReadModal .modal-footer .btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    /* Спиннер и текст загрузки оферты */
+    #offerReadBody .text-center.py-4 {
+        padding: 20px 0 !important;
+    }
+}
+
+/* Очень узкие экраны (iPhone SE и подобные) */
+@media (max-width: 380px) {
+    .accept-alert-text strong {
+        font-size: 12.5px;
+    }
+    .accept-alert-btn {
+        font-size: 12.5px;
+        padding: 8px 10px;
+    }
+    #purchaseAcceptModal .accept-item label,
+    #offerReadModal .modal-body p {
+        font-size: 13px;
+    }
+}
 </style>
 
 <script>
@@ -795,13 +1184,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // «⚡ Купить»
     document.querySelectorAll('.buy-now-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-            openDeliveryModal({
+            const action = {
                 type: 'buy',
                 productId: this.dataset.productId,
                 size: this.dataset.size || '',
                 quantity: parseInt(this.dataset.quantity || '1', 10),
                 buyUrl: this.dataset.buyUrl,
-            }, 'Товар: ' + (this.closest('tr')?.querySelector('a.fw-medium')?.textContent.trim() || ''));
+            };
+
+            openAcceptModal(function () {
+                openDeliveryModal(action, 'Товар: ...');
+            });
         });
     });
 
@@ -809,10 +1202,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const checkoutBtn = document.getElementById('checkoutBtn');
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', function () {
-            openDeliveryModal({
+            const action = {
                 type: 'checkout',
                 checkoutUrl: this.dataset.checkoutUrl,
-            }, 'Оформление заказа из корзины');
+            };
+
+            openAcceptModal(function () {
+                openDeliveryModal(action, 'Оформление заказа из корзины');
+            });
         });
     }
 
@@ -933,6 +1330,215 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // ============ МОДАЛКА АКЦЕПТА ============
+    (function() {
+        const modalEl = document.getElementById('purchaseAcceptModal');
+        if (!modalEl) return;
+
+        const checkboxes = modalEl.querySelectorAll('.accept-checkbox');
+        const confirmBtn = modalEl.querySelector('#acceptConfirmBtn');
+        const errorEl = modalEl.querySelector('#acceptError');
+
+        let pendingAction = null;
+
+        function updateConfirmState() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            confirmBtn.disabled = !allChecked;
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateConfirmState);
+        });
+
+        // Открыть модалку и запомнить, что делать после подтверждения
+        window.openAcceptModal = function(onConfirm) {
+            pendingAction = onConfirm;
+
+            // Все чекбоксы по умолчанию включены
+            checkboxes.forEach(cb => cb.checked = true);
+            updateConfirmState();
+            errorEl.style.display = 'none';
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        };
+
+        // Кнопка «Подтверждаю»
+        confirmBtn.addEventListener('click', function() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            if (!allChecked) {
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            const action = pendingAction;
+            pendingAction = null;
+
+            if (typeof action === 'function') {
+                setTimeout(action, 200);
+            }
+        });
+    })();
+
+    // ============ СОГЛАСИЕ НА ОБРАБОТКУ ПД (AJAX) ============
+    (function () {
+        const consentBtn = document.getElementById('consentGiveBtn');
+        if (!consentBtn) return;
+
+        consentBtn.addEventListener('click', function () {
+            const url = this.dataset.url;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+            this.disabled = true;
+            this.textContent = 'Отправка...';
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const box = document.getElementById('consentAlertBox');
+                    if (box) box.remove();
+                } else {
+                    alert(data.message || 'Не удалось дать согласие. Попробуйте ещё раз.');
+                    this.disabled = false;
+                    this.textContent = 'Дать согласие';
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка принятия согласия на ПД:', err);
+                alert('Ошибка сети. Попробуйте ещё раз.');
+                this.disabled = false;
+                this.textContent = 'Дать согласие';
+            });
+        });
+    })();
+
+    // ============ ЧТЕНИЕ И ПРИНЯТИЕ ОФЕРТЫ ИЗ АКЦЕПТА ============
+    (function() {
+        const offerReadBtn = document.getElementById('offerReadBtn');
+        const offerReadModalEl = document.getElementById('offerReadModal');
+        if (!offerReadBtn || !offerReadModalEl) return;
+
+        const offerReadBody = document.getElementById('offerReadBody');
+        const offerAcceptBtn = document.getElementById('offerAcceptBtn');
+
+        let offerReadModal = null;
+        let acceptModalWasOpen = false;
+
+        // Открытие оферты
+        offerReadBtn.addEventListener('click', function () {
+            const offerId = this.dataset.offerId;
+            if (!offerId) return;
+
+            // Запоминаем, что акцепт был открыт
+            const acceptModalEl = document.getElementById('purchaseAcceptModal');
+            acceptModalWasOpen = acceptModalEl && acceptModalEl.classList.contains('show');
+
+            // Прячем акцепт, но не закрываем — чтобы вернуться
+            if (acceptModalWasOpen) {
+                const acceptInstance = bootstrap.Modal.getInstance(acceptModalEl);
+                if (acceptInstance) acceptInstance.hide();
+            }
+
+            // Сбрасываем модалку оферты
+            offerReadBody.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Загрузка текста оферты...</p>
+                </div>
+            `;
+            offerAcceptBtn.disabled = true;
+
+            // Показываем модалку
+            offerReadModal = bootstrap.Modal.getOrCreateInstance(offerReadModalEl);
+            offerReadModal.show();
+
+            // Загружаем текст
+            fetch(`/profile/offer/${offerId}/?ajax=1`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            })
+            .then(r => {
+                if (!r.ok) throw new Error('Ошибка загрузки');
+                return r.text();
+            })
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('.offer-content, .card-body');
+                if (content) {
+                    offerReadBody.innerHTML = content.innerHTML;
+                } else {
+                    offerReadBody.innerHTML = html;
+                }
+
+                offerAcceptBtn.disabled = false;
+            })
+            .catch(err => {
+                console.error('Ошибка загрузки оферты:', err);
+                offerReadBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        Не удалось загрузить текст оферты. Попробуйте позже.
+                    </div>
+                `;
+            });
+        });
+
+        // Принятие оферты
+        offerAcceptBtn.addEventListener('click', function () {
+            const offerId = offerReadBtn.dataset.offerId;
+            if (!offerId) return;
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+            this.disabled = true;
+            this.textContent = 'Отправка...';
+
+            fetch(`/profile/offer/${offerId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const offerAlert = document.getElementById('offerAlertBox');
+                    if (offerAlert) offerAlert.remove();
+
+                    if (offerReadModal) offerReadModal.hide();
+
+                    if (acceptModalWasOpen) {
+                        setTimeout(() => {
+                            const acceptModalEl = document.getElementById('purchaseAcceptModal');
+                            const acceptInstance = bootstrap.Modal.getOrCreateInstance(acceptModalEl);
+                            acceptInstance.show();
+                        }, 350);
+                    }
+                } else {
+                    alert(data.message || 'Не удалось принять оферту.');
+                    this.disabled = false;
+                    this.textContent = 'Принять оферту';
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка принятия оферты:', err);
+                alert('Ошибка сети. Попробуйте ещё раз.');
+                this.disabled = false;
+                this.textContent = 'Принять оферту';
+            });
+        });
+    })();
 
     // ============ BUY NOW ============
     function submitBuyNow(action, delivery, point) {
