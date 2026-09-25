@@ -127,10 +127,26 @@ def create_order(request):
     if request.method == 'POST':
         delivery_method = request.POST.get('delivery_method', '')
         delivery_point_raw = request.POST.get('delivery_point', '{}')
-        try:
-            point_data = json.loads(delivery_point_raw) if delivery_point_raw else {}
-        except Exception:
-            point_data = {}
+
+        point_data = {}
+        if delivery_point_raw:
+            # 1. Пробуем как JSON (приходит из JS-формы)
+            try:
+                parsed = json.loads(delivery_point_raw)
+                if isinstance(parsed, dict):
+                    point_data = parsed
+            except Exception:
+                pass
+
+            # 2. Если не получилось — пробуем формат "code|name|address"
+            if not point_data and '|' in delivery_point_raw:
+                parts = delivery_point_raw.split('|', 2)
+                if len(parts) == 3:
+                    point_data = {
+                        'code': parts[0],
+                        'name': parts[1],
+                        'address': parts[2],
+                    }
 
         # ---- Считаем сумму и собираем позиции ----
         if buy_now_data:

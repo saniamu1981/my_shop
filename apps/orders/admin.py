@@ -13,8 +13,12 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'first_name', 'last_name', 'total_price', 'paid', 'status', 'created')
-    list_filter = ('paid', 'status', 'created')
+    list_display = (
+        'id', 'user', 'first_name', 'last_name',
+        'total_price', 'paid', 'status',
+        'delivery_method_display', 'created',
+    )
+    list_filter = ('paid', 'status', 'delivery_method', 'created')
     list_editable = ('status',)
     search_fields = ('user__email', 'first_name', 'last_name', 'phone')
     readonly_fields = ('created', 'updated', 'total_price')
@@ -27,6 +31,16 @@ class OrderAdmin(admin.ModelAdmin):
         }),
         ('Статус и оплата', {
             'fields': ('status', 'paid', 'total_price')
+        }),
+        ('Доставка', {
+            'fields': (
+                'delivery_method',
+                'delivery_price',
+                'delivery_point_name',
+                'delivery_point_address',
+                'delivery_point_code',
+            ),
+            'description': 'Информация о выбранном способе доставки и пункте выдачи.',
         }),
         ('Даты', {
             'fields': ('created', 'updated'),
@@ -53,6 +67,13 @@ class OrderAdmin(admin.ModelAdmin):
         queryset.update(status='delivered')
 
     mark_as_delivered.short_description = 'Отметить как доставленные'
+
+    @admin.display(description='Доставка')
+    def delivery_method_display(self, obj):
+        if not obj.delivery_method:
+            return '—'
+        # get_delivery_method_display возвращает человекочитаемое название
+        return obj.get_delivery_method_display()
 
 
 @admin.register(Cart)
