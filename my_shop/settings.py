@@ -388,3 +388,5 @@ WEBPUSH_SETTINGS = {
     "VAPID_PRIVATE_KEY": "93TEGIMLhWm0sQaGjN9A9P2Pl7mW2HjBducE_XdsJug",
     "VAPID_ADMIN_EMAIL": "info@maidlingerie.ru"
 }
+
+PWA_SERVICE_WORKER_PATH = 'webpush/webpush_serviceworker.js'

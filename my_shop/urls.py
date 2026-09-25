@@ -32,8 +32,11 @@ urlpatterns = [
     path('webpush/', include('webpush.urls')),
     path('', include('pwa.urls')),  # ← манифест PWA
 
-    # Service Worker должен отдаваться из корня домена
-    re_path(r'^serviceworker\.js$', staticfiles_serve, {'path': 'webpush/serviceworker.js'}),
+    # PWA service worker — из корня
+    re_path(r'^serviceworker\.js$', staticfiles_serve, {'path': 'serviceworker.js'}),
+
+    # Webpush service worker — отдельный URL для webpush
+    re_path(r'^webpush/serviceworker\.js$', staticfiles_serve, {'path': 'webpush/webpush_serviceworker.js'}),
 ]
 
 if settings.DEBUG:
