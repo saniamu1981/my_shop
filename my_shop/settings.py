@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'channels',
     'pwa',
     'webpush',
+    'solo',
 
     # Наши приложения
     'apps.accounts',
@@ -62,6 +63,7 @@ INSTALLED_APPS = [
     'apps.orders',
     'admin_panel',
     'delivery',
+    'apps.shop_settings',
 ]
 
 MIDDLEWARE = [

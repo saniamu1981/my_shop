@@ -18,6 +18,7 @@
                         <th>Оплата</th>
                         <th>Доставка</th>
                         <th>Пункт выдачи</th>
+                        <th>Заявка на возврат</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -59,6 +60,25 @@
                                     </span>
                                 {% else %}
                                     <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.has_active_return %}
+                                    <span class="badge bg-info text-dark" style="font-size: 12px;">
+                                        ↩️ Заявка создана
+                                    </span>
+                                {% elif order.can_return %}
+                                    <a href="{% url 'orders:create_return' order.id %}"
+                                       class="btn btn-sm btn-outline-warning return-request-btn"
+                                       data-deadline="{{ order.return_deadline|date:'c' }}">
+                                        ↩️ Создать заявку
+                                    </a>
+                                    <div class="return-deadline-hint"
+                                         data-deadline="{{ order.return_deadline|date:'c' }}">
+                                        до {{ order.return_deadline|date:'d.m.Y H:i' }}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted" style="font-size: 12px;">—</span>
                                 {% endif %}
                             </td>
                             <td style="min-width: 200px;">
@@ -155,6 +175,27 @@
                         {% endif %}
                     </div>
 
+                    {% if order.has_active_return %}
+                        <div class="mt-2">
+                            <span class="badge bg-info text-dark w-100 text-center"
+                                  style="font-size: 13px; padding: 8px; border-radius: 6px; display: block;">
+                                ↩️ Заявка на возврат создана
+                            </span>
+                        </div>
+                    {% elif order.can_return %}
+                        <div class="mt-2 return-block" data-deadline="{{ order.return_deadline|date:'c' }}">
+                            <a href="{% url 'orders:create_return' order.id %}"
+                               class="btn btn-sm btn-outline-warning w-100 return-request-btn"
+                               data-deadline="{{ order.return_deadline|date:'c' }}">
+                                ↩️ Создать заявку на возврат
+                            </a>
+                            <div class="return-deadline-hint text-center"
+                                 data-deadline="{{ order.return_deadline|date:'c' }}">
+                                до {{ order.return_deadline|date:'d.m.Y H:i' }}
+                            </div>
+                        </div>
+                    {% endif %}
+
                     {% if order.status == 'delivered' %}
                         <div class="mt-2">
                             {% if order.has_unreviewed_items %}
@@ -179,6 +220,130 @@
             <p class="mt-3">Оформите первый заказ, чтобы увидеть его здесь!</p>
             <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">Перейти в каталог</a>
         </div>
+    {% endif %}
+
+    <!-- ============ ВОЗВРАТЫ ============ -->
+    {% if returns %}
+    <div class="returns-section mt-5 pt-4 border-top">
+        <h2 class="mb-4">↩️ Возвраты</h2>
+
+        <!-- ===== ДЕСКТОПНАЯ ТАБЛИЦА ===== -->
+        <div class="table-responsive d-none d-md-block">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>№ заявки</th>
+                        <th>Дата заявки</th>
+                        <th>Заказ</th>
+                        <th>Сумма возврата</th>
+                        <th>Позиций</th>
+                        <th>Причина</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ret in returns %}
+                        <tr>
+                            <td><strong>R-{{ ret.id }}</strong></td>
+                            <td>{{ ret.created|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'orders:order_detail' ret.order.id %}"
+                                   class="text-decoration-none">
+                                    №{{ ret.order.id }}
+                                </a>
+                            </td>
+                            <td><strong>{{ ret.total_price }} ₽</strong></td>
+                            <td>{{ ret.total_quantity }} шт.</td>
+                            <td>{{ ret.get_reason_display }}</td>
+                            <td>
+                                {% if ret.status == 'new' %}
+                                    <span class="badge bg-warning text-dark">🆕 Новая</span>
+                                {% elif ret.status == 'review' %}
+                                    <span class="badge bg-info text-dark">🔍 На рассмотрении</span>
+                                {% elif ret.status == 'approved' %}
+                                    <span class="badge bg-success">✅ Одобрена</span>
+                                {% elif ret.status == 'rejected' %}
+                                    <span class="badge bg-danger">❌ Отклонена</span>
+                                {% elif ret.status == 'completed' %}
+                                    <span class="badge bg-primary">🏁 Завершена</span>
+                                {% elif ret.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">🚫 Отменена</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ ret.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if ret.admin_comment %}
+                            <tr class="return-comment-row">
+                                <td colspan="7">
+                                    <div class="return-comment-box">
+                                        <strong>💬 Ответ магазина:</strong>
+                                        {{ ret.admin_comment }}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ===== МОБИЛЬНЫЕ КАРТОЧКИ ===== -->
+        <div class="d-md-none">
+            {% for ret in returns %}
+                <div class="return-card mb-3 p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="return-card-title">Заявка R-{{ ret.id }}</div>
+                            <div class="return-card-date">{{ ret.created|date:"d.m.Y H:i" }}</div>
+                        </div>
+                        <div class="return-card-price">{{ ret.total_price }} ₽</div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        {% if ret.status == 'new' %}
+                            <span class="badge bg-warning text-dark">🆕 Новая</span>
+                        {% elif ret.status == 'review' %}
+                            <span class="badge bg-info text-dark">🔍 На рассмотрении</span>
+                        {% elif ret.status == 'approved' %}
+                            <span class="badge bg-success">✅ Одобрена</span>
+                        {% elif ret.status == 'rejected' %}
+                            <span class="badge bg-danger">❌ Отклонена</span>
+                        {% elif ret.status == 'completed' %}
+                            <span class="badge bg-primary">🏁 Завершена</span>
+                        {% elif ret.status == 'cancelled' %}
+                            <span class="badge bg-secondary">🚫 Отменена</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="return-card-info">
+                        <div>
+                            <span class="text-muted">Заказ:</span>
+                            <a href="{% url 'orders:order_detail' ret.order.id %}"
+                               class="text-decoration-none">
+                                №{{ ret.order.id }}
+                            </a>
+                        </div>
+                        <div>
+                            <span class="text-muted">Позиций:</span>
+                            {{ ret.total_quantity }} шт.
+                        </div>
+                        <div>
+                            <span class="text-muted">Причина:</span>
+                            {{ ret.get_reason_display }}
+                        </div>
+                    </div>
+
+                    {% if ret.admin_comment %}
+                        <div class="return-comment-box mt-2">
+                            <strong>💬 Ответ магазина:</strong>
+                            {{ ret.admin_comment }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 </div>
 
@@ -265,6 +430,108 @@
         padding: 7px 8px;
     }
 }
+
+@media (max-width: 767.98px) {
+    .return-request-btn {
+        font-size: 13px;
+        padding: 8px 10px;
+        white-space: normal;
+        line-height: 1.3;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .return-request-btn {
+        font-size: 12px;
+        padding: 7px 8px;
+    }
+}
+
+
+.return-deadline-hint {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+    text-align: center;
+}
+.return-deadline-hint.expired {
+    color: #dc3545;
+}
+
+/* ============ РАЗДЕЛ ВОЗВРАТОВ ============ */
+
+.returns-section h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #212529;
+}
+
+.return-comment-row td {
+    padding-top: 0 !important;
+    padding-bottom: 12px !important;
+    border-top: none !important;
+}
+
+.return-comment-box {
+    background: #fff8e1;
+    border-left: 4px solid #ffc107;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #664d03;
+    word-break: break-word;
+}
+
+/* Мобильные карточки */
+.return-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+.return-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #212529;
+}
+.return-card-date {
+    font-size: 12px;
+    color: #6c757d;
+}
+.return-card-price {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0d6efd;
+    white-space: nowrap;
+}
+.return-card .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 10px;
+}
+.return-card-info {
+    font-size: 13px;
+    color: #495057;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+@media (max-width: 767.98px) {
+    .returns-section h2 {
+        font-size: 20px;
+        margin-bottom: 14px !important;
+    }
+    .returns-section.mt-5 {
+        margin-top: 30px !important;
+        padding-top: 20px !important;
+    }
+    .return-card .badge {
+        font-size: 10px;
+    }
+}
 </style>
 
 <script>
@@ -278,5 +545,52 @@ function showCancelModal(orderId) {
     const modal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
     modal.show();
 }
+
+// ============ СРОК ВОЗВРАТА: ДИНАМИЧЕСКОЕ ИСЧЕЗНОВЕНИЕ ============
+document.addEventListener('DOMContentLoaded', function () {
+    // Все элементы, у которых есть data-deadline
+    const deadlineEls = document.querySelectorAll('[data-deadline]');
+
+    function updateReturnButtons() {
+        const now = new Date();
+
+        document.querySelectorAll('.return-request-btn').forEach(btn => {
+            const deadlineStr = btn.dataset.deadline;
+            if (!deadlineStr) return;
+
+            const deadline = new Date(deadlineStr);
+            if (isNaN(deadline.getTime())) return;
+
+            if (now > deadline) {
+                // Срок истёк — скрываем весь блок с кнопкой
+                const block = btn.closest('.return-block') || btn.parentElement;
+                const wrapper = btn.closest('td') || btn.closest('.return-block');
+
+                if (wrapper) {
+                    // На десктопе заменяем ячейку на прочерк
+                    const td = btn.closest('td');
+                    if (td) {
+                        td.innerHTML = '<span class="text-muted" style="font-size: 12px;">—</span>';
+                    } else if (block) {
+                        // На мобильном просто убираем весь блок
+                        block.remove();
+                    }
+                }
+            } else {
+                // Подсвечиваем подсказку, если срока осталось мало (меньше суток)
+                const diff = deadline - now;
+                if (diff < 24 * 60 * 60 * 1000) {
+                    const hint = btn.parentElement.querySelector('.return-deadline-hint') ||
+                                 btn.parentElement.parentElement.querySelector('.return-deadline-hint');
+                    if (hint) hint.classList.add('near-expiry');
+                }
+            }
+        });
+    }
+
+    // Проверяем каждые 30 секунд
+    updateReturnButtons();
+    setInterval(updateReturnButtons, 30 * 1000);
+});
 </script>
 {% endblock %}

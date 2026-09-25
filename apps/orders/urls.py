@@ -14,4 +14,5 @@ urlpatterns = [
     path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
     path('add-review/', views.add_review, name='add_review'),
     path('yookassa/webhook/', views.yookassa_webhook, name='yookassa_webhook'),
+    path('order/<int:order_id>/return/', views.create_return, name='create_return'),
 ]

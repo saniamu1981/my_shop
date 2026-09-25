@@ -19,6 +19,10 @@ from apps.products.models import Product, Review, ReviewMedia
 from django.contrib.auth import get_user_model
 from apps.accounts.utils import send_push_safe
 
+from django.views.decorators.http import require_POST
+from .forms import ReturnCreateForm
+from .models import Return, ReturnItem, ReturnPhoto
+
 
 # ============ Настройка ЮKassa ============
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
@@ -29,13 +33,12 @@ Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
 @login_required
 def order_list(request):
-    """Список заказов пользователя"""
+    """Список заказов пользователя + заявок на возврат."""
     orders = Order.objects.filter(user=request.user).order_by('-created')
 
     for order in orders:
         order_product_ids = set(order.items.values_list('product_id', flat=True))
 
-        # Отзывы ИМЕННО ПО ЭТОМУ ЗАКАЗУ (важно!)
         reviewed_ids_in_order = set(
             Review.objects.filter(
                 user=request.user,
@@ -43,13 +46,27 @@ def order_list(request):
                 product_id__in=order_product_ids
             ).values_list('product_id', flat=True)
         )
-
         order.has_unreviewed_items = bool(order_product_ids - reviewed_ids_in_order)
+
+        # Есть ли активная заявка на возврат по этому заказу?
+        order.has_active_return = order.returns.exclude(status='cancelled').exists()
+
+    # Возвраты пользователя
+    returns = Return.objects.filter(user=request.user).select_related('order').order_by('-created')
 
     paginator = Paginator(orders, 10)
     page = request.GET.get('page')
     orders = paginator.get_page(page)
-    return render(request, 'orders/order_list.html', {'orders': orders})
+
+    # Пагинация для возвратов (отдельная страница)
+    returns_paginator = Paginator(returns, 10)
+    returns_page = request.GET.get('returns_page')
+    returns = returns_paginator.get_page(returns_page)
+
+    return render(request, 'orders/order_list.html', {
+        'orders': orders,
+        'returns': returns,
+    })
 
 
 @login_required
@@ -167,7 +184,7 @@ def create_order(request):
                 "head": "🛍 Новый заказ!",
                 "body": f"Заказ №{order.id} на сумму {order.total_price} ₽",
                 "icon": "/static/icons/icon-192x192.png",
-                "url": f"/admin-panel/orders/{order.id}/",  # куда вести при клике
+                "url": f"/admin/orders/order/{order.id}/change/",  # куда вести при клике
             }
             for admin in admins:
                 send_push_safe(admin, payload)
@@ -587,3 +604,103 @@ def add_review(request):
         'existing_reviews': existing_reviews,
     }
     return render(request, 'orders/add_review.html', context)
+
+
+@login_required
+def create_return(request, order_id):
+    """Создание заявки на возврат товара из заказа."""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    # ===== Проверки =====
+    if not order.can_return:
+        messages.error(
+            request,
+            'Срок подачи заявки на возврат истёк или заказ ещё не доставлен.'
+        )
+        return redirect('orders:order_list')
+
+    # Если уже есть активная заявка по этому заказу — редиректим на неё
+    existing = order.returns.exclude(status='cancelled').first()
+    if existing:
+        messages.info(
+            request,
+            f'Заявка на возврат по заказу №{order.id} уже создана. '
+            f'Ожидайте решения администратора.'
+        )
+        return redirect('orders:order_list')
+
+    # ===== POST — создаём заявку =====
+    if request.method == 'POST':
+        form = ReturnCreateForm(request.POST)
+        if form.is_valid():
+            # Создаём Return (фиксируется created = auto_now_add)
+            ret = form.save(commit=False)
+            ret.order = order
+            ret.user = request.user
+            ret.status = 'new'
+            ret.save()
+
+            # ===== Позиции — все товары из заказа =====
+            # (позже сделаем выбор отдельных товаров — пока все)
+            for item in order.items.all():
+                ReturnItem.objects.create(
+                    return_request=ret,
+                    order_item=item,
+                    product=item.product,
+                    product_name=item.product.name if item.product else 'Товар удалён',
+                    size=getattr(item, 'size', '') or '',
+                    price=item.price,
+                    quantity=item.quantity,
+                )
+
+            # ===== Фото =====
+            files = request.FILES.getlist('photos')
+            for idx, f in enumerate(files):
+                content_type = f.content_type or ''
+                if content_type.startswith('image/'):
+                    ReturnPhoto.objects.create(
+                        return_request=ret,
+                        image=f,
+                        comment=f'Фото {idx + 1}',
+                    )
+
+            # ===== Уведомление админам =====
+            try:
+                from django.contrib.auth import get_user_model
+                from apps.accounts.utils import send_push_safe
+                User = get_user_model()
+                admins = User.objects.filter(is_staff=True, is_active=True)
+                payload = {
+                    "head": "↩️ Новая заявка на возврат",
+                    "body": f'Заказ №{order.id}, клиент: {request.user.email}',
+                    "icon": "/static/icons/icon-192x192.png",
+                    "url": f"/admin/orders/return/{ret.id}/change/",
+                }
+                for admin in admins:
+                    send_push_safe(admin, payload)
+            except Exception as e:
+                print(f'Push error (return): {e}')
+
+            messages.success(
+                request,
+                f'Заявка на возврат №{ret.id} успешно создана. '
+                f'Мы рассмотрим её в течение 1–2 рабочих дней.'
+            )
+            return redirect('orders:order_list')
+
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+    else:
+        form = ReturnCreateForm()
+
+    # ===== Считаем доступные для возврата товары =====
+    order_items = order.items.select_related('product').all()
+    total_quantity = sum(i.quantity for i in order_items)
+
+    return render(request, 'orders/return_create.html', {
+        'order': order,
+        'form': form,
+        'order_items': order_items,
+        'total_quantity': total_quantity,
+        'max_photos': 10,
+    })

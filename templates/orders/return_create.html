@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+
+{% block title %}Возврат по заказу №{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'orders:order_list' %}">Мои заказы</a></li>
+            <li class="breadcrumb-item active">Возврат по заказу №{{ order.id }}</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-3">↩️ Заявка на возврат</h1>
+    <p class="text-muted mb-4">
+        Заказ <strong>№{{ order.id }}</strong> от {{ order.created|date:"d.m.Y" }},
+        сумма: <strong>{{ order.total_price }} ₽</strong>
+    </p>
+
+    <div class="row g-4">
+        <!-- ============ ЛЕВАЯ КОЛОНКА: ФОРМА ============ -->
+        <div class="col-12 col-lg-8">
+
+            <!-- Инструкция -->
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h5 class="mb-0">📋 Как оформить возврат</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0" style="padding-left: 20px; line-height: 1.7;">
+                        <li>Проверьте состав заказа и убедитесь, что товар не использовался.</li>
+                        <li>Выберите <strong>причину возврата</strong> из списка.</li>
+                        <li>Опишите ситуацию в комментарии — чем подробнее, тем быстрее рассмотрим.</li>
+                        <li>Загрузите <strong>фотографии товара</strong> (требования — в правой колонке).</li>
+                        <li>Нажмите «Отправить заявку». Мы рассмотрим её в течение 1–2 рабочих дней.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Форма -->
+            <div class="card">
+                <div class="card-body p-3 p-md-4">
+                    <form method="post" enctype="multipart/form-data" id="returnForm">
+                        {% csrf_token %}
+
+                        <!-- Состав заказа -->
+                        <h5 class="mb-3">📦 Товары к возврату</h5>
+                        <div class="return-items-list mb-4">
+                            {% for item in order_items %}
+                                <div class="return-item-row">
+                                    <div class="d-flex align-items-center gap-3">
+                                        {% if item.product and item.product.image %}
+                                            <img src="{{ item.product.image.url }}"
+                                                 alt="{{ item.product.name }}"
+                                                 class="return-item-img">
+                                        {% else %}
+                                            <div class="return-item-img d-flex align-items-center justify-content-center bg-light text-muted"
+                                                 style="font-size: 10px;">
+                                                Нет фото
+                                            </div>
+                                        {% endif %}
+                                        <div class="flex-grow-1 min-width-0">
+                                            <div class="return-item-name">
+                                                {{ item.product.name|default:"Товар удалён" }}
+                                            </div>
+                                            <div class="text-muted small">
+                                                {{ item.quantity }} × {{ item.price }} ₽
+                                                {% if item.size %} · Размер: {{ item.size }}{% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="return-item-total">
+                                            {{ item.get_cost }} ₽
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="alert alert-info small mb-4">
+                            Пока возврат оформляется на <strong>весь заказ</strong>.
+                            Если нужно вернуть только часть товаров — напишите об этом в комментарии.
+                        </div>
+
+                        <!-- Причина -->
+                        <div class="mb-3">
+                            <label for="{{ form.reason.id_for_label }}" class="form-label">
+                                {{ form.reason.label }}
+                            </label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="text-danger small mt-1">{{ form.reason.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Комментарий -->
+                        <div class="mb-3">
+                            <label for="{{ form.comment.id_for_label }}" class="form-label">
+                                {{ form.comment.label }}
+                            </label>
+                            {{ form.comment }}
+                            <div class="form-text">{{ form.comment.help_text }}</div>
+                            {% if form.comment.errors %}
+                                <div class="text-danger small mt-1">{{ form.comment.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Фото -->
+                        <div class="mb-4">
+                            <label class="form-label">📷 Фотографии товара</label>
+
+                            <label for="returnPhotos" class="return-upload-zone" id="uploadZone">
+                                <input type="file"
+                                       id="returnPhotos"
+                                       name="photos"
+                                       accept="image/*"
+                                       multiple
+                                       style="display: none;">
+                                <div class="return-upload-inner">
+                                    <div class="return-upload-icon">📷</div>
+                                    <div class="return-upload-title">
+                                        Нажмите или перетащите фото сюда
+                                    </div>
+                                    <div class="return-upload-hint">
+                                        До {{ max_photos }} файлов, JPG/PNG, до 5 МБ каждый
+                                    </div>
+                                </div>
+                            </label>
+
+                            <div id="returnPreview" class="return-preview-grid"></div>
+
+                            <div class="form-text mt-2">
+                                Фото помогают нам быстрее принять решение.
+                                Минимум 2 фото товара — общий вид и проблемное место.
+                            </div>
+                        </div>
+
+                        <!-- Кнопки -->
+                        <div class="d-flex flex-column flex-sm-row gap-2">
+                            <a href="{% url 'orders:order_list' %}" class="btn btn-secondary">
+                                ← Отмена
+                            </a>
+                            <button type="submit"
+                                    class="btn btn-success flex-grow-1"
+                                    id="submitReturnBtn">
+                                Отправить заявку
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ ПРАВАЯ КОЛОНКА: ПРАВИЛА И ТРЕБОВАНИЯ ============ -->
+        <div class="col-12 col-lg-4">
+
+            <div class="card mb-3 border-warning">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <h5 class="mb-0">⚠️ Когда возврат невозможен</h5>
+                </div>
+                <div class="card-body small">
+                    <ul class="mb-0" style="padding-left: 18px; line-height: 1.7;">
+                        <li>Срок подачи заявки истёк (14 дней с момента доставки).</li>
+                        <li>Товар был в использовании, постиран, повреждён.</li>
+                        <li>Утрачен товарный вид, ярлыки, оригинальная упаковка.</li>
+                        <li>Отсутствует подтверждение покупки (заказ в системе).</li>
+                        <li>Товар был индивидуально изготовлен по вашему заказу.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">📷 Требования к фото</h5>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2"><strong>Обязательно приложите:</strong></p>
+                    <ol class="mb-3" style="padding-left: 18px; line-height: 1.7;">
+                        <li><strong>Общий вид товара</strong> — целиком, на светлом фоне.</li>
+                        <li><strong>Проблемное место</strong> — крупный план дефекта/несоответствия.</li>
+                        <li><strong>Бирки и ярлыки</strong> — если сохранились.</li>
+                        <li><strong>Упаковка</strong> — если вы в ней получили товар.</li>
+                    </ol>
+                    <p class="mb-1"><strong>Хорошее фото:</strong></p>
+                    <ul class="mb-0" style="padding-left: 18px; line-height: 1.7;">
+                        <li>Чёткое, без размытия.</li>
+                        <li>Хорошее освещение, без бликов.</li>
+                        <li>Формат JPG или PNG.</li>
+                        <li>До 5 МБ каждое.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📄 Правила возврата</h5>
+                </div>
+                <div class="card-body small" style="line-height: 1.7;">
+                    <p>
+                        Возврат товара надлежащего качества возможен в течение
+                        <strong>14 дней</strong> с момента доставки, при условии
+                        сохранения товарного вида, бирок и упаковки.
+                    </p>
+                    <p>
+                        Возврат товара <strong>ненадлежащего качества</strong> (брак)
+                        возможен в течение гарантийного срока или срока годности.
+                    </p>
+                    <p class="mb-0">
+                        Возврат денежных средств производится в течение
+                        <strong>10 дней</strong> с момента одобрения заявки
+                        на карту, с которой была оплата.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ============ СТИЛИ СТРАНИЦЫ ВОЗВРАТА ============ */
+
+.return-items-list {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.return-item-row {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.return-item-row:last-child {
+    border-bottom: none;
+}
+.return-item-img {
+    width: 50px;
+    height: 65px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.return-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #212529;
+}
+.return-item-total {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0d6efd;
+    white-space: nowrap;
+}
+.min-width-0 {
+    min-width: 0;
+}
+
+/* Зона загрузки фото */
+.return-upload-zone {
+    display: block;
+    width: 100%;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    background: #f8fafc;
+}
+.return-upload-zone:hover {
+    border-color: #0d6efd;
+    background: #eef6ff;
+}
+.return-upload-zone.dragover {
+    border-color: #0d6efd;
+    background: #e0efff;
+    transform: scale(1.01);
+}
+.return-upload-icon {
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+.return-upload-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #334155;
+    margin-bottom: 4px;
+}
+.return-upload-hint {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* Превью */
+.return-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.return-preview-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+}
+.return-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.return-preview-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(220, 53, 69, 0.9);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    transition: transform 0.15s ease;
+}
+.return-preview-remove:hover {
+    background: #dc3545;
+    transform: scale(1.1);
+}
+
+/* Мобильная адаптация */
+@media (max-width: 767.98px) {
+    .container { padding-left: 8px; padding-right: 8px; }
+    h1.mb-3 { font-size: 22px !important; }
+    .card-body { padding: 14px !important; }
+    .return-item-name { font-size: 13px; }
+    .return-item-total { font-size: 13px; }
+    .return-upload-zone { padding: 18px 12px; }
+    .return-upload-icon { font-size: 26px; }
+    .return-upload-title { font-size: 13px; }
+    .return-preview-item { width: 80px; height: 80px; }
+    #submitReturnBtn { font-size: 15px; padding: 12px; }
+    .form-control, .form-select {
+        font-size: 16px !important;  /* iOS — не зумит */
+    }
+}
+</style>
+
+<script>
+// ============ ПРЕВЬЮ И ВАЛИДАЦИЯ ФОТО ============
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('returnPhotos');
+    const zone = document.getElementById('uploadZone');
+    const preview = document.getElementById('returnPreview');
+    const form = document.getElementById('returnForm');
+    const submitBtn = document.getElementById('submitReturnBtn');
+    const MAX_FILES = {{ max_photos }};
+    const MAX_SIZE = 5 * 1024 * 1024; // 5 МБ
+
+    if (!input || !zone || !preview) return;
+
+    let selectedFiles = [];
+
+    function syncInputFiles() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        input.files = dt.files;
+    }
+
+    function renderPreviews() {
+        preview.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'return-preview-item';
+
+            const url = URL.createObjectURL(file);
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = file.name;
+            img.onload = () => URL.revokeObjectURL(url);
+            item.appendChild(img);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'return-preview-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Удалить';
+            removeBtn.addEventListener('click', () => {
+                selectedFiles.splice(index, 1);
+                syncInputFiles();
+                renderPreviews();
+            });
+            item.appendChild(removeBtn);
+
+            preview.appendChild(item);
+        });
+    }
+
+    function addFiles(files) {
+        Array.from(files).forEach(f => {
+            // Только изображения
+            if (!f.type.startsWith('image/')) return;
+
+            // Ограничение размера
+            if (f.size > MAX_SIZE) {
+                alert(`Файл "${f.name}" больше 5 МБ и не будет добавлен.`);
+                return;
+            }
+
+            // Проверка на дубликат
+            const exists = selectedFiles.some(x => x.name === f.name && x.size === f.size);
+            if (!exists) selectedFiles.push(f);
+        });
+
+        if (selectedFiles.length > MAX_FILES) {
+            selectedFiles = selectedFiles.slice(0, MAX_FILES);
+            alert(`Можно загрузить не более ${MAX_FILES} фото.`);
+        }
+
+        syncInputFiles();
+        renderPreviews();
+    }
+
+    input.addEventListener('change', function () {
+        addFiles(input.files);
+    });
+
+    // Drag & drop
+    ['dragenter', 'dragover'].forEach(evt => {
+        zone.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.add('dragover');
+        });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+        zone.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.remove('dragover');
+        });
+    });
+    zone.addEventListener('drop', function (e) {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length) {
+            addFiles(dt.files);
+        }
+    });
+
+    // Валидация при отправке
+    form.addEventListener('submit', function (e) {
+        const reason = document.querySelector('[name="reason"]');
+        if (!reason || !reason.value) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите причину возврата.');
+            reason.focus();
+            return;
+        }
+
+        // Блокируем кнопку, чтобы не было двойной отправки
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Отправка...';
+    });
+});
+</script>
+{% endblock %}
