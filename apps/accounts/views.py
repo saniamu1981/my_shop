@@ -12,6 +12,9 @@ from apps.orders.models import Order
 from apps.products.models import Review
 import json
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 
 @login_required
 def profile(request):
@@ -186,27 +189,113 @@ def chat(request):
 @login_required
 @require_POST
 def chat_send(request):
-    """Отправка сообщения пользователем."""
-    text = (request.POST.get('message') or '').strip()
-    if not text:
-        return JsonResponse({'success': False, 'error': 'Пустое сообщение'}, status=400)
+    """Отправка сообщения в чат — с вложениями.
 
+    Работает и для пользователя, и для админа.
+    Определяет адресата по роли отправителя.
+    """
+    from .models import ChatMessageAttachment
+
+    text = (request.POST.get('message') or '').strip()
+    files = request.FILES.getlist('attachments')
+
+    if not text and not files:
+        return JsonResponse(
+            {'success': False, 'error': 'Пустое сообщение'},
+            status=400,
+        )
+
+    # ===== Кто отправитель? =====
+    is_admin = request.user.is_staff or request.user.is_superuser
+
+    if is_admin:
+        # Админ отправляет конкретному пользователю
+        target_user_id = request.POST.get('target_user_id')
+        if not target_user_id:
+            return JsonResponse(
+                {'success': False, 'error': 'Не указан получатель (target_user_id)'},
+                status=400,
+            )
+        try:
+            target_user_id = int(target_user_id)
+        except (TypeError, ValueError):
+            return JsonResponse(
+                {'success': False, 'error': 'Некорректный target_user_id'},
+                status=400,
+            )
+
+        # Создаём сообщение от админа — оно привязано к пользователю target_user_id
+        sender = 'admin'
+        user_id_for_message = target_user_id
+    else:
+        # Обычный пользователь — сам себе "получатель"
+        sender = 'user'
+        user_id_for_message = request.user.id
+        target_user_id = request.user.id
+
+    # ===== Создаём сообщение =====
     msg = ChatMessage.objects.create(
-        user=request.user,
-        sender='user',
+        user_id=user_id_for_message,
+        sender=sender,
         message=text,
     )
 
-    return JsonResponse({
-        'success': True,
-        'message': {
-            'id': msg.id,
-            'sender': msg.sender,
-            'message': msg.message,
-            'created': msg.created.strftime('%d.%m.%Y %H:%M'),
-            'is_read': msg.is_read,
-        }
-    })
+    # ===== Сохраняем вложения =====
+    attachments_data = []
+    for f in files:
+        content_type = f.content_type or ''
+        if content_type.startswith('image/'):
+            a_type = 'image'
+        elif content_type.startswith('video/'):
+            a_type = 'video'
+        else:
+            a_type = 'file'
+
+        att = ChatMessageAttachment.objects.create(
+            message=msg,
+            file=f,
+            attachment_type=a_type,
+            original_name=f.name,
+            size=f.size,
+        )
+
+        attachments_data.append({
+            'id': att.id,
+            'url': att.file.url,
+            'type': att.attachment_type,
+            'name': att.original_name,
+            'size': att.size,
+        })
+
+    # ===== Payload =====
+    payload = {
+        'id': msg.id,
+        'sender': msg.sender,
+        'message': msg.message,
+        'created': msg.created.strftime('%d.%m.%Y %H:%M'),
+        'is_read': msg.is_read,
+        'attachments': attachments_data,
+    }
+
+    # ===== Рассылка по нужным группам =====
+    try:
+        channel_layer = get_channel_layer()
+
+        # Пользователю
+        async_to_sync(channel_layer.group_send)(
+            f'chat_user_{target_user_id}',
+            {'type': 'chat_message', 'message': payload},
+        )
+
+        # Админам этого пользователя
+        async_to_sync(channel_layer.group_send)(
+            f'chat_admin_{target_user_id}',
+            {'type': 'chat_message', 'message': payload},
+        )
+    except Exception as e:
+        print(f'[chat_send] Ошибка channel layer: {e}')
+
+    return JsonResponse({'success': True, 'message': payload})
 
 
 @login_required

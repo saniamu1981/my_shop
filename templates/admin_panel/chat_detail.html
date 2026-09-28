@@ -28,15 +28,34 @@
                 <div class="card-body p-0">
                     <div id="chatMessages" class="chat-messages" data-my-sender="admin">
                         {% for msg in chat_messages %}
-                            <div class="chat-message chat-message-{{ msg.sender }}"
-                                 data-message-id="{{ msg.id }}"
-                                 data-is-read="{% if msg.is_read %}1{% else %}0{% endif %}"
-                                 data-sender="{{ msg.sender }}">
+                            <div class="chat-message chat-message-{{ msg.sender }}" ...>
                                 <div class="chat-bubble">
                                     <div class="chat-text">{{ msg.message }}</div>
+
+                                    {# ===== ВЛОЖЕНИЯ ===== #}
+                                    {% if msg.attachments.all %}
+                                        <div class="chat-attachments-view">
+                                            {% for a in msg.attachments.all %}
+                                                <a href="{{ a.file.url }}" target="_blank" rel="noopener">
+                                                    {% if a.attachment_type == 'image' %}
+                                                        <img src="{{ a.file.url }}" alt="{{ a.original_name }}"
+                                                             style="max-width: 200px; max-height: 200px; border-radius: 8px; display: block; margin-top: 6px;">
+                                                    {% elif a.attachment_type == 'video' %}
+                                                        <video src="{{ a.file.url }}" controls
+                                                               style="max-width: 240px; border-radius: 8px; display: block; margin-top: 6px;"></video>
+                                                    {% else %}
+                                                        <span style="display: inline-block; margin-top: 6px; font-size: 13px;">
+                                                            📄 {{ a.original_name }}
+                                                        </span>
+                                                    {% endif %}
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+
                                     <div class="chat-time">
                                         {{ msg.created|date:"d.m.Y H:i" }}
-                                        {% if msg.sender == 'admin' %}
+                                        {% if msg.sender == 'user' %}
                                             <span class="chat-status" data-status>
                                                 {% if msg.is_read %}✓✓ Прочитано{% else %}✓ Отправлено{% endif %}
                                             </span>
@@ -49,14 +68,27 @@
                 </div>
 
                 <div class="card-footer">
-                    <form id="chatForm" class="d-flex gap-2 chat-form">
+                    <form id="chatForm" class="chat-form" enctype="multipart/form-data">
                         {% csrf_token %}
-                        <textarea id="chatInput"
-                                  class="form-control"
-                                  rows="1"
-                                  placeholder="Ответить..."
-                                  style="resize: none; max-height: 120px;"></textarea>
-                        <button type="submit" class="btn btn-primary chat-send-btn">Отправить</button>
+
+                        <!-- Превью вложений -->
+                        <div id="chatAttachments" class="chat-attachments" style="display: none;"></div>
+
+                        <!-- Панель эмодзи (скрыта) -->
+                        <div id="emojiPanel" class="emoji-panel" style="display: none;"></div>
+
+                        <div class="chat-input-row">
+                            <div class="chat-input-buttons-left">
+                                <button type="button" class="chat-tool-btn" id="attachBtn" title="Прикрепить файл">📎</button>
+                                <input type="file" id="chatFileInput" name="attachments"
+                                       accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar" multiple style="display: none;">
+                                <button type="button" class="chat-tool-btn" id="emojiBtn" title="Эмодзи">😊</button>
+                            </div>
+                            <textarea id="chatInput" class="form-control" rows="1"
+                                      placeholder="Введите сообщение... (Ctrl+V — вставить скриншот)"
+                                      style="resize: none; max-height: 120px;"></textarea>
+                            <button type="submit" class="btn btn-primary chat-send-btn">Отправить</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -201,6 +233,214 @@
         font-size: 13px !important;
     }
 }
+
+/* Контейнер формы — колонка */
+.chat-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Превью вложений */
+.chat-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 4px;
+}
+
+.chat-attachment-item {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-attachment-item img,
+.chat-attachment-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chat-attachment-item .file-icon {
+    font-size: 28px;
+}
+
+.chat-attachment-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, 0.9);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-attachment-remove:hover {
+    background: #dc3545;
+}
+
+/* Нижний ряд: кнопки + textarea + отправить */
+.chat-input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.chat-tool-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.chat-tool-btn:hover {
+    background: #f8f9fa;
+    border-color: #0d6efd;
+}
+
+#chatInput {
+    min-height: 40px;
+    flex: 1;
+}
+
+/* Панель эмодзи */
+.emoji-panel {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.emoji-panel button {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.emoji-panel button:hover {
+    background: #f1f3f5;
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ФОРМЫ ВВОДА ============ */
+
+@media (max-width: 767.98px) {
+    /* Контейнер формы — колонка */
+    .chat-input-row {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    /* Кнопки 📎 и 😊 — в одну строку сверху */
+    .chat-input-buttons-left {
+        display: contents;
+        gap: 6px;
+        order: 1;
+        width: 100%;
+    }
+
+    /* Textarea — на всю ширину, ниже кнопок */
+    #chatInput {
+        order: 2;
+        flex: 1 1 100%;
+        width: 100% !important;
+        min-height: 44px !important;
+        font-size: 16px !important;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
+    }
+
+    /* Кнопка «Отправить» — на всю ширину, снизу */
+    .chat-send-btn {
+        order: 3;
+        flex: 1 1 100%;
+        width: 100%;
+        padding: 10px 16px !important;
+        font-size: 15px !important;
+        border-radius: 8px !important;
+        min-height: 44px;
+    }
+
+    /* Кнопки 📎 и 😊 — компактные */
+    .chat-tool-btn {
+        flex: 1;
+        height: 40px;
+        font-size: 18px;
+        border-radius: 8px;
+    }
+
+    /* Панель эмодзи — пониже */
+    .emoji-panel {
+        grid-template-columns: repeat(6, 1fr);
+        max-height: 180px;
+        padding: 8px;
+        gap: 4px;
+    }
+
+    .emoji-panel button {
+        font-size: 20px;
+        padding: 4px;
+    }
+
+    /* Превью — компактнее */
+    .chat-attachment-item {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+/* ============ АДАПТАЦИЯ ВЛОЖЕНИЙ В СООБЩЕНИЯХ ============ */
+
+@media (max-width: 767.98px) {
+    /* Картинка/видео в сообщении — не вылезают */
+    .chat-attachments-view img,
+    .chat-attachments-view video {
+        max-width: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        max-height: 260px !important;
+        border-radius: 8px !important;
+    }
+
+    /* Пузырь — на всю ширину, если в нём медиа */
+    .chat-message:has(.chat-attachments-view) {
+        max-width: 90% !important;
+    }
+}
 </style>
 
 <script>
@@ -241,6 +481,46 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         `;
         wrap.querySelector('.chat-text').textContent = msg.message;
+
+        if (msg.attachments && msg.attachments.length) {
+            const attWrap = document.createElement('div');
+            attWrap.className = 'chat-attachments-view';
+            msg.attachments.forEach(a => {
+                const link = document.createElement('a');
+                link.href = a.url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+
+                if (a.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = a.url;
+                    img.alt = a.name || '';
+                    img.style.cssText = 'max-width: 200px; max-height: 200px; border-radius: 8px; display: block; margin-top: 6px;';
+                    link.appendChild(img);
+                } else if (a.type === 'video') {
+                    const video = document.createElement('video');
+                    video.src = a.url;
+                    video.controls = true;
+                    video.style.cssText = 'max-width: 240px; border-radius: 8px; display: block; margin-top: 6px;';
+                    link.appendChild(video);
+                } else {
+                    link.textContent = `📄 ${a.name}`;
+                    link.style.cssText = 'display: inline-block; margin-top: 6px; font-size: 13px;';
+                }
+
+                attWrap.appendChild(link);
+            });
+            // Вставляем вложения в чат-бабл, ниже текста
+            const bubble = wrap.querySelector('.chat-bubble');
+            if (bubble) {
+                const timeEl = bubble.querySelector('.chat-time');
+                if (timeEl) {
+                    bubble.insertBefore(attWrap, timeEl);
+                } else {
+                    bubble.appendChild(attWrap);
+                }
+            }
+        }
 
         messagesEl.appendChild(wrap);
         scrollToBottom();
@@ -330,15 +610,53 @@ document.addEventListener('DOMContentLoaded', function () {
     // Отправка
     form.addEventListener('submit', function (e) {
         e.preventDefault();
-        const text = input.value.trim();
-        if (!text) return;
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ message: text }));
-            input.value = '';
-            input.style.height = 'auto';
+        const text = input.value.trim();
+        const hasFiles = window.chatSelectedFiles.length > 0;
+
+        if (!text && !hasFiles) return;
+
+        if (hasFiles) {
+            // Отправляем через обычный POST — с файлами
+            const fd = new FormData();
+            fd.append('message', text);
+            fd.append('target_user_id', '{{ target_user.id }}');
+            window.chatSelectedFiles.forEach((f, i) => fd.append('attachments', f));
+
+            const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch('{% url "accounts:chat_send" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: fd,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    input.style.height = 'auto';
+                    window.chatSelectedFiles.length = 0;   // ← очищаем ТОТ ЖЕ массив
+                    if (typeof window.chatSyncInputFiles === 'function') window.chatSyncInputFiles();
+                    if (typeof window.chatRenderAttachments === 'function') window.chatRenderAttachments();
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка отправки:', err);
+                alert('Ошибка сети. Попробуйте ещё раз.');
+            });
+
         } else {
-            alert('Соединение потеряно. Подождите несколько секунд.');
+            // Только текст — через WebSocket
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ message: text }));
+                input.value = '';
+                input.style.height = 'auto';
+            } else {
+                alert('Соединение потеряно. Подождите несколько секунд.');
+            }
         }
     });
 
@@ -354,5 +672,192 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.height = Math.min(this.scrollHeight, 120) + 'px';
     });
 });
+
+window.chatSelectedFiles = [];
+
+// ============ ВЛОЖЕНИЯ И ЭМОДЗИ ============
+(function () {
+    const form = document.getElementById('chatForm');
+    const fileInput = document.getElementById('chatFileInput');
+    const attachBtn = document.getElementById('attachBtn');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPanel = document.getElementById('emojiPanel');
+    const preview = document.getElementById('chatAttachments');
+    const input = document.getElementById('chatInput');
+
+    if (!form || !fileInput) return;
+
+    // Единый источник правды — глобальный массив
+    const files = window.chatSelectedFiles;
+
+    // Эмодзи — базовый набор
+    const emojis = [
+        '😀','😁','😂','🤣','😊','😍','🥰','😘','😎','🤔','🤨','😐',
+        '😴','😢','😭','😡','🥳','🤯','😱','🥺','🙄','😅','😇','🤗',
+        '👍','👎','👌','✌️','🤝','🙏','💪','👏','🙌','💯','🔥','✨',
+        '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💕','💖','💘',
+        '✅','❌','⚠️','❗','❓','⭐','🌟','💫','🎉','🎁','🎈','🎀',
+        '🛍️','👗','👙','👠','💄','🌸','🌺','🌷','🌹','💐','🍀','🌟',
+    ];
+
+    function renderAttachments() {
+        preview.innerHTML = '';
+
+        if (files.length === 0) {
+            preview.style.display = 'none';
+            return;
+        }
+        preview.style.display = 'flex';
+
+        files.forEach((file, idx) => {
+            const item = document.createElement('div');
+            item.className = 'chat-attachment-item';
+
+            const url = URL.createObjectURL(file);
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.onload = () => URL.revokeObjectURL(url);
+                item.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.muted = true;
+                video.onloadeddata = () => URL.revokeObjectURL(url);
+                item.appendChild(video);
+            } else {
+                const div = document.createElement('div');
+                div.className = 'file-icon';
+                div.textContent = '📄';
+                item.appendChild(div);
+            }
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'chat-attachment-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Удалить';
+            removeBtn.addEventListener('click', () => {
+                files.splice(idx, 1);
+                syncInputFiles();
+                renderAttachments();
+            });
+            item.appendChild(removeBtn);
+            preview.appendChild(item);
+        });
+    }
+
+    function syncInputFiles() {
+        const dt = new DataTransfer();
+        files.forEach(f => dt.items.add(f));
+        fileInput.files = dt.files;
+    }
+
+    function addFiles(fileList) {
+        Array.from(fileList).forEach(f => {
+            const exists = files.some(x => x.name === f.name && x.size === f.size);
+            if (exists) return;
+
+            if (f.size > 5 * 1024 * 1024) {
+                alert(`Файл "${f.name}" больше 5 МБ и не будет прикреплён.`);
+                return;
+            }
+
+            files.push(f);
+        });
+
+        if (files.length > 10) {
+            files.length = 10;
+            alert('Можно прикрепить не более 10 файлов.');
+        }
+
+        syncInputFiles();
+        renderAttachments();
+    }
+
+    // Делаем функции доступными из основного скрипта
+    window.chatRenderAttachments = renderAttachments;
+    window.chatSyncInputFiles = syncInputFiles;
+    window.chatAddFiles = addFiles;
+
+    // Кнопка «Прикрепить»
+    attachBtn.addEventListener('click', function () {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+        addFiles(fileInput.files);
+    });
+
+    // Drag & drop на поле ввода
+    ['dragenter', 'dragover'].forEach(evt => {
+        input.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            input.style.background = '#eef6ff';
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        input.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            input.style.background = '';
+        });
+    });
+
+    input.addEventListener('drop', function (e) {
+        const dt = e.dataTransfer;
+        if (dt && dt.files && dt.files.length) {
+            addFiles(dt.files);
+        }
+    });
+
+    // Вставка из буфера (Ctrl+V)
+    input.addEventListener('paste', function (e) {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+
+        const pastedFiles = [];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].kind === 'file') {
+                const f = items[i].getAsFile();
+                if (f) pastedFiles.push(f);
+            }
+        }
+
+        if (pastedFiles.length) {
+            e.preventDefault();
+            addFiles(pastedFiles);
+        }
+    });
+
+    // Эмодзи
+    emojis.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = emoji;
+        btn.addEventListener('click', () => {
+            const start = input.selectionStart || 0;
+            const end = input.selectionEnd || 0;
+            const text = input.value;
+            input.value = text.slice(0, start) + emoji + text.slice(end);
+            input.selectionStart = input.selectionEnd = start + emoji.length;
+            input.focus();
+        });
+        emojiPanel.appendChild(btn);
+    });
+
+    emojiBtn.addEventListener('click', function () {
+        emojiPanel.style.display = (emojiPanel.style.display === 'none') ? 'grid' : 'none';
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!emojiPanel.contains(e.target) && e.target !== emojiBtn) {
+            emojiPanel.style.display = 'none';
+        }
+    });
+})();
 </script>
 {% endblock %}

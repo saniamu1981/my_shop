@@ -114,6 +114,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message': msg.message,
             'created': msg.created.strftime('%d.%m.%Y %H:%M'),
             'is_read': msg.is_read,
+            'attachments': [],  # ← добавляем пустой список для WS
         }
 
     @database_sync_to_async

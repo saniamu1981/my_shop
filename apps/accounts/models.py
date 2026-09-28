@@ -111,3 +111,28 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f'{self.get_sender_display()} → {self.user.email}: {self.message[:40]}'
+
+
+class ChatMessageAttachment(models.Model):
+    """Вложение к сообщению чата."""
+
+    ATTACHMENT_TYPES = (
+        ('image', 'Изображение'),
+        ('video', 'Видео'),
+        ('file',  'Файл'),
+    )
+
+    message = models.ForeignKey(
+        ChatMessage,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+    )
+    file = models.FileField('Файл', upload_to='chat/attachments/%Y/%m/')
+    attachment_type = models.CharField(max_length=10, choices=ATTACHMENT_TYPES)
+    original_name = models.CharField('Исходное имя', max_length=255, blank=True)
+    size = models.PositiveIntegerField('Размер в байтах', default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Вложение чата'
+        verbose_name_plural = 'Вложения чата'
