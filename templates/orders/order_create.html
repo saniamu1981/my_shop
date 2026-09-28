@@ -27,9 +27,14 @@
                                    value="{{ user.last_name|default:'' }}" required>
                         </div>
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email *</label>
-                            <input type="email" class="form-control" id="email" name="email"
-                                   value="{{ user.email|default:'' }}" required>
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email"
+                                   value="{{ user.email|default:'' }}" readonly>
+                            <input type="hidden" name="email" value="{{ user.email|default:'' }}">
+                            <div class="form-text">
+                                Email привязан к вашему аккаунту.
+                                <a href="{% url 'accounts:profile' %}">Изменить в профиле</a>.
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="phone" class="form-label">Телефон *</label>

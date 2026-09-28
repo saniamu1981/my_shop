@@ -4,13 +4,13 @@ from django.contrib.staticfiles.views import serve as staticfiles_serve
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from apps.products import views as products_views
 
 from apps.products import feeds
 
 from django.contrib.sitemaps.views import sitemap
 from apps.products.sitemaps import ProductSitemap, CategorySitemap, StaticViewSitemap
 
-# Словарь, связывающий "секции" с классами Sitemap
 sitemaps = {
     'products': ProductSitemap,
     'categories': CategorySitemap,
@@ -31,14 +31,22 @@ urlpatterns = [
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('webpush/', include('webpush.urls')),
 
-    # === PWA ===
-    # Вместо 'path('', include('pwa.urls'))' —
-    # отдаём service worker и manifest сами
-    path('manifest.json', include('pwa.urls')),
-    path('serviceworker.js', staticfiles_serve, {'path': 'webpush/webpush_serviceworker.js'}, name='serviceworker'),
+    # Свой service worker ПЕРЕД pwa.urls — он перекроет встроенный
+    path('serviceworker.js', products_views.service_worker, name='pwa_service_worker'),
 
-    # Webpush
-    re_path(r'^webpush/serviceworker\.js$', staticfiles_serve, {'path': 'webpush/webpush_serviceworker.js'}),
+    # === PWA: manifest.json + offline/ + serviceworker.js ===
+    # pwa.urls сам регистрирует:
+    #   /manifest.json
+    #   /serviceworker.js
+    #   /offline/
+    path('', include('pwa.urls')),
+
+    # === Webpush service worker (отдельный URL, НЕ /serviceworker.js) ===
+    re_path(
+        r'^webpush/serviceworker\.js$',
+        staticfiles_serve,
+        {'path': 'webpush/webpush_serviceworker.js'},
+    ),
 ]
 
 if settings.DEBUG:

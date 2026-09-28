@@ -47,6 +47,9 @@ self.addEventListener('fetch', event => {
     if (url.pathname.startsWith('/webpush')) return;
     if (url.pathname.startsWith('/api')) return;
     if (url.pathname.startsWith('/accounts')) return;  // если не хочешь кешировать логин
+    if (url.pathname.startsWith('/orders')) return;
+    if (url.pathname.startsWith('/cart')) return;
+    if (url.pathname.startsWith('/profile')) return;
 
     // Стратегия: Network-first с fallback на кеш и офлайн-страницу
     event.respondWith(

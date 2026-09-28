@@ -5,6 +5,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.contrib.staticfiles import finders
 from .models import Category, Product, Favorite, Review, ReviewMedia
 from django.conf import settings
 from apps.orders.models import Order
@@ -473,3 +474,21 @@ def google_merchant_feed(request):
     xml += '</rss>'
 
     return HttpResponse(xml, content_type='application/xml')
+
+def service_worker(request):
+    """Отдаёт serviceworker.js из static/ — в обход django-pwa."""
+    path = finders.find('serviceworker.js')
+    if not path:
+        return HttpResponse(
+            '// serviceworker.js not found',
+            content_type='application/javascript',
+            status=404,
+        )
+
+    with open(path, 'rb') as f:
+        content = f.read()
+
+    response = HttpResponse(content, content_type='application/javascript')
+    response['Service-Worker-Allowed'] = '/'
+    response['Cache-Control'] = 'no-cache'
+    return response

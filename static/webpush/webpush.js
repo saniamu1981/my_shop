@@ -202,21 +202,29 @@ function unsubscribe(reg) {
 }
 
 function postSubscribeObj(statusType, subscription, callback) {
-  // Send the information to the server with fetch API.
-  // the type of the request, the name of the user subscribing,
-  // and the push subscription endpoint + key the server needs
-  // to send push messages
+  // Получаем URL из dataset — если кнопки на странице нет, url будет undefined
+  var url = safeBtn().dataset.url;
+
+  // Если на странице нет кнопки подписки — не отправляем запрос вообще
+  if (!url) {
+    console.log('[webpush] Нет кнопки подписки — POST пропущен');
+    if (typeof callback === 'function') {
+      callback({ status: 200, ok: true });  // имитация успеха, чтобы не сломать логику
+    }
+    return;
+  }
 
   var browser = navigator.userAgent.match(/(firefox|msie|chrome|safari|trident)/ig)[0].toLowerCase(),
     user_agent = navigator.userAgent,
-    data = {  status_type: statusType,
-              subscription: subscription.toJSON(),
-              browser: browser,
-              user_agent: user_agent,
-              group: safeBtn().dataset.group
-           };
+    data = {
+      status_type: statusType,
+      subscription: subscription.toJSON(),
+      browser: browser,
+      user_agent: user_agent,
+      group: safeBtn().dataset.group
+    };
 
-  fetch(safeBtn().dataset.url, {
+  fetch(url, {
     method: 'post',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(data),

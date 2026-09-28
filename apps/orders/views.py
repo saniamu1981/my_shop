@@ -22,6 +22,7 @@ from apps.accounts.utils import send_push_safe
 from django.views.decorators.http import require_POST
 from .forms import ReturnCreateForm
 from .models import Return, ReturnItem, ReturnPhoto
+from .utils import clean_phone_dadata
 
 
 # ============ Настройка ЮKassa ============
@@ -148,6 +149,23 @@ def create_order(request):
                         'address': parts[2],
                     }
 
+        # ===== Валидация телефона через Dadata =====
+        phone = request.POST.get('phone', '').strip()
+        phone_check = clean_phone_dadata(phone)
+
+        if not phone_check.get('valid'):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'phone_error': True,
+                    'message': 'Пожалуйста, укажите корректный номер телефона.',
+                })
+            messages.error(request, 'Пожалуйста, укажите корректный номер телефона.')
+            return redirect('orders:create_order')
+
+        # Стандартизованный номер (например, '+7 916 123-45-67')
+        phone = phone_check.get('phone', phone)
+
         # ---- Считаем сумму и собираем позиции ----
         if buy_now_data:
             # быстрая покупка — один товар из сессии
@@ -174,9 +192,9 @@ def create_order(request):
             user=request.user,
             first_name=request.POST.get('first_name', ''),
             last_name=request.POST.get('last_name', ''),
-            email=request.POST.get('email', ''),
+            email=request.user.email,
             address=point_data.get('address') or request.POST.get('address', ''),
-            phone=request.POST.get('phone', ''),
+            phone=phone,
             total_price=total_price,
             delivery_method=delivery_method,
             delivery_point_code=point_data.get('code', ''),
