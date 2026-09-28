@@ -1,1 +1,1 @@
-web: gunicorn my_shop.wsgi:application --bind 0.0.0.0:8000
+web: daphne -b 0.0.0.0 -p 8000 my_shop.asgi:application
