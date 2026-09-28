@@ -11,7 +11,7 @@ if env_path.exists():
     load_dotenv(env_path)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
-DEBUG = True  # Временно для отладки
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ============ ХОСТЫ И БЕЗОПАСНОСТЬ ============
 ALLOWED_HOSTS = [
@@ -20,7 +20,6 @@ ALLOWED_HOSTS = [
     'saniamu1981-my-shop-3994.twc1.net',
     'localhost',
     '127.0.0.1',
-    '*',  # Временно для теста
 ]
 
 # ============ CSRF НАСТРОЙКИ ============
@@ -33,7 +32,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = not DEBUG
 
 # Application definition
 INSTALLED_APPS = [
@@ -146,7 +145,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'default_db',
         'USER': 'gen_user',
-        'PASSWORD': '13Sent2005',
+        'PASSWORD': '13Sent2005Maks',
         'HOST': 'f58bcedf1f7b47e6242ee947.twc1.net',
         'PORT': '5432',
         'OPTIONS': {
@@ -207,7 +206,7 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = os.getenv('ACCOUNT_EMAIL_VERIFICATION', 'mandatory')
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 
@@ -234,7 +233,6 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
-SECURE_SSL_REDIRECT = not DEBUG
 
 # Security headers
 if not DEBUG:
@@ -391,3 +389,7 @@ WEBPUSH_SETTINGS = {
     "VAPID_PRIVATE_KEY": "93TEGIMLhWm0sQaGjN9A9P2Pl7mW2HjBducE_XdsJug",
     "VAPID_ADMIN_EMAIL": "info@maidlingerie.ru"
 }
+
+ACCOUNT_ADAPTER = 'apps.accounts.adapters.CustomAccountAdapter'
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
