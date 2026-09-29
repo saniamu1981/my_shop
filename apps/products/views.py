@@ -9,12 +9,16 @@ from django.contrib.staticfiles import finders
 from .models import Category, Product, Favorite, Review, ReviewMedia
 from django.conf import settings
 from apps.orders.models import Order
+from django.db.models import Avg, Count, Q
 
 
 def product_list(request, category_slug=None):
     category = None
     categories = Category.objects.all()
-    products = Product.objects.filter(available=True).order_by('-created')
+    products = Product.objects.filter(available=True).annotate(
+        avg_rating=Avg('reviews__rating', filter=Q(reviews__is_approved=True)),
+        reviews_count=Count('reviews', filter=Q(reviews__is_approved=True)),
+    ).order_by('-created')
 
     if category_slug:
         category = get_object_or_404(Category, slug=category_slug)
@@ -194,9 +198,14 @@ def toggle_favorite(request, product_id):
 @login_required
 def favorite_list(request):
     favorites = Favorite.objects.filter(user=request.user).select_related('product')
-    products = [fav.product for fav in favorites]
+    product_ids = [fav.product_id for fav in favorites]
 
-    paginator = Paginator(products, 12)
+    products_qs = Product.objects.filter(id__in=product_ids).annotate(
+        avg_rating=Avg('reviews__rating', filter=Q(reviews__is_approved=True)),
+        reviews_count=Count('reviews', filter=Q(reviews__is_approved=True)),
+    )
+
+    paginator = Paginator(products_qs, 12)
     page = request.GET.get('page', 1)
     try:
         products = paginator.page(page)
