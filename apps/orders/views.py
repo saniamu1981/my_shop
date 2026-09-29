@@ -13,6 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 
+from delivery.services import logger
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
 from apps.products.models import Product, Review, ReviewMedia
@@ -23,7 +24,11 @@ from django.views.decorators.http import require_POST
 from .forms import ReturnCreateForm
 from .models import Return, ReturnItem, ReturnPhoto
 from .utils import clean_phone_dadata
+import logging
 
+
+
+logger = logging.getLogger(__name__)
 
 # ============ Настройка ЮKassa ============
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
@@ -411,6 +416,28 @@ def yookassa_webhook(request):
                     order.status = 'cancelled'
                     order.save()
 
+        elif event == 'refund.succeeded':
+            refund_object = event_json.get('object', {})
+            payment_id = refund_object.get('payment_id')
+
+            if payment_id:
+                order = Order.objects.filter(payment_id=payment_id).first()
+                if order:
+                    logger.info(f'ЮKassa: возврат по заказу #{order.id} успешно завершён')
+                    # Здесь можно отправить push клиенту, что деньги вернулись
+                    try:
+                        from apps.accounts.utils import send_push_safe
+                        if order.user:
+                            payload = {
+                                "head": "💰 Возврат средств",
+                                "body": f"Заказ №{order.id}: деньги возвращены на карту",
+                                "icon": "/static/icons/icon-192x192.png",
+                                "url": f"/orders/{order.id}/",
+                            }
+                            send_push_safe(order.user, payload)
+                    except Exception as e:
+                        logger.error(f'Push error (refund): {e}')
+
         return HttpResponse(status=200)
 
     except Exception as e:
@@ -433,15 +460,41 @@ def order_detail(request, order_id):
 
 @login_required
 def cancel_order(request, order_id):
-    """Отмена заказа"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
 
     if request.method == 'POST':
-        if order.can_cancel():
-            order.cancel()
-            messages.success(request, f'Заказ №{order.id} успешно отменен')
-        else:
+        if not order.can_cancel():
             messages.error(request, 'Этот заказ нельзя отменить')
+            return redirect('orders:order_detail', order_id=order.id)
+
+        # cancel() сам вернёт деньги через ЮKassa и удалит заказ в СДЭК
+        if order.cancel():
+            messages.success(
+                request,
+                f'Заказ №{order.id} отменён. '
+                f'Деньги вернутся на карту в течение 3–10 рабочих дней.'
+            )
+
+            # Push-уведомление
+            try:
+                from apps.accounts.utils import send_push_safe
+                if order.user:
+                    payload = {
+                        "head": "✅ Заказ отменён",
+                        "body": f"Заказ №{order.id} отменён. Деньги вернутся в течение 3–10 дней.",
+                        "icon": "/static/icons/icon-192x192.png",
+                        "url": f"/orders/{order.id}/",
+                    }
+                    send_push_safe(order.user, payload)
+            except Exception as e:
+                logger.error(f'Push error (cancel): {e}')
+        else:
+            messages.error(
+                request,
+                'Не удалось отменить заказ. '
+                'Возможно, он уже передан в СДЭК или произошла ошибка возврата. '
+                'Свяжитесь с поддержкой.'
+            )
 
         return redirect('orders:order_detail', order_id=order.id)
 

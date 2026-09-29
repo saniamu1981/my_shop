@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from apps.products.models import Product
+from delivery.services import logger
 
 
 class Order(models.Model):
@@ -173,13 +174,48 @@ class Order(models.Model):
         if not self.can_cancel():
             return False
 
-        # Если заказ создан в СДЭК — сначала удаляем там
+        # 1. Возврат денег (только если платёж succeeded)
+        if self.paid and self.payment_id:
+            from yookassa import Configuration, Payment
+            from django.conf import settings
+
+            Configuration.account_id = settings.YOOKASSA_SHOP_ID
+            Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
+
+            try:
+                payment = Payment.find_one(self.payment_id)
+                if payment.status == 'succeeded':
+                    from apps.orders.yookassa_refund import create_refund
+                    refund = create_refund(self.payment_id, self.total_price)
+                    if not refund:
+                        return False
+                elif payment.status == 'waiting_for_capture':
+                    # Отменяем холдирование
+                    import uuid
+                    from yookassa import Payment as YKPayment
+                    YKPayment.cancel(self.payment_id, uuid.uuid4())
+                    logger.info(f'Заказ #{self.id}: холдирование отменено')
+                else:
+                    # Платёж в pending или canceled — возврат не нужен
+                    logger.warning(
+                        f'Заказ #{self.id}: платёж {self.payment_id} в статусе '
+                        f'{payment.status}, возврат не требуется'
+                    )
+            except Exception as e:
+                logger.error(f'Заказ #{self.id}: ошибка проверки платежа: {e}')
+                return False
+
+        # 2. Удаление в СДЭК
         if self.cdek_order_uuid:
             from delivery.services import CDEKService
             service = CDEKService()
             if not service.delete_order(self):
-                return False
+                logger.error(
+                    f'Заказ #{self.id}: деньги возвращены, но заказ в СДЭК не удалён. '
+                    f'Нужно удалить вручную: {self.cdek_order_uuid}'
+                )
 
+        # 3. Смена статуса
         self.status = 'cancelled'
         self.save()
         return True
