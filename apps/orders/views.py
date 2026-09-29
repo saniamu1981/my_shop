@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import timezone
 
 from yookassa import Configuration, Payment
 from yookassa.domain.exceptions import ApiError
@@ -13,7 +14,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 
-from delivery.services import logger
 from .models import Order, OrderItem
 from apps.cart.cart import CartManager
 from apps.products.models import Product, Review, ReviewMedia
@@ -418,13 +418,36 @@ def yookassa_webhook(request):
 
         elif event == 'refund.succeeded':
             refund_object = event_json.get('object', {})
+            refund_id = refund_object.get('id')
             payment_id = refund_object.get('payment_id')
 
-            if payment_id:
+            # 1. Ищем Return по refund_id (возврат товара)
+            ret = Return.objects.filter(refund_id=refund_id).first()
+            if ret:
+                ret.refund_status = 'succeeded'
+                ret.refunded_at = timezone.now()
+                ret.save()
+                logger.info(f'Возврат #{ret.id}: деньги успешно возвращены клиенту')
+
+                # Push клиенту
+                try:
+                    from apps.accounts.utils import send_push_safe
+                    if ret.user:
+                        payload = {
+                            "head": "💰 Деньги возвращены",
+                            "body": f"Заявка №{ret.id}: {ret.refund_amount} ₽ зачислены на карту",
+                            "icon": "/static/icons/icon-192x192.png",
+                            "url": f"/orders/returns/{ret.id}/",
+                        }
+                        send_push_safe(ret.user, payload)
+                except Exception as e:
+                    logger.error(f'Push error (refund.succeeded): {e}')
+
+            # 2. Ищем Order по payment_id (отмена заказа)
+            elif payment_id:
                 order = Order.objects.filter(payment_id=payment_id).first()
                 if order:
                     logger.info(f'ЮKassa: возврат по заказу #{order.id} успешно завершён')
-                    # Здесь можно отправить push клиенту, что деньги вернулись
                     try:
                         from apps.accounts.utils import send_push_safe
                         if order.user:
@@ -711,6 +734,11 @@ def create_return(request, order_id):
         messages.info(request, f'По заказу №{order.id} все товары уже отправлены на возврат.')
         return redirect('orders:order_list')
 
+    # Разрешаем создавать новую заявку, только если нет активной
+    if order.returns.exclude(status__in=['cancelled', 'rejected', 'completed']).exists():
+        messages.warning(request, 'По этому заказу уже есть активная заявка на возврат')
+        return redirect('orders:order_list')
+
     # ===== POST — создаём заявку =====
     if request.method == 'POST':
         form = ReturnCreateForm(request.POST)
@@ -802,10 +830,7 @@ def create_return(request, order_id):
         'max_photos': 10,
     })
 
-def cancel_order_view(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    if order.cancel():
-        messages.success(request, f'Заказ №{order.id} отменён')
-    else:
-        messages.error(request, 'Не удалось отменить заказ. Возможно, он уже передан в СДЭК.')
-    return redirect('orders:order_detail', order_id=order.id)
+@login_required
+def return_detail(request, return_id):
+    ret = get_object_or_404(Return, id=return_id, user=request.user)
+    return render(request, 'orders/return_detail.html', {'return': ret})

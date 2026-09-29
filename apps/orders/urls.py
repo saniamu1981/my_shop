@@ -10,10 +10,10 @@ urlpatterns = [
     path('payment/success/<int:order_id>/', views.payment_success, name='payment_success'),
     path('payment/cancel/<int:order_id>/', views.payment_cancel, name='payment_cancel'),
     path('<int:order_id>/', views.order_detail, name='order_detail'),
-    path('<int:order_id>/cancel/', views.cancel_order, name='cancel_order'),
+    path('<int:order_id>/cancel/', views.cancel_order, name='cancel_order'),  # ← только один
     path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
     path('add-review/', views.add_review, name='add_review'),
     path('yookassa/webhook/', views.yookassa_webhook, name='yookassa_webhook'),
     path('order/<int:order_id>/return/', views.create_return, name='create_return'),
-    path('<int:order_id>/cancel/', views.cancel_order_view, name='order_cancel'),
+    path('returns/<int:return_id>/', views.return_detail, name='return_detail'),
 ]

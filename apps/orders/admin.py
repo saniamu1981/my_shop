@@ -286,9 +286,20 @@ class ReturnAdmin(admin.ModelAdmin):
     mark_review.short_description = 'Взять на рассмотрение'
 
     def mark_approved(self, request, queryset):
-        from django.utils import timezone
-        queryset.update(status='approved', processed_at=timezone.now(), processed_by=request.user)
-    mark_approved.short_description = 'Одобрить'
+        success = 0
+        failed = 0
+        for ret in queryset:
+            if ret.approve(request.user):
+                success += 1
+            else:
+                failed += 1
+
+        if success:
+            self.message_user(request, f'Одобрено возвратов: {success}', level=messages.SUCCESS)
+        if failed:
+            self.message_user(request, f'Не удалось одобрить: {failed}', level=messages.ERROR)
+
+    mark_approved.short_description = '✅ Одобрить и вернуть деньги'
 
     def mark_rejected(self, request, queryset):
         from django.utils import timezone
@@ -296,6 +307,8 @@ class ReturnAdmin(admin.ModelAdmin):
     mark_rejected.short_description = 'Отклонить'
 
     def mark_completed(self, request, queryset):
-        from django.utils import timezone
-        queryset.update(status='completed', processed_at=timezone.now(), processed_by=request.user)
-    mark_completed.short_description = 'Завершить'
+        for ret in queryset:
+            ret.complete(request.user)
+        self.message_user(request, f'Завершено возвратов: {queryset.count()}', level=messages.SUCCESS)
+
+    mark_completed.short_description = '🏁 Завершить и вернуть товар на склад'

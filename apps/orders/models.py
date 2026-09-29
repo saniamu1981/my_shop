@@ -1,3 +1,5 @@
+from datetime import timezone
+
 from django.db import models
 from django.conf import settings
 from apps.products.models import Product
@@ -168,7 +170,14 @@ class Order(models.Model):
         return self.returnable_items_count > 0
 
     def can_cancel(self):
-        return self.status in ['created', 'paid', 'confirmed'] and not self.status == 'cancelled'
+        if self.status not in ['created', 'paid', 'confirmed']:
+            return False
+        if self.status == 'cancelled':
+            return False
+        # Если заказ в СДЭК и уже принят — нельзя отменить
+        if self.cdek_order_uuid and self.cdek_status_code not in ('CREATED', 'ACCEPTED'):
+            return False
+        return True
 
     def cancel(self):
         if not self.can_cancel():
@@ -344,9 +353,95 @@ class Return(models.Model):
     )
     processed_at = models.DateTimeField('Обработан', null=True, blank=True)
 
+    # Поля для возврата денег
+    refund_id = models.CharField('ID возврата в ЮKassa', max_length=100, blank=True, null=True)
+    refund_status = models.CharField('Статус возврата', max_length=20, blank=True, null=True)
+    refunded_at = models.DateTimeField('Дата возврата', null=True, blank=True)
+    refund_amount = models.DecimalField('Сумма возврата', max_digits=10, decimal_places=2, default=0)
+
     # ===== Служебные =====
     created = models.DateTimeField('Создан', auto_now_add=True)
     updated = models.DateTimeField('Обновлён', auto_now=True)
+
+    def approve(self, admin_user):
+        """
+        Одобряет возврат и создаёт возврат денег через ЮKassa.
+        Возвращает True при успехе.
+        """
+        if self.status not in ('new', 'review'):
+            return False
+
+        # Считаем сумму возврата
+        amount = self.total_price
+        if not amount:
+            logger.error(f'Возврат #{self.id}: нет позиций для возврата')
+            return False
+
+        # Создаём возврат в ЮKassa
+        refund = None
+        if self.order.paid and self.order.payment_id:
+            from apps.orders.yookassa_refund import create_refund
+            refund = create_refund(self.order.payment_id, amount)
+            if not refund:
+                logger.error(f'Возврат #{self.id}: не удалось создать возврат в ЮKassa')
+                return False
+
+            self.refund_id = refund.get('id')
+            self.refund_status = refund.get('status')
+            self.refund_amount = amount
+
+        # Обновляем статус
+        self.status = 'approved'
+        self.processed_by = admin_user
+        self.processed_at = timezone.now()
+        self.save()
+
+        # Push-уведомление клиенту
+        try:
+            from apps.accounts.utils import send_push_safe
+            if self.user:
+                payload = {
+                    "head": "✅ Возврат одобрен",
+                    "body": f"Заявка №{self.id}: {amount} ₽ вернутся на карту в течение 3–10 дней",
+                    "icon": "/static/icons/icon-192x192.png",
+                    "url": f"/orders/returns/{self.id}/",
+                }
+                send_push_safe(self.user, payload)
+        except Exception as e:
+            logger.error(f'Push error (return approve): {e}')
+
+        logger.info(f'Возврат #{self.id}: одобрен, сумма {amount} ₽, refund_id={self.refund_id}')
+        return True
+
+    def complete(self, admin_user):
+        """Завершает возврат (товар получен обратно)."""
+        if self.status != 'approved':
+            return False
+
+        self.status = 'completed'
+        self.processed_by = admin_user
+        self.processed_at = timezone.now()
+        self.save()
+
+        # Возвращаем товары на склад
+        for item in self.items.all():
+            if item.product and item.size:
+                from apps.products.models import ProductSize
+                try:
+                    size = ProductSize.objects.get(product=item.product, size=item.size)
+                    size.quantity += item.quantity
+                    size.save()
+                    logger.info(
+                        f'Возврат #{self.id}: товар {item.product_name} '
+                        f'(размер {item.size}) возвращён на склад: +{item.quantity}'
+                    )
+                except ProductSize.DoesNotExist:
+                    logger.warning(
+                        f'Возврат #{self.id}: не найден размер {item.size} '
+                        f'у товара {item.product_name}'
+                    )
+
+        return True
 
     class Meta:
         verbose_name = 'Возврат'

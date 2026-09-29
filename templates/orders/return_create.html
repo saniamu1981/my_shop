@@ -550,6 +550,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Валидация при отправке
     form.addEventListener('submit', function (e) {
+        const checked = document.querySelectorAll('.return-item-checkbox:checked');
+        if (checked.length === 0) {
+            e.preventDefault();
+            alert('Выберите хотя бы один товар для возврата.');
+            return;
+        }
+
         const reason = document.querySelector('[name="reason"]');
         if (!reason || !reason.value) {
             e.preventDefault();
