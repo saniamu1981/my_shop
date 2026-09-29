@@ -26,7 +26,7 @@
                     <div id="chatMessages" class="chat-messages" data-my-sender="user">
                         {% if chat_messages %}
                             {% for msg in chat_messages %}
-                                <div class="chat-message chat-message-{{ msg.sender }}" ...>
+                                <div class="chat-message chat-message-{{ msg.sender }}" data-message-id="{{ msg.id }}" data-sender="{{ msg.sender }}">
                                     <div class="chat-bubble">
                                         <div class="chat-text">{{ msg.message }}</div>
 
@@ -116,6 +116,7 @@
     max-width: 70%;
 }
 
+/* Пользовательский чат: свои сообщения (user) — справа, админа — слева */
 .chat-message-user {
     align-self: flex-end;
     justify-content: flex-end;

@@ -28,7 +28,9 @@
                 <div class="card-body p-0">
                     <div id="chatMessages" class="chat-messages" data-my-sender="admin">
                         {% for msg in chat_messages %}
-                            <div class="chat-message chat-message-{{ msg.sender }}" ...>
+                            <div class="chat-message chat-message-{{ msg.sender }}"
+                                 data-message-id="{{ msg.id }}"
+                                 data-sender="{{ msg.sender }}">
                                 <div class="chat-bubble">
                                     <div class="chat-text">{{ msg.message }}</div>
 
@@ -55,7 +57,7 @@
 
                                     <div class="chat-time">
                                         {{ msg.created|date:"d.m.Y H:i" }}
-                                        {% if msg.sender == 'user' %}
+                                        {% if msg.sender == 'admin' %}
                                             <span class="chat-status" data-status>
                                                 {% if msg.is_read %}✓✓ Прочитано{% else %}✓ Отправлено{% endif %}
                                             </span>
@@ -97,35 +99,92 @@
 </div>
 
 <style>
-/* Те же стили, что и в пользовательском чате */
-.chat-messages { height: 500px; overflow-y: auto; padding: 16px; background: #f8f9fa; display: flex; flex-direction: column; gap: 12px; }
-.chat-message { display: flex; max-width: 70%; }
-.chat-message-user { align-self: flex-end; justify-content: flex-end; }
-.chat-message-admin { align-self: flex-start; }
-.chat-bubble { padding: 10px 14px; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); word-wrap: break-word; }
-.chat-message-user .chat-bubble { background: #007bff; color: #fff; border-bottom-right-radius: 4px; }
-.chat-message-admin .chat-bubble { background: #fff; color: #212529; border-bottom-left-radius: 4px; }
-.chat-text { font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
-.chat-time { font-size: 10px; opacity: 0.75; margin-top: 4px; text-align: right; }
-#chatInput { min-height: 40px; }
+/* ===== Базовые стили чата ===== */
+.chat-messages {
+    height: 500px;
+    overflow-y: auto;
+    padding: 16px;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    max-width: 70%;
+}
+
+/* АДМИНСКИЙ ЧАТ: admin — справа (свои), user — слева (входящие) */
+.chat-message-admin {
+    align-self: flex-end;
+    justify-content: flex-end;
+}
+
+.chat-message-user {
+    align-self: flex-start;
+}
+
+.chat-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Свои сообщения админа — синие, справа */
+.chat-message-admin .chat-bubble {
+    background: #007bff;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+/* Входящие сообщения пользователя — белые, слева */
+.chat-message-user .chat-bubble {
+    background: #ffffff;
+    color: #212529;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-text {
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+.chat-time {
+    font-size: 10px;
+    opacity: 0.75;
+    margin-top: 4px;
+    text-align: right;
+}
+
+#chatInput {
+    min-height: 40px;
+}
+
 .chat-status {
-    display: block;         /* переносит на новую строку */
-    margin-top: 4px;         /* отступ сверху, если нужен */
+    display: block;
+    margin-top: 4px;
     font-size: 10px;
     opacity: 0.85;
 }
+
+.chat-message-admin .chat-status { color: #cfe6ff; }
+.chat-message-user .chat-status { color: #6c757d; }
+.chat-message-admin .chat-status.read { color: #b8e0ff; font-weight: 600; }
+.chat-message-user .chat-status.read { color: #198754; font-weight: 600; }
 
 
 /* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ЧАТА ============ */
 
 @media (max-width: 767.98px) {
-    /* Контейнер — без лишних отступов */
     .container {
         padding-left: 8px;
         padding-right: 8px;
     }
 
-    /* Заголовок страницы */
     h1.mb-4 {
         font-size: 22px !important;
         margin-bottom: 16px !important;
@@ -151,7 +210,6 @@
         margin-top: 4px;
     }
 
-    /* Окно сообщений — меньше высота, чтобы влезало на экран */
     .chat-messages {
         height: 55vh !important;
         min-height: 300px;
@@ -159,7 +217,6 @@
         gap: 8px !important;
     }
 
-    /* Сообщения — шире (было 70%) */
     .chat-message {
         max-width: 85% !important;
     }
@@ -182,13 +239,12 @@
         font-size: 10px !important;
     }
 
-    /* Форма ввода: textarea + кнопка «Отправить» */
     .chat-form {
         gap: 8px !important;
     }
 
     #chatInput {
-        font-size: 16px !important;   /* ← важно для iOS, чтобы не зумило */
+        font-size: 16px !important;
         padding: 10px 12px !important;
         border-radius: 8px !important;
         min-height: 44px !important;
@@ -202,14 +258,12 @@
         white-space: nowrap;
     }
 
-    /* Карточка — убрать лишние отступы у footer */
     .card-footer {
         padding: 12px !important;
     }
 }
 
 @media (max-width: 575.98px) {
-    /* Ещё компактнее для очень узких экранов */
     .chat-messages {
         height: 50vh !important;
         padding: 10px !important;
@@ -359,13 +413,11 @@
 /* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ФОРМЫ ВВОДА ============ */
 
 @media (max-width: 767.98px) {
-    /* Контейнер формы — колонка */
     .chat-input-row {
         flex-wrap: wrap;
         gap: 6px;
     }
 
-    /* Кнопки 📎 и 😊 — в одну строку сверху */
     .chat-input-buttons-left {
         display: contents;
         gap: 6px;
@@ -373,7 +425,6 @@
         width: 100%;
     }
 
-    /* Textarea — на всю ширину, ниже кнопок */
     #chatInput {
         order: 2;
         flex: 1 1 100%;
@@ -384,7 +435,6 @@
         border-radius: 8px !important;
     }
 
-    /* Кнопка «Отправить» — на всю ширину, снизу */
     .chat-send-btn {
         order: 3;
         flex: 1 1 100%;
@@ -395,7 +445,6 @@
         min-height: 44px;
     }
 
-    /* Кнопки 📎 и 😊 — компактные */
     .chat-tool-btn {
         flex: 1;
         height: 40px;
@@ -403,7 +452,6 @@
         border-radius: 8px;
     }
 
-    /* Панель эмодзи — пониже */
     .emoji-panel {
         grid-template-columns: repeat(6, 1fr);
         max-height: 180px;
@@ -416,7 +464,6 @@
         padding: 4px;
     }
 
-    /* Превью — компактнее */
     .chat-attachment-item {
         width: 64px;
         height: 64px;
@@ -426,7 +473,6 @@
 /* ============ АДАПТАЦИЯ ВЛОЖЕНИЙ В СООБЩЕНИЯХ ============ */
 
 @media (max-width: 767.98px) {
-    /* Картинка/видео в сообщении — не вылезают */
     .chat-attachments-view img,
     .chat-attachments-view video {
         max-width: 100% !important;
@@ -436,7 +482,6 @@
         border-radius: 8px !important;
     }
 
-    /* Пузырь — на всю ширину, если в нём медиа */
     .chat-message:has(.chat-attachments-view) {
         max-width: 90% !important;
     }
