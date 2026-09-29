@@ -76,9 +76,11 @@
                             </td>
                             <td>
                                 {% if order.all_items_returned %}
-                                    <span class="badge bg-info text-dark" style="font-size: 12px;">
+                                    <a href="{% url 'orders:return_detail' order.returns.first.id %}"
+                                       class="badge bg-info text-dark text-decoration-none"
+                                       style="font-size: 12px;">
                                         ↩️ Заявка создана
-                                    </span>
+                                    </a>
                                 {% elif order.can_return %}
                                     <a href="{% url 'orders:create_return' order.id %}"
                                        class="btn btn-sm btn-outline-warning return-request-btn"
@@ -201,10 +203,11 @@
 
                     {% if order.all_items_returned %}
                         <div class="mt-2">
-                            <span class="badge bg-info text-dark w-100 text-center"
-                                  style="font-size: 13px; padding: 8px; border-radius: 6px; display: block;">
+                            <a href="{% url 'orders:return_detail' order.returns.first.id %}"
+                               class="badge bg-info text-dark w-100 text-center text-decoration-none"
+                               style="font-size: 13px; padding: 8px; border-radius: 6px; display: block;">
                                 ↩️ Заявка на возврат создана
-                            </span>
+                            </a>
                         </div>
                     {% elif order.can_return %}
                         <div class="mt-2 return-block" data-deadline="{{ order.return_deadline|date:'c' }}">
@@ -263,6 +266,7 @@
                         <th>Позиций</th>
                         <th>Причина</th>
                         <th>Статус</th>
+                        <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -296,10 +300,15 @@
                                     <span class="badge bg-secondary">{{ ret.get_status_display }}</span>
                                 {% endif %}
                             </td>
+                            <td>
+                                <a href="{% url 'orders:return_detail' ret.id %}" class="btn btn-sm btn-info">
+                                    Подробнее
+                                </a>
+                            </td>
                         </tr>
                         {% if ret.admin_comment %}
                             <tr class="return-comment-row">
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="return-comment-box">
                                         <strong>💬 Ответ магазина:</strong>
                                         {{ ret.admin_comment }}
@@ -364,6 +373,11 @@
                             {{ ret.admin_comment }}
                         </div>
                     {% endif %}
+
+                    <a href="{% url 'orders:return_detail' ret.id %}"
+                       class="btn btn-sm btn-info w-100 mt-2">
+                        Подробнее
+                    </a>
                 </div>
             {% endfor %}
         </div>
@@ -399,19 +413,16 @@
 /* ============ МОБИЛЬНАЯ АДАПТАЦИЯ СПИСКА ЗАКАЗОВ ============ */
 
 @media (max-width: 767.98px) {
-    /* Контейнер — без лишних отступов */
     .container {
         padding-left: 8px;
         padding-right: 8px;
     }
 
-    /* Заголовок страницы */
     h1.mb-4 {
         font-size: 22px !important;
         margin-bottom: 16px !important;
     }
 
-    /* Карточка заказа */
     .order-card {
         box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
@@ -428,13 +439,11 @@
         white-space: nowrap;
     }
 
-    /* Пагинация компактнее */
     .pagination .page-link {
         padding: 4px 8px;
         font-size: 13px;
     }
 
-    /* Пустая страница */
     .alert h3 {
         font-size: 20px;
     }
@@ -444,7 +453,6 @@
 }
 
 @media (max-width: 575.98px) {
-    /* Ещё компактнее для очень узких экранов */
     .order-card {
         padding: 12px !important;
     }
@@ -572,7 +580,6 @@ function showCancelModal(orderId) {
 
 // ============ СРОК ВОЗВРАТА: ДИНАМИЧЕСКОЕ ИСЧЕЗНОВЕНИЕ ============
 document.addEventListener('DOMContentLoaded', function () {
-    // Все элементы, у которых есть data-deadline
     const deadlineEls = document.querySelectorAll('[data-deadline]');
 
     function updateReturnButtons() {
@@ -586,22 +593,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isNaN(deadline.getTime())) return;
 
             if (now > deadline) {
-                // Срок истёк — скрываем весь блок с кнопкой
                 const block = btn.closest('.return-block') || btn.parentElement;
                 const wrapper = btn.closest('td') || btn.closest('.return-block');
 
                 if (wrapper) {
-                    // На десктопе заменяем ячейку на прочерк
                     const td = btn.closest('td');
                     if (td) {
                         td.innerHTML = '<span class="text-muted" style="font-size: 12px;">—</span>';
                     } else if (block) {
-                        // На мобильном просто убираем весь блок
                         block.remove();
                     }
                 }
             } else {
-                // Подсвечиваем подсказку, если срока осталось мало (меньше суток)
                 const diff = deadline - now;
                 if (diff < 24 * 60 * 60 * 1000) {
                     const hint = btn.parentElement.querySelector('.return-deadline-hint') ||
@@ -612,7 +615,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Проверяем каждые 30 секунд
     updateReturnButtons();
     setInterval(updateReturnButtons, 30 * 1000);
 });

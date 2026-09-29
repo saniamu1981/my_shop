@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Возврат №{{ return.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="Breadcrumb" class="breadcrumb-nav mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'orders:order_list' %}" class="breadcrumb-link">Мои заказы</a>
+            </li>
+            <li class="breadcrumb-item active">Возврат №{{ return.id }}</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-3">↩️ Возврат №{{ return.id }}</h1>
+
+    <div class="row g-3">
+        <div class="col-12 col-md-8">
+            <!-- Информация о заявке -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о заявке</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Статус:</strong>
+                        <span class="badge
+                            {% if return.status == 'approved' %}bg-success
+                            {% elif return.status == 'rejected' %}bg-danger
+                            {% elif return.status == 'completed' %}bg-primary
+                            {% elif return.status == 'cancelled' %}bg-secondary
+                            {% else %}bg-warning{% endif %}">
+                            {{ return.get_status_display }}
+                        </span>
+                    </p>
+                    <p><strong>Заказ:</strong>
+                        <a href="{% url 'orders:order_detail' return.order.id %}">№{{ return.order.id }}</a>
+                    </p>
+                    <p><strong>Причина:</strong> {{ return.get_reason_display }}</p>
+                    {% if return.comment %}
+                        <p><strong>Ваш комментарий:</strong> {{ return.comment }}</p>
+                    {% endif %}
+                    {% if return.admin_comment %}
+                        <p><strong>Ответ поддержки:</strong> {{ return.admin_comment }}</p>
+                    {% endif %}
+                    <p><strong>Создан:</strong> {{ return.created|date:"d.m.Y H:i" }}</p>
+                    {% if return.processed_at %}
+                        <p><strong>Обработан:</strong> {{ return.processed_at|date:"d.m.Y H:i" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Товары -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Товары к возврату</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        {% for item in return.items.all %}
+                            <li class="d-flex justify-content-between py-2 border-bottom">
+                                <span>
+                                    {{ item.product_name }}
+                                    {% if item.size %}({{ item.size }}){% endif %}
+                                    × {{ item.quantity }}
+                                </span>
+                                <strong>{{ item.total_price }} ₽</strong>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="mt-3 mb-0 text-end">
+                        <strong>Итого к возврату: {{ return.total_price }} ₽</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Возврат денег -->
+            {% if return.refund_id %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">💰 Возврат денег</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Статус:</strong>
+                        {% if return.refund_status == 'succeeded' %}
+                            <span class="badge bg-success">✅ Деньги возвращены</span>
+                        {% elif return.refund_status == 'pending' %}
+                            <span class="badge bg-warning">⏳ В обработке</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ return.refund_status|default:"—" }}</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Сумма:</strong> {{ return.refund_amount }} ₽</p>
+                    {% if return.refunded_at %}
+                        <p><strong>Дата возврата:</strong> {{ return.refunded_at|date:"d.m.Y H:i" }}</p>
+                    {% endif %}
+                    <p class="text-muted small mb-0">
+                        Деньги вернутся на карту, с которой была оплата,
+                        в течение 3–10 рабочих дней после одобрения.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-12 col-md-4">
+            <!-- Фото -->
+            {% if return.photos.all %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">📷 Ваши фото</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for photo in return.photos.all %}
+                            <a href="{{ photo.image.url }}" target="_blank" rel="noopener">
+                                <img src="{{ photo.image.url }}" alt="Фото возврата"
+                                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px;">
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Действия -->
+            <div class="d-grid gap-2">
+                <a href="{% url 'orders:order_list' %}" class="btn btn-secondary">
+                    ← К списку заказов
+                </a>
+                <a href="{% url 'orders:order_detail' return.order.id %}" class="btn btn-outline-primary">
+                    Посмотреть заказ
+                </a>
+
+                {% if return.status == 'new' or return.status == 'review' %}
+                    <button type="button" class="btn btn-outline-danger"
+                            onclick="if(confirm('Вы уверены, что хотите отменить заявку?')) { document.getElementById('cancelReturnForm').submit(); }">
+                        Отменить заявку
+                    </button>
+                    <form id="cancelReturnForm" method="post"
+                          action="{% url 'orders:cancel_return' return.id %}" style="display: none;">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #999;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    padding: 0 8px;
+    color: #ccc;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.breadcrumb-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: none;
+}
+
+.breadcrumb-link:hover {
+    color: #005bff;
+    text-decoration: none;
+}
+
+.active {
+    color: #666;
+    font-weight: bold;
+}
+
+.active:hover {
+    color: #666;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
