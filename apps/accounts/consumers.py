@@ -1,6 +1,8 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.utils import timezone
+
 from .models import ChatMessage
 from apps.accounts.utils import send_push_safe
 from django.contrib.auth import get_user_model
@@ -108,13 +110,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def save_message(self, user_id, sender, text):
         msg = ChatMessage.objects.create(user_id=user_id, sender=sender, message=text)
+        # Конвертируем в локальную таймзону (Europe/Moscow) перед форматированием
+        local_created = timezone.localtime(msg.created)
         return {
             'id': msg.id,
             'sender': msg.sender,
             'message': msg.message,
-            'created': msg.created.strftime('%d.%m.%Y %H:%M'),
+            'created': local_created.strftime('%d.%m.%Y %H:%M'),
             'is_read': msg.is_read,
-            'attachments': [],  # ← добавляем пустой список для WS
         }
 
     @database_sync_to_async
