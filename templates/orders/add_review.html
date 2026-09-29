@@ -22,7 +22,8 @@
                                 </div>
                             </div>
 
-                            <form method="post" enctype="multipart/form-data">
+                            <form method="post" enctype="multipart/form-data"
+                                  id="reviewForm-{{ product.id }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="product_id" value="{{ product.id }}">
 
@@ -52,13 +53,17 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">📷 Фото и видео</label>
 
-                                    <label for="media-input" class="media-upload-zone" id="mediaUploadZone">
+                                    {# УНИКАЛЬНЫЙ id для каждого товара #}
+                                    <label for="media-input-{{ product.id }}" class="media-upload-zone"
+                                           id="mediaUploadZone-{{ product.id }}"
+                                           data-product-id="{{ product.id }}">
                                         <input type="file"
-                                               id="media-input"
+                                               id="media-input-{{ product.id }}"
                                                name="media"
                                                accept="image/*,video/*"
                                                multiple
-                                               style="display: none;">
+                                               style="display: none;"
+                                               data-product-id="{{ product.id }}">
                                         <div class="media-upload-inner">
                                             <div class="media-upload-icon">📎</div>
                                             <div class="media-upload-title">Перетащите файлы сюда или нажмите для выбора</div>
@@ -66,8 +71,8 @@
                                         </div>
                                     </label>
 
-                                    <!-- Контейнер превью -->
-                                    <div id="mediaPreview" class="media-preview-grid"></div>
+                                    {# УНИКАЛЬНЫЙ id для превью #}
+                                    <div id="mediaPreview-{{ product.id }}" class="media-preview-grid"></div>
                                 </div>
 
                                 <button type="submit" class="btn btn-primary w-100">Отправить отзыв</button>
@@ -88,8 +93,10 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     initRatingStars();
+    initMediaUploads();
 });
 
+// ============ ЗВЁЗДЫ РЕЙТИНГА ============
 function initRatingStars() {
     document.querySelectorAll('.rating-stars').forEach(group => {
         const labels = group.querySelectorAll('.rating-star-label');
@@ -106,24 +113,139 @@ function initRatingStars() {
         }
 
         labels.forEach(label => {
-            // Клик по звезде
             label.addEventListener('click', function () {
                 const value = parseInt(this.dataset.value, 10);
                 updateHighlight(value);
             });
 
-            // Наведение — временная подсветка
             label.addEventListener('mouseenter', function () {
                 const value = parseInt(this.dataset.value, 10);
                 updateHighlight(value);
             });
         });
 
-        // Уход мыши — возвращаем подсветку по выбранному значению
         group.addEventListener('mouseleave', function () {
             const checked = group.querySelector('input[type="radio"]:checked');
             const value = checked ? parseInt(checked.value, 10) : 0;
             updateHighlight(value);
+        });
+    });
+}
+
+// ============ УНИВЕРСАЛЬНАЯ ЗАГРУЗКА ФАЙЛОВ ДЛЯ КАЖДОЙ ФОРМЫ ============
+function initMediaUploads() {
+    // Находим все зоны загрузки
+    document.querySelectorAll('.media-upload-zone').forEach(zone => {
+        const productId = zone.dataset.productId;
+        const input = document.getElementById(`media-input-${productId}`);
+        const preview = document.getElementById(`mediaPreview-${productId}`);
+
+        if (!input || !preview) return;
+
+        const MAX_FILES = 10;
+        const MAX_SIZE = 20 * 1024 * 1024; // 20 МБ
+        let selectedFiles = [];
+
+        function syncInputFiles() {
+            const dt = new DataTransfer();
+            selectedFiles.forEach(f => dt.items.add(f));
+            input.files = dt.files;
+        }
+
+        function renderPreviews() {
+            preview.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'media-preview-item';
+
+                const url = URL.createObjectURL(file);
+
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = file.name;
+                    img.onload = () => URL.revokeObjectURL(url);
+                    item.appendChild(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.muted = true;
+                    video.onloadeddata = () => URL.revokeObjectURL(url);
+                    item.appendChild(video);
+                    // Значок видео
+                    const badge = document.createElement('div');
+                    badge.className = 'media-preview-badge';
+                    badge.textContent = '🎬';
+                    item.appendChild(badge);
+                }
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'media-preview-remove';
+                removeBtn.innerHTML = '×';
+                removeBtn.title = 'Удалить';
+                removeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectedFiles.splice(index, 1);
+                    syncInputFiles();
+                    renderPreviews();
+                });
+                item.appendChild(removeBtn);
+
+                preview.appendChild(item);
+            });
+        }
+
+        function addFiles(files) {
+            Array.from(files).forEach(f => {
+                // Только изображения и видео
+                if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return;
+
+                // Ограничение размера
+                if (f.size > MAX_SIZE) {
+                    alert(`Файл "${f.name}" больше 20 МБ и не будет добавлен.`);
+                    return;
+                }
+
+                // Проверка на дубликат
+                const exists = selectedFiles.some(x => x.name === f.name && x.size === f.size);
+                if (!exists) selectedFiles.push(f);
+            });
+
+            if (selectedFiles.length > MAX_FILES) {
+                selectedFiles = selectedFiles.slice(0, MAX_FILES);
+                alert(`Можно загрузить не более ${MAX_FILES} файлов.`);
+            }
+
+            syncInputFiles();
+            renderPreviews();
+        }
+
+        input.addEventListener('change', function () {
+            addFiles(input.files);
+        });
+
+        // Drag & drop
+        ['dragenter', 'dragover'].forEach(evt => {
+            zone.addEventListener(evt, e => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            zone.addEventListener(evt, e => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('dragover');
+            });
+        });
+        zone.addEventListener('drop', function (e) {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length) {
+                addFiles(dt.files);
+            }
         });
     });
 }

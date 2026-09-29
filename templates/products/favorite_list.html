@@ -244,6 +244,26 @@
         justify-content: center;
     }
 }
+
+/* На мобильных — цена и рейтинг в колонку */
+@media (max-width: 575.98px) {
+    .product-card .card-body .d-flex.justify-content-between {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .product-card .product-rating {
+        width: 100%;
+        justify-content: flex-end;   /* рейтинг справа */
+        margin-top: 2px;
+        font-size: 12px !important;
+    }
+    .product-card .product-rating .bi {
+        font-size: 12px;
+    }
+    .product-card .card-text {
+        font-size: 15px !important;
+    }
+}
 </style>
 
 <script>
