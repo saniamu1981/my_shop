@@ -55,6 +55,34 @@ class Order(models.Model):
         help_text='Заполняется автоматически при смене статуса на «Доставлен».',
     )
 
+    # Поля для интеграции с СДЭК
+    cdek_order_uuid = models.CharField(
+        'UUID заказа в СДЭК',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='UUID, возвращённый СДЭК при создании заказа',
+    )
+    cdek_number = models.CharField(
+        'Номер накладной СДЭК',
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text='Номер накладной, присвоенный СДЭК',
+    )
+    cdek_status_code = models.CharField(
+        'Код статуса СДЭК',
+        max_length=20,
+        blank=True,
+        null=True,
+    )
+    cdek_status_name = models.CharField(
+        'Название статуса СДЭК',
+        max_length=200,
+        blank=True,
+        null=True,
+    )
+
     class Meta:
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'

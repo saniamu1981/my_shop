@@ -41,6 +41,11 @@ class Product(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField('Описание')
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
+    weight = models.PositiveIntegerField(
+        'Вес, грамм',
+        default=500,
+        help_text='Вес товара в граммах. Используется для расчёта доставки СДЭК.',
+    )
     image = models.ImageField('Главное фото', upload_to=product_image_upload_path, blank=True, null=True)
     available = models.BooleanField('В наличии', default=True)
     created = models.DateTimeField(auto_now_add=True)

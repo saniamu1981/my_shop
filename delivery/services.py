@@ -1,8 +1,12 @@
 import requests
 import json
+import logging
 from django.core.cache import cache
 from django.conf import settings
+from django.utils import timezone
 from .models import DeliveryPoint
+
+logger = logging.getLogger(__name__)
 
 
 class CDEKService:
@@ -17,6 +21,10 @@ class CDEKService:
         self.test_mode = getattr(settings, 'CDEK_TEST_MODE', True)
         self.base_url = self.TEST_BASE_URL if self.test_mode else self.BASE_URL
         self._token = None
+
+    # ============================================================
+    # АВТОРИЗАЦИЯ
+    # ============================================================
 
     def _get_token(self):
         """Получение токена авторизации"""
@@ -47,8 +55,33 @@ class CDEKService:
                 self._token = token
                 return token
         except Exception as e:
-            print(f'Ошибка получения токена СДЭК: {e}')
+            logger.error(f'Ошибка получения токена СДЭК: {e}')
             return None
+
+    def _headers(self):
+        token = self._get_token()
+        return {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json',
+        }
+
+    def register_webhook(self, url, event_type='ORDER_STATUS'):
+        """Регистрирует вебхук в СДЭК."""
+        payload = {
+            'url': url,
+            'type': event_type,
+        }
+        response = requests.post(
+            f'{self.base_url}/webhooks',
+            headers=self._headers(),
+            json=payload,
+            timeout=30,
+        )
+        return response.json()
+
+    # ============================================================
+    # ПУНКТЫ ВЫДАЧИ
+    # ============================================================
 
     def get_delivery_points(self, city_code=None, city_name=None):
         """Получение списка пунктов выдачи"""
@@ -94,7 +127,6 @@ class CDEKService:
                 }
                 points.append(point)
 
-                # Сохраняем в кэш (опционально)
                 DeliveryPoint.objects.update_or_create(
                     code=point['code'],
                     defaults={
@@ -112,7 +144,7 @@ class CDEKService:
 
             return points
         except Exception as e:
-            print(f'Ошибка получения пунктов выдачи СДЭК: {e}')
+            logger.error(f'Ошибка получения пунктов выдачи СДЭК: {e}')
             return []
 
     def _format_address(self, item):
@@ -144,6 +176,10 @@ class CDEKService:
                 times.append(item['time'])
 
         return ' '.join(times) if times else ''
+
+    # ============================================================
+    # РАСЧЁТ СТОИМОСТИ
+    # ============================================================
 
     def calculate_delivery_price(self, city_code=None, city_name=None):
         """Расчет стоимости доставки"""
@@ -181,8 +217,12 @@ class CDEKService:
                 return tariffs[0].get('delivery_sum', 0)
             return None
         except Exception as e:
-            print(f'Ошибка расчета стоимости доставки СДЭК: {e}')
+            logger.error(f'Ошибка расчета стоимости доставки СДЭК: {e}')
             return None
+
+    # ============================================================
+    # ГОРОДА
+    # ============================================================
 
     def get_city_code(self, city_name):
         """Получение кода города по названию"""
@@ -190,7 +230,7 @@ class CDEKService:
         if not token:
             return None
 
-        url = f'{self.base_url}/city'
+        url = f'{self.base_url}/location/cities'
         headers = {
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
@@ -198,7 +238,7 @@ class CDEKService:
 
         params = {
             'city': city_name,
-            'country_code': 'RU'
+            'country_codes': 'RU'
         }
 
         try:
@@ -210,5 +250,182 @@ class CDEKService:
                 return data[0].get('code')
             return None
         except Exception as e:
-            print(f'Ошибка получения кода города СДЭК: {e}')
+            logger.error(f'Ошибка получения кода города СДЭК: {e}')
             return None
+
+    # ============================================================
+    # СОЗДАНИЕ ЗАКАЗА В СДЭК
+    # ============================================================
+
+    def create_order(self, order, tariff_code=136):
+        """
+        Создаёт заказ в СДЭК на основе объекта Order.
+
+        tariff_code:
+            136 — Посылка склад-склад (ПВЗ → ПВЗ)
+            137 — Посылка склад-дверь (ПВЗ → адрес)
+            138 — Посылка дверь-склад (адрес → ПВЗ)
+            139 — Посылка дверь-дверь (адрес → адрес)
+
+        Возвращает dict с ответом или None при ошибке.
+        """
+        if not order.delivery_point_code:
+            logger.error(f'Заказ #{order.id}: не указан код ПВЗ СДЭК')
+            return None
+
+        # Тип доставки: если самовывоз — склад-склад (136), иначе склад-дверь (137)
+        if tariff_code is None:
+            tariff_code = 136 if order.delivery_method == 'pickup' else 137
+
+        packages = self._build_packages(order)
+        if not packages:
+            logger.error(f'Заказ #{order.id}: нет товаров для отправки')
+            return None
+
+        payload = {
+            'type': 1,                      # Интернет-магазин
+            'number': str(order.id),        # Ваш номер заказа
+            'tariff_code': tariff_code,
+            'comment': f'Заказ №{order.id}',
+            'delivery_point': order.delivery_point_code,  # Код ПВЗ
+            'recipient': {
+                'name': f'{order.first_name} {order.last_name}'.strip() or order.email,
+                'phones': [{'number': order.phone}],
+                'email': order.email,
+            },
+            'packages': packages,
+            'from_location': {'code': int(settings.SHOP_CITY_CODE)},
+        }
+
+        try:
+            response = requests.post(
+                f'{self.base_url}/orders',
+                headers=self._headers(),
+                json=payload,
+                timeout=30,
+            )
+            data = response.json()
+            logger.info(f'СДЭК создание заказа #{order.id}: {response.status_code} — {data}')
+
+            if response.status_code in (200, 202):
+                entity = data.get('entity', {})
+                order.cdek_order_uuid = entity.get('uuid')
+                order.cdek_number = entity.get('cdek_number')
+                order.save(update_fields=['cdek_order_uuid', 'cdek_number'])
+                return data
+
+            logger.error(f'СДЭК ошибка создания заказа #{order.id}: {data}')
+            return None
+
+        except Exception as e:
+            logger.error(f'СДЭК исключение при создании заказа #{order.id}: {e}', exc_info=True)
+            return None
+
+    def _build_packages(self, order):
+        """Формирует список упаковок с товарами для API СДЭК."""
+        items = []
+        total_weight = 0
+
+        for item in order.items.all():
+            # Вес по умолчанию 500 г, если у товара нет поля weight
+            weight = getattr(item.product, 'weight', None) or 500
+            total_weight += weight * item.quantity
+
+            items.append({
+                'name': item.product.name[:255],
+                'ware_key': item.product.sku or str(item.product.id),
+                'payment': {'value': 0},   # Уже оплачено
+                'cost': float(item.price),
+                'weight': weight,
+                'amount': item.quantity,
+            })
+
+        if not items:
+            return []
+
+        return [{
+            'number': f'{order.id}-1',
+            'weight': total_weight or 1000,
+            'items': items,
+        }]
+
+    # ============================================================
+    # СТАТУСЫ ЗАКАЗА
+    # ============================================================
+
+    def get_order_status(self, order_uuid):
+        """Получает текущий статус заказа из СДЭК по UUID."""
+        try:
+            response = requests.get(
+                f'{self.base_url}/orders/{order_uuid}',
+                headers=self._headers(),
+                timeout=30,
+            )
+            if response.status_code != 200:
+                logger.warning(f'СДЭК get_order_status: {response.status_code}')
+                return None
+
+            data = response.json()
+            entity = data.get('entity', {})
+            statuses = entity.get('statuses', [])
+            last_status = statuses[-1] if statuses else {}
+
+            return {
+                'status_code': last_status.get('code'),
+                'status_name': last_status.get('name'),
+                'cdek_number': entity.get('cdek_number'),
+            }
+        except Exception as e:
+            logger.error(f'СДЭК ошибка получения статуса: {e}', exc_info=True)
+            return None
+
+    def sync_order_status(self, order):
+        """
+        Синхронизирует статус заказа из СДЭК в модель Order.
+        Возвращает True, если что-то обновилось.
+        """
+        if not order.cdek_order_uuid:
+            return False
+
+        status_data = self.get_order_status(order.cdek_order_uuid)
+        if not status_data:
+            return False
+
+        order.cdek_status_code = status_data.get('status_code') or order.cdek_status_code
+        order.cdek_status_name = status_data.get('status_name') or order.cdek_status_name
+        order.cdek_number = status_data.get('cdek_number') or order.cdek_number
+
+        new_status = self._map_cdek_status(status_data.get('status_code'))
+        if new_status and new_status != order.status:
+            order.status = new_status
+            if new_status == 'delivered' and not order.delivered_at:
+                order.delivered_at = timezone.now()
+
+        order.save(update_fields=[
+            'cdek_status_code', 'cdek_status_name', 'cdek_number',
+            'status', 'delivered_at',
+        ])
+        return True
+
+    def _map_cdek_status(self, cdek_code):
+        """
+        Маппинг кодов статусов СДЭК на статусы вашей модели Order.
+
+        ВАЖНО: коды статусов уточните в договоре с СДЭК / ЛК.
+        Здесь — базовый набор.
+        """
+        if not cdek_code:
+            return None
+
+        mapping = {
+            'CREATED': 'confirmed',
+            'ACCEPTED': 'shipped',
+            'RECEIVED_AT_SHIPMENT_WAREHOUSE': 'shipped',
+            'SENT_TO_TRANSIT': 'shipped',
+            'RECEIVED_AT_TRANSIT_WAREHOUSE': 'shipped',
+            'DELIVERED': 'delivered',
+            'NOT_DELIVERED': 'shipped',
+            'RETURNED': 'cancelled',
+            'RETURNED_TO_SENDER': 'cancelled',
+        }
+        return mapping.get(cdek_code)

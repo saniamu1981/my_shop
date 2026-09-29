@@ -1,3 +1,5 @@
+import json
+
 import requests
 import logging
 from django.http import JsonResponse
@@ -5,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.core.cache import cache
 from .russia_data import REGIONS, CITIES_BY_REGION, DISTRICTS_BY_CITY
+from .services import CDEKService
 
 logger = logging.getLogger(__name__)
 
@@ -364,3 +367,63 @@ def search_cities(request):
             break
 
     return JsonResponse({'cities': results})
+
+
+@csrf_exempt
+def create_cdek_order_view(request, order_id):
+    from apps.orders.models import Order
+    from django.shortcuts import get_object_or_404
+
+    order = get_object_or_404(Order, id=order_id)
+
+    if order.cdek_order_uuid:
+        return JsonResponse({'error': 'Заказ уже создан в СДЭК'}, status=400)
+
+    service = CDEKService()
+    result = service.create_order(order)
+
+    if result:
+        return JsonResponse({'success': True, 'data': result})
+    return JsonResponse({'error': 'Не удалось создать заказ в СДЭК'}, status=500)
+
+
+@csrf_exempt
+def sync_cdek_status_view(request, order_id):
+    from apps.orders.models import Order
+    from django.shortcuts import get_object_or_404
+
+    order = get_object_or_404(Order, id=order_id)
+
+    service = CDEKService()
+    updated = service.sync_order_status(order)
+
+    return JsonResponse({
+        'success': True,
+        'updated': updated,
+        'status': order.status,
+        'cdek_status': order.cdek_status_name,
+    })
+
+@csrf_exempt
+def cdek_webhook(request):
+    """Принимает уведомления от СДЭК о смене статуса заказа."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        logger.info(f'СДЭК вебхук: {data}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    order_uuid = data.get('uuid') or data.get('order_uuid')
+    if order_uuid:
+        from apps.orders.models import Order
+        try:
+            order = Order.objects.get(cdek_order_uuid=order_uuid)
+            service = CDEKService()
+            service.sync_order_status(order)
+        except Order.DoesNotExist:
+            logger.warning(f'СДЭК вебхук: заказ {order_uuid} не найден')
+
+    return JsonResponse({'success': True})

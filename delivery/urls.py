@@ -14,4 +14,11 @@ urlpatterns = [
 
     # Тестовые эндпоинты
     path('api/test-cdek/', views.test_cdek_connection, name='test_cdek'),
+
+    # СДЭК интеграция
+    path('api/cdek/orders/<int:order_id>/create/', views.create_cdek_order_view, name='cdek_create_order'),
+    path('api/cdek/orders/<int:order_id>/sync/', views.sync_cdek_status_view, name='cdek_sync_order'),
+
+    # Вебхук от СДЭК (если будете подписываться)
+    path('api/cdek/webhook/', views.cdek_webhook, name='cdek_webhook'),
 ]

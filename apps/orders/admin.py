@@ -1,7 +1,11 @@
 from django.contrib import admin
+from django.urls import path
+from django.shortcuts import redirect
+from django.contrib import messages
 from django.utils.html import format_html
 from django.urls import reverse
 from .models import Order, OrderItem, Cart, CartItem, Return, ReturnItem, ReturnPhoto
+from delivery.services import CDEKService
 
 
 class OrderItemInline(admin.TabularInline):
@@ -21,7 +25,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ('paid', 'status', 'delivery_method', 'created')
     list_editable = ('status',)
     search_fields = ('user__email', 'first_name', 'last_name', 'phone')
-    readonly_fields = ('created', 'updated', 'total_price')
+    readonly_fields = ('created', 'updated', 'total_price', 'cdek_order_uuid', 'cdek_number', 'cdek_status_code', 'cdek_status_name', 'cdek_buttons')
     inlines = [OrderItemInline]
     actions = ['mark_as_paid', 'mark_as_confirmed', 'mark_as_shipped', 'mark_as_delivered']
 
@@ -42,11 +46,93 @@ class OrderAdmin(admin.ModelAdmin):
             ),
             'description': 'Информация о выбранном способе доставки и пункте выдачи.',
         }),
+        ('СДЭК', {
+            'fields': (
+                'cdek_buttons',
+                'cdek_order_uuid',
+                'cdek_number',
+                'cdek_status_code',
+                'cdek_status_name',
+            ),
+            'classes': ('collapse',),
+            'description': 'Заполняется автоматически при создании заказа в СДЭК.',
+        }),
         ('Даты', {
             'fields': ('created', 'updated'),
             'classes': ('collapse',)
         }),
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:order_id>/create-cdek/', self.admin_site.admin_view(self.create_cdek_view), name='order-create-cdek'),
+            path('<int:order_id>/sync-cdek/', self.admin_site.admin_view(self.sync_cdek_view), name='order-sync-cdek'),
+        ]
+        return custom_urls + urls
+
+    def create_cdek_view(self, request, order_id):
+        from .models import Order
+        order = Order.objects.get(id=order_id)
+
+        if order.cdek_order_uuid:
+            self.message_user(
+                request,
+                f'Заказ уже создан в СДЭК (накладная {order.cdek_number})',
+                level=messages.WARNING,
+            )
+            return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+        service = CDEKService()
+        result = service.create_order(order)
+
+        if result:
+            self.message_user(
+                request,
+                f'Заказ создан в СДЭК: {order.cdek_number}',
+                level=messages.SUCCESS,
+            )
+        else:
+            self.message_user(
+                request,
+                'Ошибка создания заказа в СДЭК. Проверьте логи.',
+                level=messages.ERROR,
+            )
+        return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+    def sync_cdek_view(self, request, order_id):
+        from .models import Order
+        order = Order.objects.get(id=order_id)
+
+        if not order.cdek_order_uuid:
+            self.message_user(
+                request,
+                'Заказ ещё не создан в СДЭК',
+                level=messages.WARNING,
+            )
+            return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+        service = CDEKService()
+        service.sync_order_status(order)
+
+        self.message_user(
+            request,
+            f'Статус обновлён: {order.status} — {order.cdek_status_name or "—"}',
+            level=messages.SUCCESS,
+        )
+        return redirect(request.META.get('HTTP_REFERER', '/admin/'))
+
+    def cdek_buttons(self, obj):
+        if not obj.pk:
+            return '—'
+        create_url = reverse('admin:order-create-cdek', args=[obj.pk])
+        sync_url = reverse('admin:order-sync-cdek', args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="margin-right: 8px;">📦 Создать в СДЭК</a>'
+            '<a class="button" href="{}">🔄 Синхронизировать статус</a>',
+            create_url, sync_url,
+        )
+    cdek_buttons.short_description = 'Действия СДЭК'
 
     def mark_as_confirmed(self, request, queryset):
         queryset.update(status='confirmed')
