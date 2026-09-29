@@ -258,6 +258,10 @@ class CDEKService:
     # ============================================================
 
     def create_order(self, order, tariff_code=136):
+        # Защита от повторного создания
+        if order.cdek_order_uuid:
+            logger.info(f'Заказ #{order.id} уже создан в СДЭК ({order.cdek_number})')
+            return {'entity': {'uuid': order.cdek_order_uuid, 'cdek_number': order.cdek_number}}
         """
         Создаёт заказ в СДЭК на основе объекта Order.
 
@@ -391,6 +395,9 @@ class CDEKService:
         if not status_data:
             return False
 
+        old_status = order.status
+        old_cdek_status = order.cdek_status_name
+
         order.cdek_status_code = status_data.get('status_code') or order.cdek_status_code
         order.cdek_status_name = status_data.get('status_name') or order.cdek_status_name
         order.cdek_number = status_data.get('cdek_number') or order.cdek_number
@@ -405,25 +412,93 @@ class CDEKService:
             'cdek_status_code', 'cdek_status_name', 'cdek_number',
             'status', 'delivered_at',
         ])
+
+        # Логируем изменения
+        if order.status != old_status:
+            logger.info(
+                f'Заказ #{order.id}: статус изменён с "{old_status}" на "{order.status}" '
+                f'(СДЭК: {old_cdek_status} → {order.cdek_status_name})'
+            )
+
+        # Уведомляем клиента при смене статуса
+        if order.status != old_status and order.user:
+            try:
+                from apps.accounts.utils import send_push_safe
+                payload = {
+                    "head": "📦 Статус заказа обновлён",
+                    "body": f"Заказ №{order.id}: {order.cdek_status_name}",
+                    "icon": "/static/icons/icon-192x192.png",
+                    "url": f"/orders/{order.id}/",
+                }
+                send_push_safe(order.user, payload)
+            except Exception as e:
+                logger.error(f'Ошибка push-уведомления для заказа #{order.id}: {e}')
+
         return True
+
+    def delete_order(self, order):
+        """
+        Удаляет заказ в СДЭК. Возможно только если заказ ещё не принят физически
+        (статус CREATED или ACCEPTED).
+        """
+        if not order.cdek_order_uuid:
+            return True  # Нечего удалять
+
+        try:
+            response = requests.delete(
+                f'{self.base_url}/orders/{order.cdek_order_uuid}',
+                headers=self._headers(),
+                timeout=30,
+            )
+
+            if response.status_code in (200, 202, 204):
+                logger.info(f'Заказ #{order.id} удалён в СДЭК')
+                order.cdek_order_uuid = None
+                order.cdek_number = None
+                order.cdek_status_code = None
+                order.cdek_status_name = None
+                order.save(update_fields=[
+                    'cdek_order_uuid', 'cdek_number', 'cdek_status_code', 'cdek_status_name',
+                ])
+                return True
+
+            logger.error(f'СДЭК не удалось удалить заказ #{order.id}: {response.status_code} — {response.text}')
+            return False
+
+        except Exception as e:
+            logger.error(f'СДЭК исключение при удалении заказа #{order.id}: {e}', exc_info=True)
+            return False
 
     def _map_cdek_status(self, cdek_code):
         """
-        Маппинг кодов статусов СДЭК на статусы вашей модели Order.
+        Маппинг кодов статусов СДЭК на статусы Order.
 
-        ВАЖНО: коды статусов уточните в договоре с СДЭК / ЛК.
-        Здесь — базовый набор.
+        Логика:
+        - CREATED / ACCEPTED — заказ создан в СДЭК, но ещё не принят → 'confirmed'
+        - RECEIVED_AT_SHIPMENT_WAREHOUSE / SENT_TO_TRANSIT — реально в пути → 'shipped'
+        - DELIVERED — доставлен → 'delivered'
+        - RETURNED — возврат → 'cancelled'
         """
         if not cdek_code:
             return None
 
         mapping = {
+            # Заказ создан в СДЭК, но ещё не принят в доставку
             'CREATED': 'confirmed',
-            'ACCEPTED': 'shipped',
+            'ACCEPTED': 'confirmed',  # ← исправлено
+
+            # Заказ реально в пути
             'RECEIVED_AT_SHIPMENT_WAREHOUSE': 'shipped',
             'SENT_TO_TRANSIT': 'shipped',
             'RECEIVED_AT_TRANSIT_WAREHOUSE': 'shipped',
+            'ACCEPTED_AT_TRANSIT_WAREHOUSE': 'shipped',
+            'DELIVERED_TO_TRANSIT_WAREHOUSE': 'shipped',
+            'SENT_TO_DESTINATION': 'shipped',
+
+            # Доставлен
             'DELIVERED': 'delivered',
+
+            # Проблемы
             'NOT_DELIVERED': 'shipped',
             'RETURNED': 'cancelled',
             'RETURNED_TO_SENDER': 'cancelled',

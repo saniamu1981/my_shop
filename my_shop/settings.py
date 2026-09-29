@@ -292,8 +292,8 @@ CDEK_TEST_MODE = False
 YANDEX_MAPS_API_KEY = '945266d5-9e2f-4e11-b600-99e446df15e6'
 
 # Город отправителя
-SHOP_CITY = 'Москва'
-SHOP_CITY_CODE = 44
+SHOP_CITY = 'Санкт-Петербург'
+SHOP_CITY_CODE = 137
 
 # Логирование для отладки API СДЭК
 LOGGING = {

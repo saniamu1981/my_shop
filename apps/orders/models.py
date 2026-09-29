@@ -83,6 +83,22 @@ class Order(models.Model):
         null=True,
     )
 
+    @property
+    def cdek_status_display(self):
+        statuses = {
+            'CREATED': 'Заказ зарегистрирован в СДЭК',
+            'ACCEPTED': 'Заказ зарегистрирован в СДЭК',
+            'RECEIVED_AT_SHIPMENT_WAREHOUSE': 'Посылка принята в СДЭК',
+            'SENT_TO_TRANSIT': 'Посылка в пути',
+            'RECEIVED_AT_TRANSIT_WAREHOUSE': 'Посылка на промежуточном складе',
+            'READY_TO_TAKE_FROM_TRANSIT_WAREHOUSE': 'Готова к выдаче',
+            'DELIVERED': 'Доставлена',
+            'NOT_DELIVERED': 'Не доставлена',
+            'RETURNED': 'Возврат',
+            'RETURNED_TO_SENDER': 'Возвращена отправителю',
+        }
+        return statuses.get(self.cdek_status_code, self.cdek_status_name or '—')
+
     class Meta:
         verbose_name = 'Заказ'
         verbose_name_plural = 'Заказы'
@@ -154,11 +170,19 @@ class Order(models.Model):
         return self.status in ['created', 'paid', 'confirmed'] and not self.status == 'cancelled'
 
     def cancel(self):
-        if self.can_cancel():
-            self.status = 'cancelled'
-            self.save()
-            return True
-        return False
+        if not self.can_cancel():
+            return False
+
+        # Если заказ создан в СДЭК — сначала удаляем там
+        if self.cdek_order_uuid:
+            from delivery.services import CDEKService
+            service = CDEKService()
+            if not service.delete_order(self):
+                return False
+
+        self.status = 'cancelled'
+        self.save()
+        return True
 
 
 class OrderItem(models.Model):

@@ -15,4 +15,5 @@ urlpatterns = [
     path('add-review/', views.add_review, name='add_review'),
     path('yookassa/webhook/', views.yookassa_webhook, name='yookassa_webhook'),
     path('order/<int:order_id>/return/', views.create_return, name='create_return'),
+    path('<int:order_id>/cancel/', views.cancel_order_view, name='order_cancel'),
 ]

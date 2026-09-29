@@ -44,6 +44,24 @@
                         {% if order.delivery_point_code %}
                             <p><strong>Код пункта:</strong> {{ order.delivery_point_code }}</p>
                         {% endif %}
+
+                        {# ===== СДЭК: статус доставки и номер накладной ===== #}
+                        {% if order.cdek_number %}
+                            <hr class="my-2">
+                            <p class="mb-1">
+                                <strong>Статус доставки:</strong>
+                                <span class="badge bg-info">{{ order.cdek_status_display }}</span>
+                            </p>
+                            <p class="mb-0">
+                                <strong>Номер накладной:</strong>
+                                <a href="https://www.cdek.ru/ru/tracking?order_id={{ order.cdek_number }}"
+                                   target="_blank" rel="noopener"
+                                   class="cdek-tracking-link">
+                                    {{ order.cdek_number }}
+                                    <i class="bi bi-box-arrow-up-right" style="font-size: 12px;"></i>
+                                </a>
+                            </p>
+                        {% endif %}
                     </div>
                     {% endif %}
 
@@ -249,6 +267,52 @@
     }
     .card-header {
         padding: 10px 12px !important;
+    }
+}
+
+/* Ссылка на отслеживание СДЭК */
+.cdek-tracking-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border-bottom: 1px dashed #0d6efd;
+}
+
+.cdek-tracking-link:hover {
+    background: #e7f5ff;
+    color: #0a58ca;
+    border-bottom-color: transparent;
+    text-decoration: none;
+}
+
+.cdek-tracking-link:active {
+    transform: scale(0.98);
+}
+
+/* На мобильных — компактнее */
+@media (max-width: 767.98px) {
+    .cdek-tracking-link {
+        font-size: 13px;
+        padding: 2px 5px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    /* Бейдж статуса СДЭК и ссылка на накладную */
+    .card-body .badge.bg-info {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    .card-body a[href*="cdek.ru"] {
+        word-break: break-all;
+        font-size: 13px;
     }
 }
 </style>

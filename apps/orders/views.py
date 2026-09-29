@@ -748,3 +748,11 @@ def create_return(request, order_id):
         'total_quantity': sum(i.quantity for i in order_items),
         'max_photos': 10,
     })
+
+def cancel_order_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    if order.cancel():
+        messages.success(request, f'Заказ №{order.id} отменён')
+    else:
+        messages.error(request, 'Не удалось отменить заказ. Возможно, он уже передан в СДЭК.')
+    return redirect('orders:order_detail', order_id=order.id)
