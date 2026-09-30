@@ -578,39 +578,39 @@ document.addEventListener('DOMContentLoaded', function () {
 // ============ ВЫРАВНИВАНИЕ КАРТОЧЕК ПО ВЫСОТЕ РЕЙТИНГА ============
 function alignProductCards() {
     // Только на мобильных
-    if (window.innerWidth >= 576) {
-        // Сбросить все ручные отступы, если вернулись на десктоп
-        document.querySelectorAll('.product-rating-placeholder').forEach(el => el.remove());
-        return;
-    }
+    const isMobile = window.innerWidth < 576;
 
-    // Удаляем старые плейсхолдеры
+    // Всегда сначала удаляем старые плейсхолдеры, чтобы не было дублей
     document.querySelectorAll('.product-rating-placeholder').forEach(el => el.remove());
+
+    if (!isMobile) return;
 
     // Группируем карточки по ряду (по offsetTop)
     const cards = Array.from(document.querySelectorAll('.product-card'));
     const rows = {};
 
     cards.forEach(card => {
-        const top = Math.round(card.getBoundingClientRect().top);
+        const rect = card.getBoundingClientRect();
+        const top = Math.round(rect.top);
         if (!rows[top]) rows[top] = [];
         rows[top].push(card);
     });
 
     // Для каждого ряда
     Object.values(rows).forEach(rowCards => {
-        // Проверяем, есть ли хоть у одной карточки в ряду рейтинг
+        // Есть ли хоть у одной карточки в ряду рейтинг?
         const hasAnyRating = rowCards.some(card => card.querySelector('.product-rating'));
         if (!hasAnyRating) return;
 
-        // Для карточек без рейтинга — добавляем пустой плейсхолдер
+        // Карточкам без рейтинга добавляем плейсхолдер
         rowCards.forEach(card => {
-            const ratingEl = card.querySelector('.product-rating');
-            if (ratingEl) return; // рейтинг уже есть
+            if (card.querySelector('.product-rating')) return; // рейтинг уже есть
 
-            // Находим блок с ценой и вставляем плейсхолдер перед ним
             const priceRow = card.querySelector('.product-price-row');
             if (!priceRow) return;
+
+            // Проверяем, что плейсхолдера ещё нет (защита от дублей)
+            if (priceRow.querySelector('.product-rating-placeholder')) return;
 
             const placeholder = document.createElement('div');
             placeholder.className = 'product-rating-placeholder';
@@ -625,8 +625,25 @@ function alignProductCards() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    alignProductCards();
-    window.addEventListener('resize', alignProductCards);
+    // Первый запуск — после полной отрисовки страницы
+    requestAnimationFrame(() => {
+        setTimeout(alignProductCards, 100);
+    });
+
+    // Debounce для resize — вызываем функцию только после «затишья»
+    let resizeTimer = null;
+    function handleResize() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            // Двойной requestAnimationFrame — гарантирует, что браузер уже пересчитал layout
+            requestAnimationFrame(() => {
+                requestAnimationFrame(alignProductCards);
+            });
+        }, 150);
+    }
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
 });
 </script>
 {% endblock %}
