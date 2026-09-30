@@ -37,7 +37,14 @@
                                     <div class="card-body d-flex flex-column">
                                         <h5 class="card-title" style="font-size: 14px; min-height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ product.name }}</h5>
                                         <div class="d-flex justify-content-between align-items-center mt-auto product-price-row">
-                                            {# Рейтинг — первым. На мобильном он окажется выше цены #}
+                                            {# Цена — первой #}
+                                            {% if product.has_any_sizes and not product.has_sizes_in_stock %}
+                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: silver;">Стоимость не известна</p>
+                                            {% else %}
+                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: #007bff;">{{ product.price }} ₽</p>
+                                            {% endif %}
+
+                                            {# Рейтинг — вторым #}
                                             {% if product.avg_rating %}
                                                 <div class="product-rating d-flex align-items-center" style="font-size: 13px;">
                                                     <span class="text-warning">
@@ -49,13 +56,6 @@
                                                     </span>
                                                     <span class="ms-1 text-muted" style="font-size: 12px;">{{ product.avg_rating|floatformat:1 }}</span>
                                                 </div>
-                                            {% endif %}
-
-                                            {# Цена — после рейтинга #}
-                                            {% if product.has_any_sizes and not product.has_sizes_in_stock %}
-                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: silver;">Стоимость не известна</p>
-                                            {% else %}
-                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: #007bff;">{{ product.price }} ₽</p>
                                             {% endif %}
                                         </div>
                                         <div class="mt-2">
@@ -154,10 +154,17 @@
 </div>
 
 <style>
-/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ИЗБРАННОГО ============ */
+/* ============ ДЕСКТОП И ПЛАНШЕТ — БЕЗ ИЗМЕНЕНИЙ ============ */
 
+/* Модалка размеров — кнопки под палец */
+#sizeModalSizesList label {
+    min-height: 40px;
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ (только до 575.98px) ============ */
 @media (max-width: 575.98px) {
-    /* Карточки компактнее */
+
+    /* --- Общие компактные стили --- */
     .product-card .card-img-wrapper {
         height: 180px !important;
     }
@@ -199,6 +206,11 @@
         margin-bottom: 12px !important;
     }
 
+    /* Селект категорий */
+    .d-md-none select {
+        font-size: 14px;
+    }
+
     /* Пагинация компактнее */
     .pagination .page-link {
         padding: 4px 8px;
@@ -212,25 +224,8 @@
     .alert {
         padding: 30px 15px !important;
     }
-}
 
-/* Планшет — средний размер картинок */
-@media (min-width: 576px) and (max-width: 767.98px) {
-    .product-card .card-img-wrapper {
-        height: 220px !important;
-    }
-    .product-card .card-title {
-        font-size: 13px !important;
-    }
-}
-
-
-/* Кнопки размеров в модалке — удобны для пальца */
-#sizeModalSizesList label {
-    min-height: 40px;
-}
-
-@media (max-width: 575.98px) {
+    /* Модалка размеров */
     #sizeSelectModal .modal-dialog {
         margin: 8px;
     }
@@ -241,10 +236,9 @@
         flex: 1 1 calc(33% - 8px);
         justify-content: center;
     }
-}
 
-/* ============ ВЫРАВНИВАНИЕ КАРТОЧЕК И РЕЙТИНГ НА МОБИЛЬНОМ ============ */
-@media (max-width: 575.98px) {
+    /* --- ВЫРАВНИВАНИЕ КАРТОЧЕК И РЕЙТИНГ НАД ЦЕНОЙ --- */
+
     /* Карточка — колонка на всю высоту ряда */
     .product-card {
         display: flex;
@@ -267,7 +261,7 @@
         flex: 1;
     }
 
-    /* Блок цена + рейтинг — колонка, прижимается к низу */
+    /* Блок цена + рейтинг — колонка, рейтинг сверху */
     .product-card .product-price-row {
         flex-direction: column;
         align-items: stretch;
@@ -275,8 +269,9 @@
         margin-top: auto;
     }
 
-    /* Рейтинг — на всю ширину, выровнен вправо */
+    /* Рейтинг — первым на мобильном (order: -1) */
     .product-card .product-rating {
+        order: -1;                       /* ← вот это ключевое */
         width: 100%;
         justify-content: flex-end;
         font-size: 12px !important;
@@ -288,8 +283,9 @@
         font-size: 11px !important;
     }
 
-    /* Цена — слева */
+    /* Цена — второй (order: 0 по умолчанию) */
     .product-card .product-price-row .card-text {
+        order: 0;
         align-self: flex-start;
         font-size: 15px !important;
     }
@@ -306,6 +302,21 @@
     .product-card .card-body > .mt-2 {
         margin-top: 8px !important;
     }
+}
+
+/* ============ ПЛАНШЕТ (576–767.98px) ============ */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .product-card .card-img-wrapper {
+        height: 220px !important;
+    }
+    .product-card .card-title {
+        font-size: 13px !important;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
 
