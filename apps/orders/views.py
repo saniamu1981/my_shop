@@ -834,3 +834,35 @@ def create_return(request, order_id):
 def return_detail(request, return_id):
     ret = get_object_or_404(Return, id=return_id, user=request.user)
     return render(request, 'orders/return_detail.html', {'return': ret})
+
+
+@login_required
+@require_POST
+def cancel_return(request, return_id):
+    """Отмена заявки на возврат клиентом."""
+    ret = get_object_or_404(Return, id=return_id, user=request.user)
+
+    if ret.status not in ('new', 'review'):
+        messages.error(request, 'Эту заявку уже нельзя отменить')
+        return redirect('orders:return_detail', return_id=ret.id)
+
+    ret.status = 'cancelled'
+    ret.save()
+
+    # Push админам — чтобы не обрабатывали отменённую заявку
+    try:
+        User = get_user_model()
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        payload = {
+            "head": "↩️ Заявка на возврат отменена",
+            "body": f'Заявка R-{ret.id} (заказ №{ret.order_id}) отменена клиентом',
+            "icon": "/static/icons/icon-192x192.png",
+            "url": f"/admin/orders/return/{ret.id}/change/",
+        }
+        for admin in admins:
+            send_push_safe(admin, payload)
+    except Exception as e:
+        logger.error(f'Push error (cancel_return): {e}')
+
+    messages.success(request, f'Заявка R-{ret.id} отменена')
+    return redirect('orders:return_detail', return_id=ret.id)
