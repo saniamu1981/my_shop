@@ -550,23 +550,59 @@ document.addEventListener('DOMContentLoaded', function () {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* На мобильных — цена и рейтинг в колонку */
+/* ============ РЕЙТИНГ И ВЫРАВНИВАНИЕ КАРТОЧЕК НА МОБИЛЬНОМ ============ */
 @media (max-width: 575.98px) {
+    /* --- Карточка: колонка на всю высоту ряда --- */
+    .product-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    /* Ссылка внутри карточки — тоже колонка */
+    .product-card > a {
+        display: flex !important;
+        flex-direction: column;
+        height: 100%;
+        flex: 1;
+    }
+
+    /* card-body растягивается, чтобы кнопка ушла вниз */
+    .product-card .card-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    /* Блок цена + рейтинг — прижимается к низу */
     .product-card .card-body .d-flex.justify-content-between {
         flex-wrap: wrap;
         gap: 4px;
+        margin-top: auto;
     }
+
+    /* --- Рейтинг: под ценой, справа --- */
     .product-card .product-rating {
         width: 100%;
-        justify-content: flex-end;   /* рейтинг справа */
+        justify-content: flex-end;
         margin-top: 2px;
         font-size: 12px !important;
     }
     .product-card .product-rating .bi {
         font-size: 12px;
     }
+    .product-card .product-rating .ms-1 {
+        font-size: 11px !important;
+    }
+
+    /* Цена — чуть компактнее */
     .product-card .card-text {
         font-size: 15px !important;
+    }
+
+    /* Кнопка «В корзину» — всегда в самом низу */
+    .product-card .card-body > .mt-2 {
+        margin-top: 8px !important;
     }
 }
 </style>
