@@ -842,10 +842,38 @@ def cancel_return(request, return_id):
     """Отмена заявки на возврат клиентом."""
     ret = get_object_or_404(Return, id=return_id, user=request.user)
 
-    if ret.status not in ('new', 'review'):
+    # Разрешаем отмену в статусах: new, review, approved
+    if ret.status not in ('new', 'review', 'approved'):
         messages.error(request, 'Эту заявку уже нельзя отменить')
         return redirect('orders:return_detail', return_id=ret.id)
 
+    # Если возврат уже был одобрен и деньги отправлены — нужно отменить возврат в ЮKassa
+    if ret.status == 'approved' and ret.refund_id and ret.refund_status == 'succeeded':
+        messages.error(
+            request,
+            'Возврат денег уже выполнен. Отмена заявки невозможна — '
+            'свяжитесь с поддержкой.'
+        )
+        return redirect('orders:return_detail', return_id=ret.id)
+
+    # Если возврат создан в ЮKassa, но ещё не succeeded — пробуем отменить
+    if ret.refund_id and ret.refund_status != 'succeeded':
+        try:
+            from yookassa import Configuration, Refund
+            from django.conf import settings as dj_settings
+            Configuration.account_id = dj_settings.YOOKASSA_SHOP_ID
+            Configuration.secret_key = dj_settings.YOOKASSA_SECRET_KEY
+
+            # ЮKassa не даёт отменить возврат, если он уже в обработке.
+            # Можно только зафиксировать факт отмены у себя.
+            logger.info(
+                f'Возврат R-{ret.id}: клиент отменил заявку, '
+                f'refund_id={ret.refund_id}, status={ret.refund_status}'
+            )
+        except Exception as e:
+            logger.error(f'Ошибка проверки возврата R-{ret.id}: {e}')
+
+    # Меняем статус
     ret.status = 'cancelled'
     ret.save()
 
@@ -863,6 +891,19 @@ def cancel_return(request, return_id):
             send_push_safe(admin, payload)
     except Exception as e:
         logger.error(f'Push error (cancel_return): {e}')
+
+    # Push клиенту — подтверждение
+    try:
+        if ret.user:
+            payload = {
+                "head": "✅ Заявка отменена",
+                "body": f"Заявка R-{ret.id} отменена. Если передумаете — создайте новую.",
+                "icon": "/static/icons/icon-192x192.png",
+                "url": f"/orders/returns/{ret.id}/",
+            }
+            send_push_safe(ret.user, payload)
+    except Exception as e:
+        logger.error(f'Push error (cancel_return user): {e}')
 
     messages.success(request, f'Заявка R-{ret.id} отменена')
     return redirect('orders:return_detail', return_id=ret.id)

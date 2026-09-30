@@ -132,15 +132,23 @@
                     Посмотреть заказ
                 </a>
 
-                {% if return.status == 'new' or return.status == 'review' %}
-                    <button type="button" class="btn btn-outline-danger"
-                            onclick="if(confirm('Вы уверены, что хотите отменить заявку?')) { document.getElementById('cancelReturnForm').submit(); }">
-                        Отменить заявку
-                    </button>
-                    <form id="cancelReturnForm" method="post"
-                          action="{% url 'orders:cancel_return' return.id %}" style="display: none;">
-                        {% csrf_token %}
-                    </form>
+                {% if return.status == 'new' or return.status == 'review' or return.status == 'approved' %}
+                    {# Если возврат уже завершён — не даём отменить #}
+                    {% if return.refund_status != 'succeeded' %}
+                        <button type="button" class="btn btn-outline-danger"
+                                onclick="if(confirm('Вы уверены, что хотите отменить заявку?')) { document.getElementById('cancelReturnForm').submit(); }">
+                            Отменить заявку
+                        </button>
+                        <form id="cancelReturnForm" method="post"
+                              action="{% url 'orders:cancel_return' return.id %}" style="display: none;">
+                            {% csrf_token %}
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning small mb-0">
+                            Возврат денег уже выполнен. Отмена заявки невозможна.
+                            Если нужно вернуть товар — свяжитесь с поддержкой.
+                        </div>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>
