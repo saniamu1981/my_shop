@@ -36,28 +36,26 @@
                                     </div>
                                     <div class="card-body d-flex flex-column">
                                         <h5 class="card-title" style="font-size: 14px; min-height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ product.name }}</h5>
-                                        <div class="d-flex justify-content-between align-items-center mt-auto">
-                                            {% if product.has_any_sizes and not product.has_sizes_in_stock %}
-                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: silver;">Стоимость не известна</p>
-                                            {% else %}
-                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: #007bff;">{{ product.price }} ₽</p>
-                                            {% endif %}
-
+                                        <div class="d-flex justify-content-between align-items-center mt-auto product-price-row">
+                                            {# Рейтинг — первым. На мобильном он окажется выше цены #}
                                             {% if product.avg_rating %}
                                                 <div class="product-rating d-flex align-items-center" style="font-size: 13px;">
                                                     <span class="text-warning">
                                                         {% for state in product.avg_rating|star_states %}
-                                                            {% if state == 'full' %}
-                                                                <i class="bi bi-star-fill"></i>
-                                                            {% elif state == 'half' %}
-                                                                <i class="bi bi-star-half"></i>
-                                                            {% else %}
-                                                                <i class="bi bi-star"></i>
-                                                            {% endif %}
+                                                            {% if state == 'full' %}<i class="bi bi-star-fill"></i>
+                                                            {% elif state == 'half' %}<i class="bi bi-star-half"></i>
+                                                            {% else %}<i class="bi bi-star"></i>{% endif %}
                                                         {% endfor %}
                                                     </span>
                                                     <span class="ms-1 text-muted" style="font-size: 12px;">{{ product.avg_rating|floatformat:1 }}</span>
                                                 </div>
+                                            {% endif %}
+
+                                            {# Цена — после рейтинга #}
+                                            {% if product.has_any_sizes and not product.has_sizes_in_stock %}
+                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: silver;">Стоимость не известна</p>
+                                            {% else %}
+                                                <p class="card-text mb-0" style="font-size: 16px; font-weight: bold; color: #007bff;">{{ product.price }} ₽</p>
                                             {% endif %}
                                         </div>
                                         <div class="mt-2">
@@ -245,9 +243,9 @@
     }
 }
 
-/* ============ РЕЙТИНГ И ВЫРАВНИВАНИЕ КАРТОЧЕК НА МОБИЛЬНОМ ============ */
+/* ============ ВЫРАВНИВАНИЕ КАРТОЧЕК И РЕЙТИНГ НА МОБИЛЬНОМ ============ */
 @media (max-width: 575.98px) {
-    /* --- Карточка: колонка на всю высоту ряда --- */
+    /* Карточка — колонка на всю высоту ряда */
     .product-card {
         display: flex;
         flex-direction: column;
@@ -269,18 +267,18 @@
         flex: 1;
     }
 
-    /* Блок цена + рейтинг — прижимается к низу */
-    .product-card .card-body .d-flex.justify-content-between {
-        flex-wrap: wrap;
-        gap: 4px;
+    /* Блок цена + рейтинг — колонка, прижимается к низу */
+    .product-card .product-price-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
         margin-top: auto;
     }
 
-    /* --- Рейтинг: под ценой, справа --- */
+    /* Рейтинг — на всю ширину, выровнен вправо */
     .product-card .product-rating {
         width: 100%;
         justify-content: flex-end;
-        margin-top: 2px;
         font-size: 12px !important;
     }
     .product-card .product-rating .bi {
@@ -290,9 +288,18 @@
         font-size: 11px !important;
     }
 
-    /* Цена — чуть компактнее */
-    .product-card .card-text {
+    /* Цена — слева */
+    .product-card .product-price-row .card-text {
+        align-self: flex-start;
         font-size: 15px !important;
+    }
+
+    /* Плейсхолдер под рейтинг (добавляется через JS) */
+    .product-card .product-rating-placeholder {
+        display: block;
+        width: 100%;
+        height: 16px;
+        visibility: hidden;
     }
 
     /* Кнопка «В корзину» — всегда в самом низу */
@@ -555,6 +562,60 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => toast.remove(), 400);
         }, 2200);
     }
+});
+
+// ============ ВЫРАВНИВАНИЕ КАРТОЧЕК ПО ВЫСОТЕ РЕЙТИНГА ============
+function alignProductCards() {
+    // Только на мобильных
+    if (window.innerWidth >= 576) {
+        // Сбросить все ручные отступы, если вернулись на десктоп
+        document.querySelectorAll('.product-rating-placeholder').forEach(el => el.remove());
+        return;
+    }
+
+    // Удаляем старые плейсхолдеры
+    document.querySelectorAll('.product-rating-placeholder').forEach(el => el.remove());
+
+    // Группируем карточки по ряду (по offsetTop)
+    const cards = Array.from(document.querySelectorAll('.product-card'));
+    const rows = {};
+
+    cards.forEach(card => {
+        const top = Math.round(card.getBoundingClientRect().top);
+        if (!rows[top]) rows[top] = [];
+        rows[top].push(card);
+    });
+
+    // Для каждого ряда
+    Object.values(rows).forEach(rowCards => {
+        // Проверяем, есть ли хоть у одной карточки в ряду рейтинг
+        const hasAnyRating = rowCards.some(card => card.querySelector('.product-rating'));
+        if (!hasAnyRating) return;
+
+        // Для карточек без рейтинга — добавляем пустой плейсхолдер
+        rowCards.forEach(card => {
+            const ratingEl = card.querySelector('.product-rating');
+            if (ratingEl) return; // рейтинг уже есть
+
+            // Находим блок с ценой и вставляем плейсхолдер перед ним
+            const priceRow = card.querySelector('.product-price-row');
+            if (!priceRow) return;
+
+            const placeholder = document.createElement('div');
+            placeholder.className = 'product-rating-placeholder';
+            placeholder.style.cssText = `
+                width: 100%;
+                height: 16px;
+                visibility: hidden;
+            `;
+            priceRow.insertBefore(placeholder, priceRow.firstChild);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    alignProductCards();
+    window.addEventListener('resize', alignProductCards);
 });
 </script>
 {% endblock %}
