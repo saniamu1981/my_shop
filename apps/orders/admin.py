@@ -299,7 +299,7 @@ class ReturnAdmin(admin.ModelAdmin):
         if failed:
             self.message_user(request, f'Не удалось одобрить: {failed}', level=messages.ERROR)
 
-    mark_approved.short_description = '✅ Одобрить и вернуть деньги'
+    mark_approved.short_description = '✅ Одобрить'
 
     def mark_rejected(self, request, queryset):
         from django.utils import timezone
@@ -311,4 +311,4 @@ class ReturnAdmin(admin.ModelAdmin):
             ret.complete(request.user)
         self.message_user(request, f'Завершено возвратов: {queryset.count()}', level=messages.SUCCESS)
 
-    mark_completed.short_description = '🏁 Завершить и вернуть товар на склад'
+    mark_completed.short_description = '🏁 Завершить и вернуть деньги'

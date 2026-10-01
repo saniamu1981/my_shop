@@ -1,4 +1,4 @@
-from datetime import timezone
+from django.utils import timezone
 
 from django.db import models
 from django.conf import settings
@@ -174,8 +174,9 @@ class Order(models.Model):
             return False
         if self.status == 'cancelled':
             return False
-        # Если заказ в СДЭК и уже принят — нельзя отменить
-        if self.cdek_order_uuid and self.cdek_status_code not in ('CREATED', 'ACCEPTED'):
+        # Если заказ в СДЭК и уже принят физически — нельзя отменить
+        # None означает, что статус ещё не синхронизирован — разрешаем отмену
+        if self.cdek_order_uuid and self.cdek_status_code not in ('CREATED', 'ACCEPTED', None):
             return False
         return True
 
@@ -359,50 +360,60 @@ class Return(models.Model):
     refunded_at = models.DateTimeField('Дата возврата', null=True, blank=True)
     refund_amount = models.DecimalField('Сумма возврата', max_digits=10, decimal_places=2, default=0)
 
+    # Поля для клиентского возврата СДЭК
+    cdek_return_uuid = models.CharField('UUID возврата СДЭК', max_length=100, blank=True, null=True)
+    cdek_return_number = models.CharField('Номер накладной возврата СДЭК', max_length=50, blank=True, null=True)
+    cdek_return_status = models.CharField('Статус возврата СДЭК', max_length=50, blank=True, null=True)
+
     # ===== Служебные =====
     created = models.DateTimeField('Создан', auto_now_add=True)
     updated = models.DateTimeField('Обновлён', auto_now=True)
 
     def approve(self, admin_user):
-        """
-        Одобряет возврат и создаёт возврат денег через ЮKassa.
-        Возвращает True при успехе.
-        """
         if self.status not in ('new', 'review'):
             return False
 
-        # Считаем сумму возврата
-        amount = self.total_price
-        if not amount:
-            logger.error(f'Возврат #{self.id}: нет позиций для возврата')
-            return False
+        if self.order.cdek_order_uuid:
+            from delivery.services import CDEKService
+            service = CDEKService()
 
-        # Создаём возврат в ЮKassa
-        refund = None
-        if self.order.paid and self.order.payment_id:
-            from apps.orders.yookassa_refund import create_refund
-            refund = create_refund(self.order.payment_id, amount)
-            if not refund:
-                logger.error(f'Возврат #{self.id}: не удалось создать возврат в ЮKassa')
-                return False
+            # Считаем, возвращается ли весь заказ
+            order_items_count = self.order.items.count()
+            return_items_count = self.items.count()
 
-            self.refund_id = refund.get('id')
-            self.refund_status = refund.get('status')
-            self.refund_amount = amount
+            if order_items_count == return_items_count:
+                # Полный возврат — используем простой метод
+                cdek_result = service.create_client_return_full(self)
+            else:
+                # Частичный возврат — используем СоздатьЗаказ с is_client_return
+                cdek_result = service.create_client_return_partial(self)
 
-        # Обновляем статус
+            if cdek_result:
+                self.cdek_return_uuid = cdek_result.get('cdek_return_uuid')
+                self.cdek_return_number = cdek_result.get('cdek_return_number')
+                self.cdek_return_status = cdek_result.get('state', 'ACCEPTED')
+                logger.info(
+                    f'Возврат #{self.id}: создан в СДЭК, '
+                    f'накладная {self.cdek_return_number}, state={self.cdek_return_status}'
+                )
+            else:
+                logger.warning(f'Возврат #{self.id}: не удалось создать в СДЭК')
+
         self.status = 'approved'
         self.processed_by = admin_user
         self.processed_at = timezone.now()
         self.save()
 
-        # Push-уведомление клиенту
+        # Push клиенту
         try:
             from apps.accounts.utils import send_push_safe
             if self.user:
+                body = f"Заявка R-{self.id} одобрена."
+                if self.cdek_return_number:
+                    body += f" Отправьте товар по накладной: {self.cdek_return_number}."
                 payload = {
                     "head": "✅ Возврат одобрен",
-                    "body": f"Заявка №{self.id}: {amount} ₽ вернутся на карту в течение 3–10 дней",
+                    "body": body,
                     "icon": "/static/icons/icon-192x192.png",
                     "url": f"/orders/returns/{self.id}/",
                 }
@@ -410,7 +421,6 @@ class Return(models.Model):
         except Exception as e:
             logger.error(f'Push error (return approve): {e}')
 
-        logger.info(f'Возврат #{self.id}: одобрен, сумма {amount} ₽, refund_id={self.refund_id}')
         return True
 
     def complete(self, admin_user):
@@ -442,6 +452,19 @@ class Return(models.Model):
                     )
 
         return True
+
+    def sync_return_status(self):
+        """Синхронизирует статус возвратной накладной из СДЭК."""
+        if not self.cdek_return_uuid:
+            return
+        from delivery.services import CDEKService
+        service = CDEKService()
+        status = service.get_return_status(self.cdek_return_uuid)
+        if status:
+            self.cdek_return_status = status.get('status_code')
+            if status.get('cdek_number'):
+                self.cdek_return_number = status.get('cdek_number')
+            self.save(update_fields=['cdek_return_status', 'cdek_return_number'])
 
     class Meta:
         verbose_name = 'Возврат'

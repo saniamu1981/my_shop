@@ -418,6 +418,15 @@ def cdek_webhook(request):
 
     order_uuid = data.get('uuid') or data.get('order_uuid')
     if order_uuid:
+        # 1. Проверяем, не возвратная ли это накладная
+        from apps.orders.models import Return
+        ret = Return.objects.filter(cdek_return_uuid=order_uuid).first()
+        if ret:
+            ret.sync_return_status()
+            logger.info(f'СДЭК вебхук: обновлён возврат R-{ret.id}')
+            return JsonResponse({'success': True})
+
+        # 2. Если не возврат — это обычный заказ
         from apps.orders.models import Order
         try:
             order = Order.objects.get(cdek_order_uuid=order_uuid)

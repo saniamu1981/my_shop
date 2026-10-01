@@ -436,6 +436,29 @@ class CDEKService:
 
         return True
 
+    def get_return_status(self, return_uuid):
+        """Получает статус возвратной накладной в СДЭК."""
+        try:
+            response = requests.get(
+                f'{self.base_url}/orders/{return_uuid}',
+                headers=self._headers(),
+                timeout=30,
+            )
+            if response.status_code != 200:
+                return None
+            data = response.json()
+            entity = data.get('entity', {})
+            statuses = entity.get('statuses', [])
+            last = statuses[-1] if statuses else {}
+            return {
+                'status_code': last.get('code'),
+                'status_name': last.get('name'),
+                'cdek_number': entity.get('cdek_number'),
+            }
+        except Exception as e:
+            logger.error(f'СДЭК ошибка получения статуса возврата: {e}')
+            return None
+
     def delete_order(self, order):
         """
         Удаляет заказ в СДЭК. Возможно только если заказ ещё не принят физически
@@ -504,3 +527,140 @@ class CDEKService:
             'RETURNED_TO_SENDER': 'cancelled',
         }
         return mapping.get(cdek_code)
+
+    def create_client_return_full(self, return_obj, tariff_code=None):
+        """
+        Создаёт клиентский возврат на ВЕСЬ заказ через
+        POST /v2/orders/{uuid}/clientReturn.
+
+        Используется, когда:
+        - прямой заказ доставлялся СДЭК
+        - клиент возвращает ВСЕ товары заказа
+        """
+        order = return_obj.order
+
+        if not order.cdek_order_uuid:
+            logger.error(f'Возврат R-{return_obj.id}: у заказа нет UUID СДЭК')
+            return None
+
+        if not tariff_code:
+            tariff_code = getattr(settings, 'CDEK_RETURN_TARIFF_CODE', 137)
+
+        url = f'{self.base_url}/orders/{order.cdek_order_uuid}/clientReturn'
+        payload = {'tariff_code': tariff_code}
+
+        try:
+            response = requests.post(
+                url,
+                headers=self._headers(),
+                json=payload,
+                timeout=30,
+            )
+            data = response.json()
+            logger.info(f'СДЭК полный возврат R-{return_obj.id}: {response.status_code} — {data}')
+
+            if response.status_code == 202:
+                entity = data.get('entity', {})
+                return {
+                    'cdek_return_uuid': entity.get('uuid'),
+                    'cdek_return_number': entity.get('cdek_number'),
+                    'state': data.get('requests', [{}])[0].get('state'),
+                }
+            logger.error(f'СДЭК ошибка полного возврата R-{return_obj.id}: {data}')
+            return None
+        except Exception as e:
+            logger.error(f'СДЭК исключение при полном возврате R-{return_obj.id}: {e}', exc_info=True)
+            return None
+
+    def create_client_return_partial(self, return_obj, tariff_code=None):
+        """
+        Создаёт клиентский возврат на ЧАСТЬ заказа через
+        POST /v2/orders с is_client_return = true.
+
+        Используется, когда:
+        - клиент возвращает НЕ все товары заказа
+        - или прямой заказ доставлялся другой курьерской службой
+        """
+        order = return_obj.order
+
+        # Собираем ТОЛЬКО те товары, которые клиент возвращает
+        items = []
+        total_weight = 0
+        for item in return_obj.items.all():
+            weight = 500
+            if item.product and hasattr(item.product, 'weight') and item.product.weight:
+                weight = item.product.weight
+            total_weight += weight * item.quantity
+
+            items.append({
+                'name': item.product_name[:255],
+                'ware_key': item.product.sku if item.product and item.product.sku else str(item.order_item_id),
+                'payment': {'value': 0},
+                'cost': float(item.price),
+                'weight': weight,
+                'amount': item.quantity,
+            })
+
+        if not items:
+            logger.error(f'Возврат R-{return_obj.id}: нет позиций для возврата')
+            return None
+
+        if not tariff_code:
+            tariff_code = getattr(settings, 'CDEK_RETURN_TARIFF_CODE', 137)
+
+        payload = {
+            'type': 1,  # интернет-магазин
+            'number': f'RETURN-{return_obj.id}',
+            'tariff_code': tariff_code,
+            'comment': f'Возврат по заказу №{order.id}',
+            'is_client_return': True,  # ← ключевой флаг
+
+            # Отправитель — клиент
+            'sender': {
+                'name': f'{order.first_name} {order.last_name}'.strip() or order.email,
+                'phones': [{'number': order.phone}],
+                'email': order.email,
+            },
+
+            # Получатель — магазин
+            'recipient': {
+                'name': 'Maidlingerie',
+                'phones': [{'number': '+7 (921) 847-99-07'}],
+                'email': 'info@maidlingerie.ru',
+            },
+
+            # Откуда и куда — уточнить в договоре
+            'from_location': {'code': int(settings.SHOP_CITY_CODE)},
+            'to_location': {'code': int(settings.SHOP_CITY_CODE)},
+
+            'packages': [{
+                'number': f'RETURN-{return_obj.id}-1',
+                'weight': total_weight or 500,
+                'items': items,
+            }],
+
+            'print': 'WAYBILL',  # сформировать накладную
+        }
+
+        try:
+            response = requests.post(
+                f'{self.base_url}/orders',
+                headers=self._headers(),
+                json=payload,
+                timeout=30,
+            )
+            data = response.json()
+            logger.info(f'СДЭК частичный возврат R-{return_obj.id}: {response.status_code} — {data}')
+
+            if response.status_code == 202:
+                entity = data.get('entity', {})
+                return {
+                    'cdek_return_uuid': entity.get('uuid'),
+                    'cdek_return_number': entity.get('cdek_number'),
+                    'state': data.get('requests', [{}])[0].get('state'),
+                }
+            logger.error(f'СДЭК ошибка частичного возврата R-{return_obj.id}: {data}')
+            return None
+        except Exception as e:
+            logger.error(f'СДЭК исключение при частичном возврате R-{return_obj.id}: {e}', exc_info=True)
+            return None

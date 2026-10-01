@@ -382,3 +382,5 @@ WEBPUSH_SETTINGS = {
 ACCOUNT_ADAPTER = 'apps.accounts.adapters.CustomAccountAdapter'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CDEK_RETURN_TARIFF_CODE = 137

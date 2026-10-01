@@ -830,9 +830,18 @@ def create_return(request, order_id):
         'max_photos': 10,
     })
 
+
 @login_required
 def return_detail(request, return_id):
     ret = get_object_or_404(Return, id=return_id, user=request.user)
+
+    # Синхронизируем статус, если накладная уже создана
+    if ret.cdek_return_uuid and ret.status == 'approved':
+        try:
+            ret.sync_return_status()
+        except Exception as e:
+            logger.error(f'Ошибка синхронизации возврата R-{ret.id}: {e}')
+
     return render(request, 'orders/return_detail.html', {'return': ret})
 
 
@@ -907,3 +916,4 @@ def cancel_return(request, return_id):
 
     messages.success(request, f'Заявка R-{ret.id} отменена')
     return redirect('orders:return_detail', return_id=ret.id)
+
