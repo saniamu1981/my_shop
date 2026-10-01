@@ -4,8 +4,9 @@
 <div class="container">
     <h1 class="mb-4">Панель администратора</h1>
 
+    <!-- ===== KPI-КАРТОЧКИ ===== -->
     <div class="row g-3 dashboard-kpi-row">
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-3">
             <div class="card text-white bg-primary dashboard-kpi">
                 <div class="card-body">
                     <h6 class="card-title mb-1">Товары</h6>
@@ -13,7 +14,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-3">
             <div class="card text-white bg-success dashboard-kpi">
                 <div class="card-body">
                     <h6 class="card-title mb-1">Все заказы</h6>
@@ -21,7 +22,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-3">
             <div class="card text-white bg-warning dashboard-kpi">
                 <div class="card-body">
                     <h6 class="card-title mb-1">Новые заказы</h6>
@@ -29,34 +30,228 @@
                 </div>
             </div>
         </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-info dashboard-kpi">
+                <div class="card-body">
+                    <h6 class="card-title mb-1">Пользователи</h6>
+                    <p class="card-text dashboard-kpi-value">{{ total_users }}</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-3 mt-4 dashboard-content-row">
-        <div class="col-12 col-md-6">
+    <!-- ===== ТАБЛИЦЫ ===== -->
+    <div class="row g-3 mt-4">
+        <!-- Товары по категориям -->
+        <div class="col-12 col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Быстрые действия</h5>
+                    <h5 class="mb-0">📦 Товары по категориям</h5>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2 dashboard-actions">
-                        <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">➕ Добавить товар</a>
-                        <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">➕ Добавить категорию</a>
-                        <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">📋 Просмотр заказов</a>
-                        <a href="{% url 'admin:index' %}" class="btn btn-secondary">⚙️ Расширенная админка</a>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Категория</th>
+                                    <th class="text-end">Товаров</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in categories_stats %}
+                                    <tr>
+                                        <td>{{ cat.name }}</td>
+                                        <td class="text-end"><strong>{{ cat.products_count }}</strong></td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="2" class="text-muted text-center">Нет категорий</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего</strong></td>
+                                    <td class="text-end"><strong>{{ total_products }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-6">
+
+        <!-- Заказы по статусам -->
+        <div class="col-12 col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Информация</h5>
+                    <h5 class="mb-0">📋 Заказы по статусам</h5>
                 </div>
-                <div class="card-body dashboard-info">
-                    <p><strong>Всего товаров:</strong> {{ total_products }}</p>
-                    <p><strong>Всего заказов:</strong> {{ total_orders }}</p>
-                    <p><strong>Новых заказов:</strong> {{ pending_orders }}</p>
-                    <p class="mb-0"><strong>Текущий пользователь:</strong> {{ user.username }}</p>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Статус</th>
+                                    <th class="text-end">Заказов</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for st in status_stats %}
+                                    <tr>
+                                        <td>{{ st.name }}</td>
+                                        <td class="text-end"><strong>{{ st.count }}</strong></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего</strong></td>
+                                    <td class="text-end"><strong>{{ total_orders }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Пользователи -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">👥 Пользователи</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr>
+                                    <td>Всего</td>
+                                    <td class="text-end"><strong>{{ total_users }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Суперпользователи</td>
+                                    <td class="text-end"><strong>{{ superusers_count }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Новые (3 дня)</td>
+                                    <td class="text-end"><strong>{{ new_users_3days }}</strong></td>
+                                </tr>
+                                {% if active_offer %}
+                                <tr>
+                                    <td>Оферта принята / не принята</td>
+                                    <td class="text-end">
+                                        <strong>{{ offer_accepted }}</strong> / {{ offer_not_accepted }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== СТАТИСТИКА ТОВАРОВ ===== -->
+    <div class="row g-3 mt-3">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">❤️ Топ-5 в избранном</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Товар</th>
+                                    <th class="text-end">В избранном</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in top_favorites %}
+                                    <tr>
+                                        <td>{{ p.name|truncatechars:40 }}</td>
+                                        <td class="text-end"><strong>{{ p.fav_count }}</strong></td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="2" class="text-muted text-center">Нет данных</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего в избранном</strong></td>
+                                    <td class="text-end"><strong>{{ favorites_total }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">🛒 Топ-5 в корзинах</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Товар</th>
+                                    <th class="text-end">В корзинах</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in top_cart %}
+                                    <tr>
+                                        <td>{{ p.name|truncatechars:40 }}</td>
+                                        <td class="text-end"><strong>{{ p.cart_count }}</strong></td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="2" class="text-muted text-center">Нет данных</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Уникальных товаров в корзинах</strong></td>
+                                    <td class="text-end"><strong>{{ cart_unique_products }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== БЫСТРЫЕ ДЕЙСТВИЯ ===== -->
+    <div class="row g-3 mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 dashboard-actions">
+                        <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">
+                            ➕ Добавить категорию
+                        </a>
+                        <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">
+                            ➕ Добавить товар
+                        </a>
+                        <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">
+                            📋 Просмотр заказов
+                        </a>
+                        <a href="{% url 'admin:accounts_customuser_changelist' %}" class="btn btn-warning">
+                            👥 Просмотр пользователей
+                        </a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-secondary">
+                            ⚙️ Расширенная админка
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -66,86 +261,155 @@
 <style>
 /* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ПАНЕЛИ АДМИНИСТРАТОРА ============ */
 
+/* KPI-карточки — на мобильном 2 в ряд */
 @media (max-width: 767.98px) {
-    /* Контейнер — без лишних отступов */
     .container {
         padding-left: 8px;
         padding-right: 8px;
     }
 
-    /* Заголовок страницы */
     h1.mb-4 {
         font-size: 22px !important;
         margin-bottom: 16px !important;
     }
 
-    /* KPI-карточки — компактнее */
+    /* KPI — компактнее */
     .dashboard-kpi .card-body {
-        padding: 16px !important;
+        padding: 12px 14px !important;
     }
 
     .dashboard-kpi .card-title {
-        font-size: 14px !important;
+        font-size: 12px !important;
         opacity: 0.9;
+        margin-bottom: 4px !important;
     }
 
     .dashboard-kpi-value {
-        font-size: 32px !important;
+        font-size: 26px !important;
         font-weight: 700 !important;
-        line-height: 1.2 !important;
+        line-height: 1.1 !important;
         margin-bottom: 0 !important;
     }
 
-    /* Заголовки карточек — компактнее */
-    .dashboard-content-row .card-header {
-        padding: 12px 16px !important;
+    /* Заголовки карточек */
+    .card-header {
+        padding: 10px 14px !important;
     }
 
-    .dashboard-content-row .card-header h5 {
-        font-size: 16px !important;
+    .card-header h5 {
+        font-size: 15px !important;
+        font-weight: 600 !important;
     }
 
-    /* Тело карточки — компактнее */
-    .dashboard-content-row .card-body {
-        padding: 16px !important;
+    /* Тело карточки */
+    .card-body {
+        padding: 12px !important;
     }
 
-    /* Кнопки быстрых действий — крупные */
+    /* Таблицы — компактные, с горизонтальным скроллом при переполнении */
+    .table-responsive-sm {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-sm th,
+    .table-sm td {
+        padding: 6px 8px !important;
+        font-size: 13px !important;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    /* Первая колонка — с переносом, если длинная */
+    .table-sm td:first-child,
+    .table-sm th:first-child {
+        white-space: normal;
+        word-break: break-word;
+        max-width: 180px;
+    }
+
+    /* Последняя колонка (цифры) — компактная */
+    .table-sm td.text-end,
+    .table-sm th.text-end {
+        width: 80px;
+        white-space: nowrap;
+    }
+
+    /* tfoot — компактнее */
+    .table-sm tfoot td {
+        font-size: 13px;
+        padding: 8px !important;
+    }
+
+    /* Кнопки быстрых действий — на всю ширину */
+    .dashboard-actions {
+        flex-direction: column;
+        gap: 8px !important;
+    }
+
     .dashboard-actions .btn {
+        width: 100%;
         padding: 10px 14px;
         font-size: 14px;
         border-radius: 8px;
         text-align: left;
     }
-
-    /* Информация — компактнее */
-    .dashboard-info p {
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
-
-    .dashboard-info p strong {
-        font-weight: 600;
-    }
 }
 
-@media (max-width: 575.98px) {
-    /* Ещё компактнее */
+/* ============ ОЧЕНЬ УЗКИЕ ЭКРАНЫ (до 400px) ============ */
+@media (max-width: 400px) {
     .dashboard-kpi .card-body {
-        padding: 12px 14px !important;
+        padding: 10px 12px !important;
+    }
+
+    .dashboard-kpi .card-title {
+        font-size: 11px !important;
     }
 
     .dashboard-kpi-value {
-        font-size: 28px !important;
+        font-size: 22px !important;
     }
 
-    .dashboard-content-row .card-body {
-        padding: 14px !important;
+    .card-body {
+        padding: 10px !important;
+    }
+
+    .card-header h5 {
+        font-size: 14px !important;
+    }
+
+    .table-sm th,
+    .table-sm td {
+        font-size: 12px !important;
+        padding: 5px 6px !important;
+    }
+
+    .table-sm td:first-child,
+    .table-sm th:first-child {
+        max-width: 140px;
     }
 
     .dashboard-actions .btn {
         font-size: 13px;
         padding: 9px 12px;
+    }
+}
+
+/* ============ ПЛАНШЕТ (768–991px) ============ */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    /* KPI — 4 в ряд, но компактнее */
+    .dashboard-kpi .card-body {
+        padding: 14px;
+    }
+
+    .dashboard-kpi-value {
+        font-size: 28px;
+    }
+
+    .table-sm th,
+    .table-sm td {
+        font-size: 13px;
+        padding: 8px 10px;
     }
 }
 </style>

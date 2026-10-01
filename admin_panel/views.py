@@ -3,23 +3,111 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
+from django.db.models import Count, Q
+from django.utils import timezone
+from datetime import timedelta
 
-from apps.accounts.models import ChatMessage
-from apps.products.models import Product
-from apps.orders.models import Order
+from apps.accounts.models import ChatMessage, Offer
+from apps.products.models import Product, Category, Favorite
+from apps.orders.models import Order, Cart
 
 User = get_user_model()
 
+
 @staff_member_required
 def dashboard(request):
+    """Панель администратора с подробной статистикой."""
+    now = timezone.now()
+    three_days_ago = now - timedelta(days=3)
+
+    # ===== ТОВАРЫ =====
     total_products = Product.objects.count()
+
+    # Категории с количеством товаров
+    categories_stats = (
+        Category.objects
+        .annotate(products_count=Count('products'))
+        .order_by('-products_count')
+    )
+
+    # ===== ЗАКАЗЫ =====
     total_orders = Order.objects.count()
     pending_orders = Order.objects.filter(status='created').count()
-    
+
+    # Статусы заказов с количеством
+    status_stats = []
+    for code, name in Order.STATUS_CHOICES:
+        count = Order.objects.filter(status=code).count()
+        status_stats.append({
+            'code': code,
+            'name': name,
+            'count': count,
+        })
+
+    # ===== ПОЛЬЗОВАТЕЛИ =====
+    total_users = User.objects.count()
+    superusers_count = User.objects.filter(is_superuser=True).count()
+    new_users_3days = User.objects.filter(date_joined__gte=three_days_ago).count()
+
+    # Оферта: принята / не принята
+    active_offer = Offer.objects.filter(is_active=True).first()
+    offer_accepted = 0
+    offer_not_accepted = 0
+    if active_offer:
+        offer_accepted = User.objects.filter(offer_accepted=active_offer).count()
+        offer_not_accepted = total_users - offer_accepted
+    else:
+        offer_not_accepted = total_users
+
+    # ===== СТАТИСТИКА ТОВАРОВ =====
+    # В избранном — сколько раз товары добавили
+    favorites_total = Favorite.objects.count()
+
+    # Товары в корзинах (CartItem)
+    from apps.orders.models import CartItem
+    cart_items_total = CartItem.objects.count()
+    cart_unique_products = CartItem.objects.values('product').distinct().count()
+
+    # Топ-5 товаров по добавлениям в избранное
+    top_favorites = (
+        Product.objects
+        .annotate(fav_count=Count('favorited_by'))
+        .filter(fav_count__gt=0)
+        .order_by('-fav_count')[:5]
+    )
+
+    # Топ-5 товаров в корзинах
+    top_cart = (
+        Product.objects
+        .annotate(cart_count=Count('cartitem'))
+        .filter(cart_count__gt=0)
+        .order_by('-cart_count')[:5]
+    )
+
     context = {
+        # Товары
         'total_products': total_products,
+        'categories_stats': categories_stats,
+
+        # Заказы
         'total_orders': total_orders,
         'pending_orders': pending_orders,
+        'status_stats': status_stats,
+
+        # Пользователи
+        'total_users': total_users,
+        'superusers_count': superusers_count,
+        'new_users_3days': new_users_3days,
+        'offer_accepted': offer_accepted,
+        'offer_not_accepted': offer_not_accepted,
+        'active_offer': active_offer,
+
+        # Статистика товаров
+        'favorites_total': favorites_total,
+        'cart_items_total': cart_items_total,
+        'cart_unique_products': cart_unique_products,
+        'top_favorites': top_favorites,
+        'top_cart': top_cart,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
