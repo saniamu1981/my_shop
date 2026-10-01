@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<form style="display: none;">{% csrf_token %}</form>
 <div class="container">
     <h1 class="mb-4">Панель администратора</h1>
 
@@ -43,7 +44,7 @@
     <!-- ===== ТАБЛИЦЫ ===== -->
     <div class="row g-3 mt-4">
         <!-- Товары по категориям -->
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-3">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="mb-0">📦 Товары по категориям</h5>
@@ -80,7 +81,7 @@
         </div>
 
         <!-- Заказы по статусам -->
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-3">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="mb-0">📋 Заказы по статусам</h5>
@@ -114,8 +115,43 @@
             </div>
         </div>
 
+        <!-- Возвраты по статусам -->
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">↩️ Возвраты по статусам</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Статус</th>
+                                    <th class="text-end">Возвратов</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for st in returns_status_stats %}
+                                    <tr>
+                                        <td>{{ st.name }}</td>
+                                        <td class="text-end"><strong>{{ st.count }}</strong></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего</strong></td>
+                                    <td class="text-end"><strong>{{ total_returns }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Пользователи -->
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-3">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="mb-0">👥 Пользователи</h5>
@@ -154,7 +190,7 @@
 
     <!-- ===== СТАТИСТИКА ТОВАРОВ ===== -->
     <div class="row g-3 mt-3">
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="mb-0">❤️ Топ-5 в избранном</h5>
@@ -190,7 +226,7 @@
             </div>
         </div>
 
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="mb-0">🛒 Топ-5 в корзинах</h5>
@@ -218,6 +254,50 @@
                                 <tr>
                                     <td><strong>Уникальных товаров в корзинах</strong></td>
                                     <td class="text-end"><strong>{{ cart_unique_products }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Топ-5 по просмотрам -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">👁 Топ-5 по просмотрам</h5>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="resetViewsBtn">
+                        Сбросить
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive-sm">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Товар</th>
+                                    <th class="text-end">Просмотров</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in top_views %}
+                                    <tr>
+                                        <td>{{ p.name|truncatechars:40 }}</td>
+                                        <td class="text-end"><strong>{{ p.views_count }}</strong></td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="2" class="text-muted text-center">Нет данных</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего просмотров</strong></td>
+                                    <td class="text-end"><strong>{{ total_views }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Из них авторизованными</td>
+                                    <td class="text-end"><strong>{{ total_views_auth }}</strong></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -413,4 +493,65 @@
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const resetBtn = document.getElementById('resetViewsBtn');
+    if (!resetBtn) return;
+
+    resetBtn.addEventListener('click', function () {
+        if (!confirm('Сбросить счётчики просмотров у всех товаров? Это действие нельзя отменить.')) {
+            return;
+        }
+
+        resetBtn.disabled = true;
+        resetBtn.textContent = 'Сброс...';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        // Если csrf-токена в шаблоне нет — берём из cookie
+        const csrftoken = csrfToken || getCookie('csrftoken');
+
+        fetch('{% url "admin_panel:reset_views_counters" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем таблицу — можно просто перезагрузить страницу
+                location.reload();
+            } else {
+                alert('Не удалось сбросить счётчики');
+                resetBtn.disabled = false;
+                resetBtn.textContent = 'Сбросить';
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка:', err);
+            alert('Ошибка сети. Попробуйте ещё раз.');
+            resetBtn.disabled = false;
+            resetBtn.textContent = 'Сбросить';
+        });
+    });
+
+    // Вспомогательная функция для получения CSRF-токена из cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
 {% endblock %}

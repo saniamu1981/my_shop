@@ -9,4 +9,5 @@ urlpatterns = [
     path('chats/<int:user_id>/', views.chat_detail, name='chat_detail'),
     path('chats/<int:user_id>/send/', views.chat_admin_send, name='chat_admin_send'),
     path('chats/<int:user_id>/messages/', views.chat_admin_messages, name='chat_admin_messages'),
+    path('reset-views/', views.reset_views_counters, name='reset_views_counters'),
 ]

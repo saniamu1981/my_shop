@@ -9,7 +9,7 @@ from django.contrib.staticfiles import finders
 from .models import Category, Product, Favorite, Review, ReviewMedia
 from django.conf import settings
 from apps.orders.models import Order
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, F
 
 
 def product_list(request, category_slug=None):
@@ -47,6 +47,13 @@ def product_list(request, category_slug=None):
 
 def product_detail(request, category_slug, product_slug):
     product = get_object_or_404(Product, slug=product_slug, category__slug=category_slug)
+
+    is_admin = request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff)
+    if not is_admin:
+        Product.objects.filter(pk=product.pk).update(views_count=F('views_count') + 1)
+        if request.user.is_authenticated:
+            Product.objects.filter(pk=product.pk).update(views_count_auth=F('views_count_auth') + 1)
+        product.refresh_from_db()
 
     images = product.images.all().order_by('order')
     videos = product.videos.all().order_by('order')

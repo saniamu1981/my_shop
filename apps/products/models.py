@@ -82,6 +82,16 @@ class Product(models.Model):
         null=True,
         help_text='Например: Сертификат соответствия'
     )
+    views_count = models.PositiveIntegerField(
+        'Просмотров',
+        default=0,
+        help_text='Сколько раз открывали страницу товара (всего)',
+    )
+    views_count_auth = models.PositiveIntegerField(
+        'Просмотров авторизованными',
+        default=0,
+        help_text='Сколько раз открывали страницу товара авторизованные пользователи',
+    )
 
     class Meta:
         verbose_name = 'Товар'

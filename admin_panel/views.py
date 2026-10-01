@@ -3,13 +3,13 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from datetime import timedelta
 
 from apps.accounts.models import ChatMessage, Offer
 from apps.products.models import Product, Category, Favorite
-from apps.orders.models import Order, Cart
+from apps.orders.models import Order, Cart, Return
 
 User = get_user_model()
 
@@ -39,6 +39,19 @@ def dashboard(request):
     for code, name in Order.STATUS_CHOICES:
         count = Order.objects.filter(status=code).count()
         status_stats.append({
+            'code': code,
+            'name': name,
+            'count': count,
+        })
+
+    # ===== ВОЗВРАТЫ =====
+    total_returns = Return.objects.count()
+
+    # Статусы возвратов с количеством
+    returns_status_stats = []
+    for code, name in Return.STATUS_CHOICES:
+        count = Return.objects.filter(status=code).count()
+        returns_status_stats.append({
             'code': code,
             'name': name,
             'count': count,
@@ -84,6 +97,19 @@ def dashboard(request):
         .order_by('-cart_count')[:5]
     )
 
+    # Топ-5 товаров по просмотрам
+    top_views = (
+        Product.objects
+        .filter(views_count__gt=0)
+        .order_by('-views_count')[:5]
+    )
+
+    # Общее количество просмотров
+    total_views = Product.objects.aggregate(total=Sum('views_count'))['total'] or 0
+
+    # Просмотры авторизованными
+    total_views_auth = Product.objects.aggregate(total=Sum('views_count_auth'))['total'] or 0
+
     context = {
         # Товары
         'total_products': total_products,
@@ -93,6 +119,10 @@ def dashboard(request):
         'total_orders': total_orders,
         'pending_orders': pending_orders,
         'status_stats': status_stats,
+
+        # Возвраты
+        'returns_status_stats': returns_status_stats,
+        'total_returns': total_returns,
 
         # Пользователи
         'total_users': total_users,
@@ -108,8 +138,27 @@ def dashboard(request):
         'cart_unique_products': cart_unique_products,
         'top_favorites': top_favorites,
         'top_cart': top_cart,
+
+        # Просмотры/посетители
+        'top_views': top_views,
+        'total_views': total_views,
+        'total_views_auth': total_views_auth,
     }
     return render(request, 'admin_panel/dashboard.html', context)
+
+
+@staff_member_required
+@require_POST
+def reset_views_counters(request):
+    """Сбрасывает счётчики просмотров у всех товаров."""
+    from apps.products.models import Product
+
+    updated = Product.objects.all().update(views_count=0, views_count_auth=0)
+
+    return JsonResponse({
+        'success': True,
+        'updated': updated,
+    })
 
 
 @staff_member_required
