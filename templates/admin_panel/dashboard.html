@@ -159,11 +159,13 @@
                 <div class="card-body p-0">
                     <div class="table-responsive-sm">
                         <table class="table table-sm mb-0">
-                            <tbody>
+                            <thead class="table-light">
                                 <tr>
-                                    <td>Всего</td>
-                                    <td class="text-end"><strong>{{ total_users }}</strong></td>
+                                    <th>Категории</th>
+                                    <th class="text-end">Количество</th>
                                 </tr>
+                            </thead>
+                            <tbody>
                                 <tr>
                                     <td>Суперпользователи</td>
                                     <td class="text-end"><strong>{{ superusers_count }}</strong></td>
@@ -181,6 +183,12 @@
                                 </tr>
                                 {% endif %}
                             </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего</strong></td>
+                                    <td class="text-end"><strong>{{ total_users }}</strong></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
