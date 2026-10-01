@@ -107,47 +107,109 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const phoneInput = document.getElementById('phone');
-    if (!phoneInput || !window.Inputmask) return;
+    const form = phoneInput ? phoneInput.closest('form') : null;
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
 
-    // Настройка через пользовательский алиас
-    Inputmask.extendAliases({
-        ruPhone: {
-            mask: '+7 (999) 999 99 99',
-            placeholder: '+7 (___) ___ __ __',
-            showMaskOnHover: false,
-            showMaskOnFocus: true,
-            clearIncomplete: false,
-            autoUnmask: false,
-            onBeforeMask: function (value) {
-                if (!value) return value;
-                let digits = String(value).replace(/\D/g, '');
+    // ===== Inputmask =====
+    if (phoneInput && window.Inputmask) {
+        Inputmask.extendAliases({
+            ruPhone: {
+                mask: '+7 (999) 999 99 99',
+                placeholder: '+7 (___) ___ __ __',
+                showMaskOnHover: false,
+                showMaskOnFocus: true,
+                clearIncomplete: false,
+                autoUnmask: false,
+                onBeforeMask: function (value) {
+                    if (!value) return value;
+                    let digits = String(value).replace(/\D/g, '');
+                    if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+                    if (digits.startsWith('7') && digits.length > 10) {
+                        digits = digits.slice(1);
+                    }
+                    return digits;
+                },
+                onBeforePaste: function (pastedValue) {
+                    let digits = String(pastedValue).replace(/\D/g, '');
+                    if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+                    if (digits.startsWith('7') && digits.length > 10) {
+                        digits = digits.slice(1);
+                    }
+                    return digits;
+                },
+            }
+        });
+        Inputmask({ alias: 'ruPhone' }).mask(phoneInput);
+    }
 
-                // 8XXXXXXXXXX → 7XXXXXXXXXX
-                if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+    // ===== Проверка перед отправкой формы =====
+    if (!form || !phoneInput) return;
 
-                // 7XXXXXXXXXX (11 цифр) → отрезаем ведущую 7, оставляем 10 цифр для маски
-                if (digits.startsWith('7') && digits.length > 10) {
-                    digits = digits.slice(1);
-                }
-                // Если длина меньше 11 и начинается не с 7 — оставляем как есть
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
 
-                return digits;
-            },
-            onBeforePaste: function (pastedValue) {
-                let digits = String(pastedValue).replace(/\D/g, '');
+        const phone = (phoneInput.value || '').trim();
 
-                if (digits.startsWith('8')) digits = '7' + digits.slice(1);
-
-                if (digits.startsWith('7') && digits.length > 10) {
-                    digits = digits.slice(1);
-                }
-
-                return digits;
-            },
+        if (!phone) {
+            showPhoneError('Пожалуйста, укажите номер телефона.');
+            return;
         }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Проверка...';
+        }
+
+        const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+        fetch('{% url "accounts:check_phone" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'phone=' + encodeURIComponent(phone),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.valid) {
+                // Подставляем стандартизированный номер и отправляем форму
+                phoneInput.value = data.phone || phone;
+                form.submit();
+            } else {
+                showPhoneError(data.message || 'Некорректный номер телефона.');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Сохранить изменения';
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Ошибка проверки телефона:', err);
+            // При ошибке сети — всё равно отправляем форму (сервер проверит ещё раз)
+            form.submit();
+        });
     });
 
-    Inputmask({ alias: 'ruPhone' }).mask(phoneInput);
+    function showPhoneError(message) {
+        // Удаляем старое сообщение
+        const old = phoneInput.parentElement.querySelector('.phone-error-msg');
+        if (old) old.remove();
+
+        // Показываем новое
+        const err = document.createElement('div');
+        err.className = 'text-danger small mt-1 phone-error-msg';
+        err.textContent = message;
+        phoneInput.parentElement.appendChild(err);
+
+        phoneInput.classList.add('is-invalid');
+        phoneInput.focus();
+
+        setTimeout(() => {
+            phoneInput.classList.remove('is-invalid');
+        }, 3000);
+    }
 });
 </script>
 {% endblock %}

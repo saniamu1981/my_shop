@@ -144,7 +144,37 @@ def edit_profile(request):
         user = request.user
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
-        user.phone = request.POST.get('phone', user.phone)
+
+        # ===== Проверка телефона через Dadata =====
+        phone = (request.POST.get('phone') or '').strip()
+        if phone:
+            from apps.orders.utils import clean_phone_dadata
+            phone_check = clean_phone_dadata(phone)
+
+            if not phone_check.get('valid'):
+                # Формируем сообщение по reason
+                reason = phone_check.get('reason')
+                if reason == 'format':
+                    error_msg = 'Проверьте формат номера — нужно 11 цифр, например +7 916 123-45-67'
+                elif reason == 'dadata_qc':
+                    error_msg = 'Не удалось распознать номер. Проверьте правильность ввода'
+                else:
+                    error_msg = 'Некорректный номер телефона'
+
+                messages.error(request, error_msg)
+                # Возвращаем форму с введёнными данными
+                return render(request, 'accounts/edit_profile.html', {
+                    'user': user,
+                    'phone_value': phone,
+                    'first_name_value': user.first_name,
+                    'last_name_value': user.last_name,
+                })
+
+            # Если Dadata вернула стандартизированный номер — сохраняем его
+            user.phone = phone_check.get('phone', phone)
+        else:
+            user.phone = ''
+
         user.save()
         messages.success(request, 'Профиль успешно обновлен')
         return redirect('accounts:profile')
@@ -367,4 +397,44 @@ def toggle_webpush(request):
     return JsonResponse({
         'success': True,
         'webpush_enabled': user.webpush_enabled,
+    })
+
+@login_required
+@require_POST
+def check_phone(request):
+    """AJAX-проверка телефона через Dadata."""
+    from apps.orders.utils import clean_phone_dadata
+
+    phone = (request.POST.get('phone') or '').strip()
+    if not phone:
+        return JsonResponse({
+            'valid': False,
+            'message': 'Укажите номер телефона',
+        })
+
+    result = clean_phone_dadata(phone)
+
+    if result.get('valid'):
+        return JsonResponse({
+            'valid': True,
+            'phone': result.get('phone', phone),
+        })
+
+    # Формируем понятное сообщение на основе reason
+    reason = result.get('reason')
+    if reason == 'empty':
+        message = 'Укажите номер телефона'
+    elif reason == 'format':
+        message = 'Проверьте формат номера — нужно 11 цифр, например +7 916 123-45-67'
+    elif reason == 'dadata_qc':
+        message = 'Не удалось распознать номер. Проверьте, пожалуйста, правильность ввода'
+    elif reason == 'empty_response':
+        message = 'Сервис проверки недоступен, попробуйте позже'
+    else:
+        message = 'Некорректный номер телефона'
+
+    return JsonResponse({
+        'valid': False,
+        'message': message,
+        'reason': reason,
     })

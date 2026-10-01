@@ -15,4 +15,5 @@ urlpatterns = [
     path('give-personal-data-consent/', views.give_personal_data_consent, name='give_personal_data_consent'),
     path('revoke-personal-data-consent/', views.revoke_personal_data_consent, name='revoke_personal_data_consent'),
     path('toggle-webpush/', views.toggle_webpush, name='toggle_webpush'),
+    path('check-phone/', views.check_phone, name='check_phone'),
 ]
