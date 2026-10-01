@@ -60,6 +60,7 @@ def dashboard(request):
     # ===== ПОЛЬЗОВАТЕЛИ =====
     total_users = User.objects.count()
     superusers_count = User.objects.filter(is_superuser=True).count()
+    regular_users_count = total_users - superusers_count
     new_users_3days = User.objects.filter(date_joined__gte=three_days_ago).count()
 
     # Оферта: принята / не принята
@@ -127,6 +128,7 @@ def dashboard(request):
         # Пользователи
         'total_users': total_users,
         'superusers_count': superusers_count,
+        'regular_users_count': regular_users_count,
         'new_users_3days': new_users_3days,
         'offer_accepted': offer_accepted,
         'offer_not_accepted': offer_not_accepted,
