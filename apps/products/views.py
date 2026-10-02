@@ -432,7 +432,7 @@ def yandex_feed(request):
         xml += f'        <currencyId>RUB</currencyId>\n'
         xml += f'        <categoryId>{product.category.id}</categoryId>\n'
         if product.image:
-            xml += f'        <picture>https://maidlingerie.ru{product.image.url}</picture>\n'
+            xml += f'        <picture>{product.image.url}</picture>\n'
         xml += f'        <name>{product.name[:150]}</name>\n'  # Лимит 150 символов [citation:11]
         xml += f'        <description><![CDATA[{product.description[:3000]}]]></description>\n'
         xml += f'        <vendor>Maidlingerie</vendor>\n'
@@ -473,7 +473,7 @@ def google_merchant_feed(request):
         xml += f'    <g:description><![CDATA[{product.description[:5000]}]]></g:description>\n'  # Лимит 5000 [citation:11]
         xml += f'    <g:link>https://maidlingerie.ru{product.get_absolute_url()}</g:link>\n'
         if product.image:
-            xml += f'    <g:image_link>https://maidlingerie.ru{product.image.url}</g:image_link>\n'
+            xml += f'    <g:image_link>{product.image.url}</g:image_link>\n'
         xml += f'    <g:price>{product.price} RUB</g:price>\n'  # Валюта ISO 4217 [citation:11]
         xml += f'    <g:availability>{availability}</g:availability>\n'  # Только 4 значения [citation:11]
         xml += f'    <g:condition>new</g:condition>\n'
