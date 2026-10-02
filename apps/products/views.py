@@ -405,12 +405,11 @@ def yandex_feed(request):
     products = Product.objects.filter(available=True).select_related('category')
     categories = Category.objects.all()
 
-    # Формируем XML
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<!DOCTYPE yml_catalog SYSTEM "shops.dtd">\n'
     xml += '<yml_catalog date="{}">\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
     xml += '  <shop>\n'
-    xml += '    <name>Maidlingerie</name>\n'  # Название магазина, до 23 символов [citation:10]
+    xml += '    <name>Maidlingerie</name>\n'
     xml += '    <company>Maidlingerie</company>\n'
     xml += '    <url>https://maidlingerie.ru</url>\n'
     xml += '    <currencies>\n'
@@ -423,7 +422,7 @@ def yandex_feed(request):
         xml += f'      <category id="{cat.id}">{cat.name}</category>\n'
     xml += '    </categories>\n'
 
-    # Товары (Офферы)
+    # Товары
     xml += '    <offers>\n'
     for product in products:
         xml += f'      <offer id="{product.id}" available="true">\n'
@@ -431,20 +430,41 @@ def yandex_feed(request):
         xml += f'        <price>{int(product.price)}</price>\n'
         xml += f'        <currencyId>RUB</currencyId>\n'
         xml += f'        <categoryId>{product.category.id}</categoryId>\n'
+
         if product.image:
             xml += f'        <picture>{product.image.url}</picture>\n'
-        xml += f'        <name>{product.name[:150]}</name>\n'  # Лимит 150 символов [citation:11]
+
+        # Название для фида — с ключевыми словами
+        feed_name = f'{product.name} купить'
+        if product.category.slug == 'karnavalnye-kostyumy':
+            feed_name = f'Костюм горничной {product.color} купить | Карнавальный костюм'
+        elif product.category.slug == 'domashnyaya-odezhda':
+            feed_name = f'Халат женский {product.color} купить | Домашняя одежда'
+
+        xml += f'        <name>{feed_name[:150]}</name>\n'
         xml += f'        <description><![CDATA[{product.description[:3000]}]]></description>\n'
         xml += f'        <vendor>Maidlingerie</vendor>\n'
         xml += f'        <country_of_origin>{product.country or "Россия"}</country_of_origin>\n'
 
-        # Параметры для одежды (обязательно для Яндекс.Товаров) [citation:5]
+        # Параметры для одежды
         if product.russian_size:
             xml += f'        <param name="Размер">{product.russian_size}</param>\n'
         if product.color:
             xml += f'        <param name="Цвет">{product.color}</param>\n'
+        if product.material:
+            xml += f'        <param name="Материал">{product.material}</param>\n'
+        if product.composition:
+            xml += f'        <param name="Состав">{product.composition}</param>\n'
+
+        xml += '        <param name="Пол">Женский</param>\n'
+
+        if product.category.slug == 'karnavalnye-kostyumy':
+            xml += '        <param name="Тип">Костюм</param>\n'
+        elif product.category.slug == 'domashnyaya-odezhda':
+            xml += '        <param name="Тип">Халат</param>\n'
 
         xml += '      </offer>\n'
+
     xml += '    </offers>\n'
     xml += '  </shop>\n'
     xml += '</yml_catalog>'
@@ -469,7 +489,13 @@ def google_merchant_feed(request):
 
         xml += '  <item>\n'
         xml += f'    <g:id>{product.id}</g:id>\n'
-        xml += f'    <g:title>{product.name[:150]}</g:title>\n'  # Лимит 150 [citation:8][citation:11]
+        feed_name = f'{product.name} купить'
+        if product.category.slug == 'karnavalnye-kostyumy':
+            feed_name = f'Костюм горничной {product.color} купить'
+        elif product.category.slug == 'domashnaya-odezhda':
+            feed_name = f'Халат женский {product.color} купить'
+
+        xml += f'    <g:title>{feed_name[:150]}</g:title>\n'
         xml += f'    <g:description><![CDATA[{product.description[:5000]}]]></g:description>\n'  # Лимит 5000 [citation:11]
         xml += f'    <g:link>https://maidlingerie.ru{product.get_absolute_url()}</g:link>\n'
         if product.image:
