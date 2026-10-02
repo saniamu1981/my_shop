@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from django.core.cache import cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,30 +17,41 @@ def get_client_ip(request):
 
 
 def get_city_by_ip(ip):
-    """Определяет город по IP через DaData."""
+    """
+    Определяет город по IP через ip-api.com.
+    Кэширует результат на 24 часа.
+    """
     if not ip or ip in ('127.0.0.1', '::1'):
         return {'city': '', 'region': '', 'country': ''}
 
+    # Кэш на сутки
+    cache_key = f'geoip_{ip}'
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
     try:
         response = requests.get(
-            'https://suggestions.dadata.ru/suggestions/api/4_1/rs/iplocate/address',
-            headers={
-                'Authorization': f'Token {settings.DADATA_API_KEY}',
-                'X-Secret': settings.DADATA_SECRET_KEY,
+            f'http://ip-api.com/json/{ip}',
+            params={
+                'fields': 'status,country,regionName,city',
+                'lang': 'ru',
             },
-            params={'ip': ip},
             timeout=3,
         )
         if response.status_code == 200:
             data = response.json()
-            if data.get('location'):
-                loc = data['location']['data']
-                return {
-                    'city': loc.get('city', '') or loc.get('settlement', ''),
-                    'region': loc.get('region_with_type', ''),
-                    'country': loc.get('country', ''),
+            if data.get('status') == 'success':
+                result = {
+                    'city': data.get('city', '') or '',
+                    'region': data.get('regionName', '') or '',
+                    'country': data.get('country', '') or '',
                 }
+                cache.set(cache_key, result, 60 * 60 * 24)  # 24 часа
+                return result
     except Exception as e:
-        logger.error(f'DaData IP lookup error for {ip}: {e}')
+        logger.error(f'ip-api error for {ip}: {e}')
 
+    # Если что-то пошло не так — возвращаем пустой результат
+    # (не кэшируем, чтобы попробовать снова в следующий раз)
     return {'city': '', 'region': '', 'country': ''}
