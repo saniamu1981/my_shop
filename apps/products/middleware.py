@@ -1,4 +1,6 @@
 from django.utils.deprecation import MiddlewareMixin
+from django.utils import timezone
+from datetime import timedelta
 from .models import SiteView
 from .utils import get_client_ip, get_city_by_ip
 import logging
@@ -7,9 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 class SiteViewMiddleware(MiddlewareMixin):
-    """Сохраняет каждый просмотр страницы сайта (только от реальных людей)."""
+    """Сохраняет УНИКАЛЬНЫЕ визиты (один раз на сессию)."""
 
-    # Страницы, которые НЕ считаем
+    # Сколько часов считать одну сессию одним визитом
+    VISIT_TIMEOUT_HOURS = 24
+
     EXCLUDED_PREFIXES = (
         '/admin/',
         '/admin-panel/',
@@ -30,7 +34,6 @@ class SiteViewMiddleware(MiddlewareMixin):
         '/accounts/password/',
         '/accounts/confirm-email/',
         '/accounts/check-phone/',
-        # Пути, куда ходят только боты
         '/wp-admin/',
         '/wp-login.php',
         '/wp-content/',
@@ -46,48 +49,36 @@ class SiteViewMiddleware(MiddlewareMixin):
         '/.well-known/',
     )
 
-    # Паттерны User-Agent ботов
     BOT_PATTERNS = (
-        # Поисковые боты
         'bot', 'crawler', 'spider', 'slurp',
         'googlebot', 'bingbot', 'yandexbot', 'duckduckbot',
         'baiduspider', 'sogou', 'exabot', 'ia_archiver',
         'ahrefs', 'semrush', 'mj12bot', 'dotbot', 'petalbot',
         'seznam', 'screaming frog', 'seokicks',
-        # Инструменты и скрипты
         'curl', 'wget', 'httpie', 'axios', 'okhttp',
         'python-requests', 'python-urllib', 'python-httpx',
         'go-http-client', 'java/', 'libwww-perl',
         'apache-httpclient', 'guzzle', 'node-fetch',
-        # Сканеры уязвимостей
         'scanner', 'nikto', 'nmap', 'masscan', 'zgrab',
         'nuclei', 'sqlmap', 'dirbuster', 'gobuster',
-        # Мониторинг
         'uptimerobot', 'pingdom', 'statuscake', 'newrelic',
         'datadog', 'monitis',
-        # Соцсети и мессенджеры (превью ссылок)
         'facebookexternalhit', 'telegrambot', 'whatsapp',
         'twitterbot', 'linkedinbot', 'slackbot',
         'discordbot', 'skypeuripreview',
-        # Прочее
         'headlesschrome', 'phantomjs', 'selenium',
         'puppeteer', 'playwright',
     )
 
     def process_request(self, request):
-        # Пропускаем исключённые пути
         path = request.path
         if any(path.startswith(prefix) for prefix in self.EXCLUDED_PREFIXES):
             return None
 
-        # Только GET-запросы
         if request.method != 'GET':
             return None
 
-        # Проверка User-Agent
         user_agent = request.META.get('HTTP_USER_AGENT', '').strip()
-
-        # Пустой User-Agent — почти наверняка бот
         if not user_agent:
             return None
 
@@ -95,26 +86,39 @@ class SiteViewMiddleware(MiddlewareMixin):
         if any(pattern in ua_lower for pattern in self.BOT_PATTERNS):
             return None
 
-        # Пропускаем админов
         if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
             return None
 
-        # Пропускаем запросы без Accept-Language (браузеры всегда его шлют)
         accept_language = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
         if not accept_language:
             return None
 
+        # === ГЛАВНОЕ: одна сессия = один визит ===
+        if not request.session.session_key:
+            request.session.create()
+
+        session_key = request.session.session_key
+
+        # Проверяем, был ли уже визит этой сессии за последние N часов
+        cutoff = timezone.now() - timedelta(hours=self.VISIT_TIMEOUT_HOURS)
+        already_visited = SiteView.objects.filter(
+            session_key=session_key,
+            created__gte=cutoff,
+        ).exists()
+
+        if already_visited:
+            # Уже считали — не создаём новую запись
+            return None
+
+        # Первый визит в этой сессии — сохраняем
         try:
             ip = get_client_ip(request)
             geo = get_city_by_ip(ip)
 
-            if not request.session.session_key:
-                request.session.create()
-
             SiteView.objects.create(
                 path=path,
                 user=request.user if request.user.is_authenticated else None,
-                session_key=request.session.session_key or '',
+                session_key=session_key or '',
                 ip_address=ip or None,
                 city=geo['city'],
                 region=geo['region'],
