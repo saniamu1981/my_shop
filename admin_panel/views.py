@@ -111,6 +111,18 @@ def dashboard(request):
     # Просмотры авторизованными
     total_views_auth = Product.objects.aggregate(total=Sum('views_count_auth'))['total'] or 0
 
+    # Топ-5 товаров по заказам (сколько раз товар заказывали)
+    top_orders = (
+        Product.objects
+        .annotate(order_count=Count('orderitem'))
+        .filter(order_count__gt=0)
+        .order_by('-order_count')[:5]
+    )
+
+    # Общее количество позиций в заказах
+    from apps.orders.models import OrderItem
+    total_order_items = OrderItem.objects.count()
+
     context = {
         # Товары
         'total_products': total_products,
@@ -140,6 +152,8 @@ def dashboard(request):
         'cart_unique_products': cart_unique_products,
         'top_favorites': top_favorites,
         'top_cart': top_cart,
+        'top_orders': top_orders,
+        'total_order_items': total_order_items,
 
         # Просмотры/посетители
         'top_views': top_views,
