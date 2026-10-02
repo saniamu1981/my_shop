@@ -51,37 +51,35 @@ def product_detail(request, category_slug, product_slug):
     product = get_object_or_404(Product, slug=product_slug, category__slug=category_slug)
 
     is_admin = request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff)
-    print(f"[DEBUG] is_admin={is_admin}, user={request.user}")
 
     if not is_admin:
-        print("[DEBUG] Внутри блока not is_admin")
         Product.objects.filter(pk=product.pk).update(views_count=F('views_count') + 1)
         if request.user.is_authenticated:
             Product.objects.filter(pk=product.pk).update(views_count_auth=F('views_count_auth') + 1)
         product.refresh_from_db()
 
         ip = get_client_ip(request)
-        print(f"[DEBUG] IP={ip}")
+
+        # Временная диагностика — потом убрать
+        print(f"[DEBUG] REMOTE_ADDR: {request.META.get('REMOTE_ADDR')}")
+        print(f"[DEBUG] X-Forwarded-For: {request.META.get('HTTP_X_FORWARDED_FOR')}")
+        print(f"[DEBUG] X-Real-IP: {request.META.get('HTTP_X_REAL_IP')}")
+        print(f"[DEBUG] Итоговый IP: {ip}")
+
         geo = get_city_by_ip(ip)
-        print(f"[DEBUG] geo={geo}")
 
         if not request.session.session_key:
             request.session.create()
-        print(f"[DEBUG] session_key={request.session.session_key}")
 
-        try:
-            pv = ProductView.objects.create(
-                product=product,
-                user=request.user if request.user.is_authenticated else None,
-                session_key=request.session.session_key,
-                ip_address=ip or None,
-                city=geo['city'],
-                region=geo['region'],
-                country=geo['country'],
-            )
-            print(f"[DEBUG] ProductView создан: id={pv.id}")
-        except Exception as e:
-            print(f"[DEBUG] Ошибка создания ProductView: {e}")
+        ProductView.objects.create(
+            product=product,
+            user=request.user if request.user.is_authenticated else None,
+            session_key=request.session.session_key,
+            ip_address=ip or None,
+            city=geo['city'],
+            region=geo['region'],
+            country=geo['country'],
+        )
 
     images = product.images.all().order_by('order')
     videos = product.videos.all().order_by('order')
