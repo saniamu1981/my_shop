@@ -3,12 +3,12 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Q, Sum, Avg
 from django.utils import timezone
 from datetime import timedelta
 
 from apps.accounts.models import ChatMessage, Offer
-from apps.products.models import Product, Category, Favorite
+from apps.products.models import Product, Category, Favorite, Review
 from apps.orders.models import Order, Cart, Return
 from apps.products.models import SiteView
 
@@ -144,6 +144,30 @@ def dashboard(request):
     from apps.orders.models import OrderItem
     total_order_items = OrderItem.objects.count()
 
+    # ===== РЕЙТИНГИ =====
+    # Рейтинг каждого товара (по одобренным отзывам)
+    products_ratings = []
+    for product in Product.objects.all().order_by('name'):
+        reviews = product.reviews.filter(is_approved=True)
+        count = reviews.count()
+        if count > 0:
+            avg = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+        else:
+            avg = None
+        products_ratings.append({
+            'name': product.name,
+            'avg_rating': avg,
+            'reviews_count': count,
+        })
+
+    # Общий рейтинг магазина (средний по всем одобренным отзывам)
+    all_reviews = Review.objects.filter(is_approved=True)
+    total_reviews_count = all_reviews.count()
+    if total_reviews_count > 0:
+        shop_avg_rating = all_reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+    else:
+        shop_avg_rating = None
+
     context = {
         # Товары
         'total_products': total_products,
@@ -183,6 +207,11 @@ def dashboard(request):
         'top_cities': top_cities,
         'top_regions': top_regions,
         'total_site_views': total_site_views,
+
+        # Рейтинги
+        'products_ratings': products_ratings,
+        'shop_avg_rating': shop_avg_rating,
+        'total_reviews_count': total_reviews_count,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
