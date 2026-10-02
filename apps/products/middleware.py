@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class SiteViewMiddleware(MiddlewareMixin):
-    """Сохраняет каждый просмотр страницы сайта."""
+    """Сохраняет каждый просмотр страницы сайта (только от реальных людей)."""
 
     # Страницы, которые НЕ считаем
     EXCLUDED_PREFIXES = (
@@ -30,8 +30,10 @@ class SiteViewMiddleware(MiddlewareMixin):
         '/accounts/password/',
         '/accounts/confirm-email/',
         '/accounts/check-phone/',
+        # Пути, куда ходят только боты
         '/wp-admin/',
         '/wp-login.php',
+        '/wp-content/',
         '/xmlrpc.php',
         '/.env',
         '/.git',
@@ -39,36 +41,67 @@ class SiteViewMiddleware(MiddlewareMixin):
         '/admin.php',
         '/setup.php',
         '/config.php',
+        '/vendor/',
+        '/backup/',
+        '/.well-known/',
     )
 
     # Паттерны User-Agent ботов
     BOT_PATTERNS = (
-        'bot', 'crawler', 'spider', 'scanner', 'curl', 'wget',
-        'python-requests', 'python-urllib', 'httpie', 'axios',
-        'go-http-client', 'java/', 'okhttp', 'postman',
+        # Поисковые боты
+        'bot', 'crawler', 'spider', 'slurp',
+        'googlebot', 'bingbot', 'yandexbot', 'duckduckbot',
+        'baiduspider', 'sogou', 'exabot', 'ia_archiver',
         'ahrefs', 'semrush', 'mj12bot', 'dotbot', 'petalbot',
-        'yandexbot', 'googlebot', 'bingbot', 'duckduckbot',
-        'baiduspider', 'facebookexternalhit', 'telegrambot',
+        'seznam', 'screaming frog', 'seokicks',
+        # Инструменты и скрипты
+        'curl', 'wget', 'httpie', 'axios', 'okhttp',
+        'python-requests', 'python-urllib', 'python-httpx',
+        'go-http-client', 'java/', 'libwww-perl',
+        'apache-httpclient', 'guzzle', 'node-fetch',
+        # Сканеры уязвимостей
+        'scanner', 'nikto', 'nmap', 'masscan', 'zgrab',
+        'nuclei', 'sqlmap', 'dirbuster', 'gobuster',
+        # Мониторинг
+        'uptimerobot', 'pingdom', 'statuscake', 'newrelic',
+        'datadog', 'monitis',
+        # Соцсети и мессенджеры (превью ссылок)
+        'facebookexternalhit', 'telegrambot', 'whatsapp',
+        'twitterbot', 'linkedinbot', 'slackbot',
+        'discordbot', 'skypeuripreview',
+        # Прочее
+        'headlesschrome', 'phantomjs', 'selenium',
+        'puppeteer', 'playwright',
     )
 
     def process_request(self, request):
+        # Пропускаем исключённые пути
         path = request.path
         if any(path.startswith(prefix) for prefix in self.EXCLUDED_PREFIXES):
             return None
 
-        # Проверка User-Agent на бота
-        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
-        if not user_agent:
-            return None  # пустой UA — почти наверняка бот
+        # Только GET-запросы
+        if request.method != 'GET':
+            return None
 
-        if any(pattern in user_agent for pattern in self.BOT_PATTERNS):
+        # Проверка User-Agent
+        user_agent = request.META.get('HTTP_USER_AGENT', '').strip()
+
+        # Пустой User-Agent — почти наверняка бот
+        if not user_agent:
+            return None
+
+        ua_lower = user_agent.lower()
+        if any(pattern in ua_lower for pattern in self.BOT_PATTERNS):
             return None
 
         # Пропускаем админов
         if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
             return None
 
-        if request.method != 'GET':
+        # Пропускаем запросы без Accept-Language (браузеры всегда его шлют)
+        accept_language = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+        if not accept_language:
             return None
 
         try:
@@ -86,7 +119,7 @@ class SiteViewMiddleware(MiddlewareMixin):
                 city=geo['city'],
                 region=geo['region'],
                 country=geo['country'],
-                user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+                user_agent=user_agent[:500],
             )
         except Exception as e:
             logger.error(f'SiteViewMiddleware error: {e}')
