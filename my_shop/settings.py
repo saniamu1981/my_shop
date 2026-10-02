@@ -384,3 +384,8 @@ ACCOUNT_ADAPTER = 'apps.accounts.adapters.CustomAccountAdapter'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CDEK_RETURN_TARIFF_CODE = 137
+
+# Максимальный размер загружаемого файла (в байтах)
+# По умолчанию Django — 2.5 МБ, увеличим до 100 МБ
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ

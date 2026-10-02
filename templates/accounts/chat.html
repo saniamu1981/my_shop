@@ -827,8 +827,8 @@ window.chatSelectedFiles = [];
             const exists = files.some(x => x.name === f.name && x.size === f.size);
             if (exists) return;
 
-            if (f.size > 5 * 1024 * 1024) {
-                alert(`Файл "${f.name}" больше 5 МБ и не будет прикреплён.`);
+            if (f.size > 100 * 1024 * 1024) {
+                alert(`Файл "${f.name}" больше 100 МБ и не будет прикреплён.`);
                 return;
             }
 
