@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.sitemaps',
 
     # Сторонние приложения
     'allauth',
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.products.middleware.SiteViewMiddleware',   # ← добавить сюда
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
@@ -262,6 +264,11 @@ LOGGING = {
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
+        'delivery.views': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
     },
 }
 
@@ -294,24 +301,6 @@ YANDEX_MAPS_API_KEY = '945266d5-9e2f-4e11-b600-99e446df15e6'
 # Город отправителя
 SHOP_CITY = 'Санкт-Петербург'
 SHOP_CITY_CODE = 137
-
-# Логирование для отладки API СДЭК
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'delivery.views': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-    },
-}
 
 # ============ S3 ХРАНИЛИЩЕ ============
 # ВРЕМЕННО: принудительно включаем S3
@@ -390,15 +379,3 @@ CDEK_RETURN_TARIFF_CODE = 137
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
 
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.products.middleware.SiteViewMiddleware',   # ← добавить сюда
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',
-]
