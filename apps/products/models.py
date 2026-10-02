@@ -418,3 +418,38 @@ class ReviewMedia(models.Model):
 
     def __str__(self):
         return f'{self.get_media_type_display()} для отзыва #{self.review_id}'
+
+
+class ProductView(models.Model):
+    """Один просмотр страницы товара."""
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='views',
+        verbose_name='Товар',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='product_views',
+        verbose_name='Пользователь',
+    )
+    session_key = models.CharField('Ключ сессии', max_length=40, blank=True)
+    ip_address = models.GenericIPAddressField('IP-адрес', null=True, blank=True)
+    city = models.CharField('Город', max_length=100, blank=True)
+    region = models.CharField('Регион', max_length=100, blank=True)
+    country = models.CharField('Страна', max_length=100, blank=True)
+    created = models.DateTimeField('Просмотрено', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Просмотр товара'
+        verbose_name_plural = 'Просмотры товаров'
+        ordering = ('-created',)
+        indexes = [
+            models.Index(fields=['product', 'created']),
+            models.Index(fields=['city']),
+        ]
+
+    def __str__(self):
+        return f'{self.product.name} — {self.city or "?"} — {self.created:%d.%m.%Y}'

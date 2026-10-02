@@ -10,6 +10,7 @@ from datetime import timedelta
 from apps.accounts.models import ChatMessage, Offer
 from apps.products.models import Product, Category, Favorite
 from apps.orders.models import Order, Cart, Return
+from apps.products.models import ProductView
 
 User = get_user_model()
 
@@ -111,6 +112,24 @@ def dashboard(request):
     # Просмотры авторизованными
     total_views_auth = Product.objects.aggregate(total=Sum('views_count_auth'))['total'] or 0
 
+    # Топ-10 городов по просмотрам
+    top_cities = (
+        ProductView.objects
+        .exclude(city='')
+        .values('city')
+        .annotate(views=Count('id'))
+        .order_by('-views')[:10]
+    )
+
+    # Топ-10 регионов
+    top_regions = (
+        ProductView.objects
+        .exclude(region='')
+        .values('region')
+        .annotate(views=Count('id'))
+        .order_by('-views')[:10]
+    )
+
     # Топ-5 товаров по заказам (сколько раз товар заказывали)
     top_orders = (
         Product.objects
@@ -159,6 +178,8 @@ def dashboard(request):
         'top_views': top_views,
         'total_views': total_views,
         'total_views_auth': total_views_auth,
+        'top_cities': top_cities,
+        'top_regions': top_regions,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
