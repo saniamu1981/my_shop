@@ -420,19 +420,14 @@ class ReviewMedia(models.Model):
         return f'{self.get_media_type_display()} для отзыва #{self.review_id}'
 
 
-class ProductView(models.Model):
-    """Один просмотр страницы товара."""
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='views',
-        verbose_name='Товар',
-    )
+class SiteView(models.Model):
+    """Один просмотр страницы сайта."""
+    path = models.CharField('Путь', max_length=500, blank=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='product_views',
+        related_name='site_views',
         verbose_name='Пользователь',
     )
     session_key = models.CharField('Ключ сессии', max_length=40, blank=True)
@@ -443,13 +438,13 @@ class ProductView(models.Model):
     created = models.DateTimeField('Просмотрено', auto_now_add=True)
 
     class Meta:
-        verbose_name = 'Просмотр товара'
-        verbose_name_plural = 'Просмотры товаров'
+        verbose_name = 'Просмотр сайта'
+        verbose_name_plural = 'Просмотры сайта'
         ordering = ('-created',)
         indexes = [
-            models.Index(fields=['product', 'created']),
+            models.Index(fields=['created']),
             models.Index(fields=['city']),
         ]
 
     def __str__(self):
-        return f'{self.product.name} — {self.city or "?"} — {self.created:%d.%m.%Y}'
+        return f'{self.path} — {self.city or "?"} — {self.created:%d.%m.%Y}'

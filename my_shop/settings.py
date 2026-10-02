@@ -389,3 +389,16 @@ CDEK_RETURN_TARIFF_CODE = 137
 # По умолчанию Django — 2.5 МБ, увеличим до 100 МБ
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.products.middleware.SiteViewMiddleware',   # ← добавить сюда
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
+]

@@ -358,8 +358,11 @@
         <!-- Топ-10 городов -->
         <div class="col-12 col-md-6 col-lg-3">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">🌍 Топ-10 городов</h5>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="resetSiteViewsBtn" title="Сбросить">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive-sm">
@@ -380,6 +383,12 @@
                                     <tr><td colspan="2" class="text-muted text-center">Нет данных</td></tr>
                                 {% endfor %}
                             </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Всего просмотров</strong></td>
+                                    <td class="text-end"><strong>{{ total_site_views }}</strong></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -625,6 +634,46 @@ document.addEventListener('DOMContentLoaded', function () {
             resetBtn.textContent = 'Сбросить';
         });
     });
+
+    // ===== Сброс просмотров сайта (города) =====
+    const resetSiteViewsBtn = document.getElementById('resetSiteViewsBtn');
+    if (resetSiteViewsBtn) {
+        resetSiteViewsBtn.addEventListener('click', function () {
+            if (!confirm('Удалить все записи о просмотрах сайта? Это действие нельзя отменить.')) {
+                return;
+            }
+
+            resetSiteViewsBtn.disabled = true;
+            resetSiteViewsBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            const csrftoken = csrfToken || getCookie('csrftoken');
+
+            fetch('{% url "admin_panel:reset_site_views" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Не удалось удалить просмотры');
+                    resetSiteViewsBtn.disabled = false;
+                    resetSiteViewsBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка:', err);
+                alert('Ошибка сети. Попробуйте ещё раз.');
+                resetSiteViewsBtn.disabled = false;
+                resetSiteViewsBtn.innerHTML = '<i class="bi bi-trash"></i>';
+            });
+        });
+    }
 
     // Вспомогательная функция для получения CSRF-токена из cookie
     function getCookie(name) {

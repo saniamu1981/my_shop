@@ -10,7 +10,7 @@ from datetime import timedelta
 from apps.accounts.models import ChatMessage, Offer
 from apps.products.models import Product, Category, Favorite
 from apps.orders.models import Order, Cart, Return
-from apps.products.models import ProductView
+from apps.products.models import SiteView
 
 User = get_user_model()
 
@@ -114,16 +114,18 @@ def dashboard(request):
 
     # Топ-10 городов по просмотрам
     top_cities = (
-        ProductView.objects
+        SiteView.objects
         .exclude(city='')
         .values('city')
         .annotate(views=Count('id'))
         .order_by('-views')[:10]
     )
 
+    total_site_views = SiteView.objects.count()
+
     # Топ-10 регионов
     top_regions = (
-        ProductView.objects
+        SiteView.objects
         .exclude(region='')
         .values('region')
         .annotate(views=Count('id'))
@@ -180,6 +182,7 @@ def dashboard(request):
         'total_views_auth': total_views_auth,
         'top_cities': top_cities,
         'top_regions': top_regions,
+        'total_site_views': total_site_views,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
@@ -297,3 +300,17 @@ def chat_admin_messages(request, user_id):
     } for m in qs]
 
     return JsonResponse({'messages': data})
+
+
+@staff_member_required
+@require_POST
+def reset_site_views(request):
+    """Удаляет все записи просмотров сайта."""
+    from apps.products.models import SiteView
+
+    deleted = SiteView.objects.all().delete()
+
+    return JsonResponse({
+        'success': True,
+        'deleted': deleted[0],  # количество удалённых записей
+    })

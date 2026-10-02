@@ -11,7 +11,7 @@ from django.conf import settings
 from apps.orders.models import Order
 from django.db.models import Avg, Count, Q, F
 from .utils import get_client_ip, get_city_by_ip
-from .models import ProductView
+from .models import SiteView
 
 
 def product_list(request, category_slug=None):
@@ -57,29 +57,6 @@ def product_detail(request, category_slug, product_slug):
         if request.user.is_authenticated:
             Product.objects.filter(pk=product.pk).update(views_count_auth=F('views_count_auth') + 1)
         product.refresh_from_db()
-
-        ip = get_client_ip(request)
-
-        # Временная диагностика — потом убрать
-        print(f"[DEBUG] REMOTE_ADDR: {request.META.get('REMOTE_ADDR')}")
-        print(f"[DEBUG] X-Forwarded-For: {request.META.get('HTTP_X_FORWARDED_FOR')}")
-        print(f"[DEBUG] X-Real-IP: {request.META.get('HTTP_X_REAL_IP')}")
-        print(f"[DEBUG] Итоговый IP: {ip}")
-
-        geo = get_city_by_ip(ip)
-
-        if not request.session.session_key:
-            request.session.create()
-
-        ProductView.objects.create(
-            product=product,
-            user=request.user if request.user.is_authenticated else None,
-            session_key=request.session.session_key,
-            ip_address=ip or None,
-            city=geo['city'],
-            region=geo['region'],
-            country=geo['country'],
-        )
 
     images = product.images.all().order_by('order')
     videos = product.videos.all().order_by('order')
