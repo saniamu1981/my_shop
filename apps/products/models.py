@@ -435,6 +435,7 @@ class SiteView(models.Model):
     city = models.CharField('Город', max_length=100, blank=True)
     region = models.CharField('Регион', max_length=100, blank=True)
     country = models.CharField('Страна', max_length=100, blank=True)
+    user_agent = models.CharField('User-Agent', max_length=500, blank=True)
     created = models.DateTimeField('Просмотрено', auto_now_add=True)
 
     class Meta:
