@@ -41,8 +41,12 @@ class AutoCancelUnpaidOrdersMiddleware:
             status__in=['created', 'paid', 'confirmed'],
             created__lt=cutoff,
         )
+        print(f"[AutoCancel] Найдено: {orders.count()}")
 
         for order in orders:
+            print(f"[AutoCancel] Отменяю #{order.id}")
+            result = order.cancel()
+            print(f"[AutoCancel] Результат: {result}")
             try:
                 if order.cancel():
                     logger.info(

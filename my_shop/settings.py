@@ -69,17 +69,17 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'apps.orders.middleware.AutoCancelUnpaidOrdersMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.products.middleware.SiteViewMiddleware',   # ← добавить сюда
+    'apps.products.middleware.SiteViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'apps.orders.middleware.AutoCancelUnpaidOrdersMiddleware',
 ]
 
 
