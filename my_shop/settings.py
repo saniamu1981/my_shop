@@ -45,8 +45,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.sitemaps',
-    'django_celery_beat',
-    'django_celery_results',
 
     # Сторонние приложения
     'allauth',
@@ -381,20 +379,3 @@ CDEK_RETURN_TARIFF_CODE = 137
 # По умолчанию Django — 2.5 МБ, увеличим до 100 МБ
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600      # 100 МБ
-
-# ============ CELERY ============
-CELERY_BROKER_URL = f'redis://{REDIS_USER}:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1'
-CELERY_RESULT_BACKEND = f'redis://{REDIS_USER}:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/2'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Europe/Moscow'
-
-# Периодические задачи
-from celery.schedules import crontab
-CELERY_BEAT_SCHEDULE = {
-    'cancel-unpaid-orders': {
-        'task': 'apps.orders.tasks.cancel_unpaid_orders',
-        'schedule': crontab(minute=0),  # каждый час
-    },
-}

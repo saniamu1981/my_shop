@@ -41,6 +41,39 @@
         </div>
     </div>
 
+    <!-- ===== БЫСТРЫЕ ДЕЙСТВИЯ ===== -->
+    <div class="row g-3 mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-center gap-2 dashboard-actions">
+                        <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">
+                            ➕ Добавить категорию
+                        </a>
+                        <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">
+                            ➕ Добавить товар
+                        </a>
+                        <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">
+                            📋 Просмотр заказов
+                        </a>
+                        <a href="{% url 'admin:accounts_customuser_changelist' %}" class="btn btn-warning">
+                            👥 Просмотр пользователей
+                        </a>
+                        <a href="{% url 'admin_panel:stock_list' %}" class="btn btn-outline-primary">
+                            📦 Остатки товаров
+                        </a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-secondary">
+                            ⚙️ Расширенная админка
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== ТАБЛИЦЫ ===== -->
     <div class="row g-3 mt-4">
         <!-- Товары по категориям -->
@@ -464,36 +497,6 @@
                                 </tr>
                             </tfoot>
                         </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== БЫСТРЫЕ ДЕЙСТВИЯ ===== -->
-    <div class="row g-3 mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Быстрые действия</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex flex-wrap gap-2 dashboard-actions">
-                        <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">
-                            ➕ Добавить категорию
-                        </a>
-                        <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">
-                            ➕ Добавить товар
-                        </a>
-                        <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">
-                            📋 Просмотр заказов
-                        </a>
-                        <a href="{% url 'admin:accounts_customuser_changelist' %}" class="btn btn-warning">
-                            👥 Просмотр пользователей
-                        </a>
-                        <a href="{% url 'admin:index' %}" class="btn btn-secondary">
-                            ⚙️ Расширенная админка
-                        </a>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">📦 Остатки товаров</h1>
+        <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-outline-secondary">
+            ← Назад в дашборд
+        </a>
+    </div>
+
+    {% for cat_name, products in categories.items %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{{ cat_name }}</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30%;">Товар</th>
+                                <th style="width: 10%;">Размер</th>
+                                <th style="width: 15%;">Цена</th>
+                                <th style="width: 15%;">Остаток</th>
+                                <th style="width: 30%;">Изменить</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                                {% if product.sizes.all %}
+                                    {% for size in product.sizes.all %}
+                                        <tr>
+                                            {% if forloop.first %}
+                                                <td rowspan="{{ product.sizes.count }}" style="vertical-align: middle;">
+                                                    <strong>{{ product.name }}</strong>
+                                                    {% if product.sku %}
+                                                        <div class="text-muted small">Арт: {{ product.sku }}</div>
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                            <td style="vertical-align: middle;">
+                                                <span class="badge bg-secondary">{{ size.size }}</span>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                {{ size.price|default:product.price }} ₽
+                                            </td>
+                                            <td style="vertical-align: middle;" id="qty-{{ size.id }}">
+                                                {% if size.quantity > 0 %}
+                                                    <span class="badge bg-success">{{ size.quantity }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">0</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <div class="input-group input-group-sm" style="max-width: 200px;">
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           id="input-{{ size.id }}"
+                                                           value="{{ size.quantity }}"
+                                                           min="0"
+                                                           step="1">
+                                                    <button class="btn btn-primary"
+                                                            type="button"
+                                                            onclick="updateStock({{ size.id }})">
+                                                        Сохранить
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ product.name }}</strong>
+                                            {% if product.sku %}
+                                                <div class="text-muted small">Арт: {{ product.sku }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td colspan="4" class="text-muted">
+                                            У товара нет размеров. Остатки не отслеживаются.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="alert alert-info">
+            Нет товаров. <a href="{% url 'admin:products_product_add' %}">Добавить товар</a>
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+function updateStock(sizeId) {
+    const input = document.getElementById('input-' + sizeId);
+    const quantity = input.value;
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                   || getCookie('csrftoken');
+
+    fetch('{% url "admin_panel:stock_update" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'size_id=' + sizeId + '&quantity=' + encodeURIComponent(quantity),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const qtyEl = document.getElementById('qty-' + sizeId);
+            if (data.quantity > 0) {
+                qtyEl.innerHTML = '<span class="badge bg-success">' + data.quantity + '</span>';
+            } else {
+                qtyEl.innerHTML = '<span class="badge bg-danger">0</span>';
+            }
+
+            // Подсветка кнопки
+            const btn = input.nextElementSibling;
+            const originalText = btn.textContent;
+            btn.textContent = '✓';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }, 1500);
+        } else {
+            alert(data.error || 'Ошибка обновления');
+        }
+    })
+    .catch(err => {
+        console.error('Ошибка:', err);
+        alert('Ошибка сети. Попробуйте ещё раз.');
+    });
+}
+
+// Вспомогательная функция для CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Enter — сохранение
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                const sizeId = this.id.replace('input-', '');
+                updateStock(sizeId);
+            }
+        });
+    });
+});
+</script>
+
+<style>
+@media (max-width: 767.98px) {
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    h1 {
+        font-size: 22px !important;
+    }
+    .table-responsive {
+        font-size: 13px;
+    }
+    .table-responsive th,
+    .table-responsive td {
+        padding: 6px !important;
+        white-space: nowrap;
+    }
+    .input-group {
+        max-width: 100% !important;
+    }
+}
+</style>
+{% endblock %}

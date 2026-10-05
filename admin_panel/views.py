@@ -10,7 +10,7 @@ from datetime import timedelta
 from apps.accounts.models import ChatMessage, Offer
 from apps.products.models import Product, Category, Favorite, Review
 from apps.orders.models import Order, Cart, Return
-from apps.products.models import SiteView
+from apps.products.models import SiteView, Product, ProductSize
 
 User = get_user_model()
 
@@ -343,3 +343,48 @@ def reset_site_views(request):
         'success': True,
         'deleted': deleted[0],  # количество удалённых записей
     })
+
+
+@staff_member_required
+def stock_list(request):
+    """Страница управления остатками всех товаров."""
+    products = Product.objects.prefetch_related('sizes').order_by('category__name', 'name')
+    categories = {}
+
+    for product in products:
+        cat_name = product.category.name
+        if cat_name not in categories:
+            categories[cat_name] = []
+        categories[cat_name].append(product)
+
+    return render(request, 'admin_panel/stock_list.html', {
+        'categories': categories,
+    })
+
+
+@staff_member_required
+@require_POST
+def stock_update(request):
+    """AJAX-обновление остатков одного размера."""
+    size_id = request.POST.get('size_id')
+    quantity = request.POST.get('quantity')
+
+    try:
+        quantity = int(quantity)
+        if quantity < 0:
+            quantity = 0
+    except (TypeError, ValueError):
+        return JsonResponse({'success': False, 'error': 'Некорректное количество'}, status=400)
+
+    try:
+        ps = ProductSize.objects.get(id=size_id)
+        ps.quantity = quantity
+        ps.save(update_fields=['quantity'])
+
+        return JsonResponse({
+            'success': True,
+            'size_id': ps.id,
+            'quantity': ps.quantity,
+        })
+    except ProductSize.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Размер не найден'}, status=404)

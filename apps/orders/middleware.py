@@ -36,17 +36,10 @@ class AutoCancelUnpaidOrdersMiddleware:
         from datetime import timedelta
         from django.db import connection
 
-        cutoff = timezone.now() - timedelta(minutes=2)
-        print(f"[AutoCancel] Cutoff: {cutoff}")
-        print(f"[AutoCancel] Now: {timezone.now()}")
-        print(f"[AutoCancel] DB: {connection.settings_dict['HOST']}")
+        cutoff = timezone.now() - timedelta(hours=72)
 
         orders = Order.objects.filter(
             paid=False,
             status__in=['created', 'paid', 'confirmed'],
             created__lt=cutoff,
         )
-        print(f"[AutoCancel] Найдено: {orders.count()}")
-        for order in orders:
-            print(f"[AutoCancel] Отменяю #{order.id}")
-            order.cancel()
