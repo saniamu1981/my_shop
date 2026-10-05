@@ -13,4 +13,5 @@ urlpatterns = [
     path('reset-site-views/', views.reset_site_views, name='reset_site_views'),
     path('stock/', views.stock_list, name='stock_list'),
     path('stock/update/', views.stock_update, name='stock_update'),
+    path('stock/update-price/', views.stock_update_price, name='stock_update_price'),
 ]

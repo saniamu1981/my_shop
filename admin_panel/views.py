@@ -352,6 +352,13 @@ def stock_list(request):
     categories = {}
 
     for product in products:
+        # Готовим цену для каждого размера
+        for size in product.sizes.all():
+            # Если у размера своя цена — берём её, иначе цену товара
+            price = size.price if size.price is not None else product.price
+            # Приводим к строке с точкой
+            size.display_price = f'{price:.2f}'
+
         cat_name = product.category.name
         if cat_name not in categories:
             categories[cat_name] = []
@@ -385,6 +392,35 @@ def stock_update(request):
             'success': True,
             'size_id': ps.id,
             'quantity': ps.quantity,
+        })
+    except ProductSize.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Размер не найден'}, status=404)
+
+
+@staff_member_required
+@require_POST
+def stock_update_price(request):
+    """AJAX-обновление цены одного размера."""
+    size_id = request.POST.get('size_id')
+    price = request.POST.get('price')
+
+    try:
+        from decimal import Decimal, InvalidOperation
+        price = Decimal(price)
+        if price < 0:
+            price = Decimal('0')
+    except (TypeError, ValueError, InvalidOperation):
+        return JsonResponse({'success': False, 'error': 'Некорректная цена'}, status=400)
+
+    try:
+        ps = ProductSize.objects.get(id=size_id)
+        ps.price = price
+        ps.save(update_fields=['price'])
+
+        return JsonResponse({
+            'success': True,
+            'size_id': ps.id,
+            'price': str(ps.price),
         })
     except ProductSize.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Размер не найден'}, status=404)

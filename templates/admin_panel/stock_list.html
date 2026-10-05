@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h1 class="mb-0">📦 Остатки товаров</h1>
+        <h1 class="mb-0">📦 Цены и остатки товаров</h1>
         <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-outline-secondary btn-sm">
             ← Назад в дашборд
         </a>
@@ -21,12 +21,11 @@
                     <table class="table table-sm table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 60px;"></th>
-                                <th style="width: 25%;">Товар</th>
-                                <th style="width: 10%;">Размер</th>
-                                <th style="width: 12%;">Цена</th>
-                                <th style="width: 12%;">Остаток</th>
-                                <th style="width: 25%;">Изменить</th>
+                                <th style="width: 100px;"></th>
+                                <th style="width: 20%;">Товар</th>
+                                <th style="width: 8%;">Размер</th>
+                                <th style="width: 18%;">Цена</th>
+                                <th style="width: 18%;">Остаток</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -54,18 +53,29 @@
                                             <td style="vertical-align: middle;">
                                                 <span class="badge bg-secondary">{{ size.size }}</span>
                                             </td>
+
+                                            <!-- Цена -->
                                             <td style="vertical-align: middle;">
-                                                {{ size.price|default:product.price }} ₽
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number"
+                                                           class="form-control stock-price-input"
+                                                           id="price-{{ size.id }}"
+                                                           value="{{ size.display_price }}"
+                                                           min="0"
+                                                           step="0.01"
+                                                           data-original="{{ size.price|default:product.price }}">
+                                                    <span class="input-group-text">₽</span>
+                                                    <button class="btn btn-primary"
+                                                            type="button"
+                                                            onclick="updatePrice({{ size.id }})">
+                                                        Сохранить
+                                                    </button>
+                                                </div>
                                             </td>
-                                            <td style="vertical-align: middle;" id="qty-{{ size.id }}">
-                                                {% if size.quantity > 0 %}
-                                                    <span class="badge bg-success">{{ size.quantity }}</span>
-                                                {% else %}
-                                                    <span class="badge bg-danger">0</span>
-                                                {% endif %}
-                                            </td>
+
+                                            <!-- Остаток -->
                                             <td style="vertical-align: middle;">
-                                                <div class="input-group input-group-sm" style="max-width: 200px;">
+                                                <div class="input-group input-group-sm">
                                                     <input type="number"
                                                            class="form-control"
                                                            id="input-{{ size.id }}"
@@ -77,6 +87,13 @@
                                                             onclick="updateStock({{ size.id }})">
                                                         Сохранить
                                                     </button>
+                                                    <span class="input-group-text" id="qty-{{ size.id }}">
+                                                        {% if size.quantity > 0 %}
+                                                            <span class="badge bg-success">{{ size.quantity }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">0</span>
+                                                        {% endif %}
+                                                    </span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -98,8 +115,8 @@
                                                 <div class="text-muted small">Арт: {{ product.sku }}</div>
                                             {% endif %}
                                         </td>
-                                        <td colspan="4" class="text-muted">
-                                            У товара нет размеров. Остатки не отслеживаются.
+                                        <td colspan="3" class="text-muted">
+                                            У товара нет размеров.
                                         </td>
                                     </tr>
                                 {% endif %}
@@ -134,16 +151,28 @@
                                     <div class="stock-size-row">
                                         <div class="stock-size-info">
                                             <span class="badge bg-secondary">{{ size.size }}</span>
-                                            <span class="stock-size-price">{{ size.price|default:product.price }} ₽</span>
-                                            <span id="qty-mobile-{{ size.id }}" class="stock-size-qty">
-                                                {% if size.quantity > 0 %}
-                                                    <span class="badge bg-success">{{ size.quantity }}</span>
-                                                {% else %}
-                                                    <span class="badge bg-danger">0</span>
-                                                {% endif %}
-                                            </span>
                                         </div>
+
+                                        <!-- Цена -->
                                         <div class="stock-size-controls">
+                                            <span class="stock-size-label">Цена:</span>
+                                            <input type="number"
+                                                   class="form-control form-control-sm stock-input"
+                                                   id="price-mobile-{{ size.id }}"
+                                                   value="{{ size.display_price }}"
+                                                   min="0"
+                                                   step="0.01">
+                                            <span class="stock-size-suffix">₽</span>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-primary stock-btn-save"
+                                                    onclick="updatePriceMobile({{ size.id }})">
+                                                ✓
+                                            </button>
+                                        </div>
+
+                                        <!-- Остаток -->
+                                        <div class="stock-size-controls">
+                                            <span class="stock-size-label">Остаток:</span>
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-secondary stock-btn-minus"
                                                     onclick="changeQty({{ size.id }}, -1)">
@@ -185,21 +214,64 @@
 </div>
 
 <script>
-// ===== ОБНОВЛЕНИЕ ОСТАТКА (ДЕСКТОП) =====
+// ===== ЦЕНА (ДЕСКТОП) =====
+function updatePrice(sizeId) {
+    const input = document.getElementById('price-' + sizeId);
+    savePrice(sizeId, input.value, input);
+}
+
+// ===== ЦЕНА (МОБИЛЬНЫЙ) =====
+function updatePriceMobile(sizeId) {
+    const input = document.getElementById('price-mobile-' + sizeId);
+    savePrice(sizeId, input.value, input);
+}
+
+function savePrice(sizeId, price, inputElement) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                   || getCookie('csrftoken');
+
+    fetch('{% url "admin_panel:stock_update_price" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'size_id=' + sizeId + '&price=' + encodeURIComponent(price),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (inputElement) {
+                inputElement.value = data.price;
+                inputElement.dataset.original = data.price;
+            }
+            flashButton(inputElement);
+        } else {
+            alert(data.error || 'Ошибка обновления цены');
+            if (inputElement && inputElement.dataset.original) {
+                inputElement.value = inputElement.dataset.original;
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Ошибка:', err);
+        alert('Ошибка сети. Попробуйте ещё раз.');
+    });
+}
+
+// ===== ОСТАТОК (ДЕСКТОП) =====
 function updateStock(sizeId) {
     const input = document.getElementById('input-' + sizeId);
-    const quantity = input.value;
-    saveStock(sizeId, quantity, 'qty-' + sizeId, input);
+    saveStock(sizeId, input.value, 'qty-' + sizeId, input);
 }
 
-// ===== ОБНОВЛЕНИЕ ОСТАТКА (МОБИЛЬНЫЙ) =====
+// ===== ОСТАТОК (МОБИЛЬНЫЙ) =====
 function updateStockMobile(sizeId) {
     const input = document.getElementById('input-mobile-' + sizeId);
-    const quantity = input.value;
-    saveStock(sizeId, quantity, 'qty-mobile-' + sizeId, input);
+    saveStock(sizeId, input.value, 'qty-mobile-' + sizeId, input);
 }
 
-// ===== ОБЩАЯ ФУНКЦИЯ СОХРАНЕНИЯ =====
 function saveStock(sizeId, quantity, qtyElementId, inputElement) {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
                    || getCookie('csrftoken');
@@ -224,23 +296,9 @@ function saveStock(sizeId, quantity, qtyElementId, inputElement) {
                     qtyEl.innerHTML = '<span class="badge bg-danger">0</span>';
                 }
             }
-
-            if (inputElement) {
-                const btn = inputElement.parentElement.querySelector('button:last-child');
-                if (btn) {
-                    const originalText = btn.textContent;
-                    btn.textContent = '✓';
-                    btn.classList.remove('btn-primary');
-                    btn.classList.add('btn-success');
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.classList.remove('btn-success');
-                        btn.classList.add('btn-primary');
-                    }, 1500);
-                }
-            }
+            flashButton(inputElement);
         } else {
-            alert(data.error || 'Ошибка обновления');
+            alert(data.error || 'Ошибка обновления остатка');
         }
     })
     .catch(err => {
@@ -249,7 +307,7 @@ function saveStock(sizeId, quantity, qtyElementId, inputElement) {
     });
 }
 
-// ===== ИЗМЕНЕНИЕ КОЛИЧЕСТВА НА +1/-1 (МОБИЛЬНЫЙ) =====
+// ===== ИЗМЕНЕНИЕ КОЛИЧЕСТВА НА +1/-1 =====
 function changeQty(sizeId, delta) {
     const input = document.getElementById('input-mobile-' + sizeId);
     if (!input) return;
@@ -258,6 +316,25 @@ function changeQty(sizeId, delta) {
     value += delta;
     if (value < 0) value = 0;
     input.value = value;
+}
+
+// ===== ПОДСВЕТКА КНОПКИ ПОСЛЕ СОХРАНЕНИЯ =====
+function flashButton(inputElement) {
+    if (!inputElement) return;
+    const group = inputElement.closest('.input-group') || inputElement.closest('.stock-size-controls');
+    if (!group) return;
+    const btn = group.querySelector('button:last-child');
+    if (!btn) return;
+
+    const originalText = btn.textContent;
+    btn.textContent = '✓';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-success');
+    setTimeout(() => {
+        btn.textContent = originalText;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-primary');
+    }, 1500);
 }
 
 // ===== CSRF =====
@@ -276,8 +353,19 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// ===== ENTER — СОХРАНЕНИЕ (ДЕСКТОП) =====
+// ===== ENTER =====
 document.addEventListener('DOMContentLoaded', function () {
+    // Цена — Enter
+    document.querySelectorAll('input[id^="price-"]:not([id^="price-mobile-"])').forEach(input => {
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                const sizeId = this.id.replace('price-', '');
+                updatePrice(sizeId);
+            }
+        });
+    });
+
+    // Остаток — Enter
     document.querySelectorAll('input[id^="input-"]:not([id^="input-mobile-"])').forEach(input => {
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
@@ -290,12 +378,12 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <style>
-/* ============ МИНИАТЮРЫ В ДЕСКТОПНОЙ ТАБЛИЦЕ ============ */
+/* ============ МИНИАТЮРЫ (ДЕСКТОП) ============ */
 .stock-thumb {
     width: 168px;
     height: 224px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid #e9ecef;
     display: block;
 }
@@ -308,9 +396,19 @@ document.addEventListener('DOMContentLoaded', function () {
     justify-content: center;
     background: #f8f9fa;
     color: #adb5bd;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid #e9ecef;
-    font-size: 14px;
+    font-size: 18px;
+}
+
+/* Компактные input-group в таблице */
+.table-sm .input-group-sm .form-control {
+    font-size: 13px;
+}
+
+.table-sm .input-group-sm .btn {
+    font-size: 12px;
+    padding: 4px 8px;
 }
 
 /* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ============ */
@@ -333,7 +431,6 @@ document.addEventListener('DOMContentLoaded', function () {
         font-size: 15px !important;
     }
 
-    /* Карточка товара */
     .stock-product-card {
         background: #f8f9fa;
         border: 1px solid #e9ecef;
@@ -341,7 +438,6 @@ document.addEventListener('DOMContentLoaded', function () {
         padding: 10px 12px;
     }
 
-    /* Шапка карточки: миниатюра + название */
     .stock-product-header {
         display: flex;
         gap: 10px;
@@ -373,7 +469,6 @@ document.addEventListener('DOMContentLoaded', function () {
         word-break: break-word;
     }
 
-    /* Строка размера */
     .stock-size-row {
         display: flex;
         flex-direction: column;
@@ -387,7 +482,6 @@ document.addEventListener('DOMContentLoaded', function () {
         padding-bottom: 0;
     }
 
-    /* Информация о размере */
     .stock-size-info {
         display: flex;
         align-items: center;
@@ -395,16 +489,18 @@ document.addEventListener('DOMContentLoaded', function () {
         font-size: 13px;
     }
 
-    .stock-size-price {
-        color: #0d6efd;
-        font-weight: 600;
+    .stock-size-label {
+        font-size: 12px;
+        color: #6c757d;
+        min-width: 52px;
     }
 
-    .stock-size-qty {
-        margin-left: auto;
+    .stock-size-suffix {
+        font-size: 13px;
+        color: #6c757d;
+        flex-shrink: 0;
     }
 
-    /* Управление количеством */
     .stock-size-controls {
         display: flex;
         align-items: center;
@@ -430,6 +526,7 @@ document.addEventListener('DOMContentLoaded', function () {
         font-size: 16px !important;
         height: 36px;
         padding: 0;
+        min-width: 0;
     }
 
     .stock-btn-save {
