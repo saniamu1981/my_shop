@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.conf import settings
 from django.db import models
-from apps.products.models import Product
+from apps.products.models import Product, ProductSize
 from apps.orders.models import Cart as CartModel, CartItem
 
 
@@ -174,3 +174,18 @@ class CartManager:
         else:
             del self.session[settings.CART_SESSION_ID]
             self.save()
+
+    def get_available_quantity(self, product, size=''):
+        """Возвращает доступное количество товара для указанного размера."""
+        if not product.has_any_sizes:
+            return None
+
+        if not size:
+            return 0
+
+        try:
+            from apps.products.models import ProductSize
+            product_size = ProductSize.objects.get(product=product, size=size)
+            return product_size.quantity
+        except ProductSize.DoesNotExist:
+            return 0

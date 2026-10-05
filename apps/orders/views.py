@@ -183,6 +183,7 @@ def create_order(request):
                 'product': product,
                 'price': price,
                 'quantity': quantity,
+                'size': buy_now_data.get('size', ''),
             }]
         else:
             # обычная корзина
@@ -191,7 +192,37 @@ def create_order(request):
                 'product': item['product'],
                 'price': item['price'],
                 'quantity': item['quantity'],
+                'size': item.get('size', ''),
             } for item in cart]
+
+            print(f"[DEBUG] order_items_data: {order_items_data}")
+
+        # ===== Проверка остатков перед созданием заказа =====
+        from apps.products.models import ProductSize
+
+        for item_data in order_items_data:
+            product = item_data['product']
+            quantity = item_data['quantity']
+            size = item_data.get('size', '')  # если size есть в данных
+
+            if product.has_any_sizes:
+                if not size:
+                    messages.error(request, f'Для товара "{product.name}" не выбран размер')
+                    return redirect('cart:cart_detail')
+
+                try:
+                    ps = ProductSize.objects.get(product=product, size=size)
+                    if ps.quantity < quantity:
+                        messages.error(
+                            request,
+                            f'Товар "{product.name}" (размер {size}) — '
+                            f'доступно только {ps.quantity} шт. '
+                            f'Уменьшите количество в корзине.'
+                        )
+                        return redirect('cart:cart_detail')
+                except ProductSize.DoesNotExist:
+                    messages.error(request, f'Размер {size} для товара "{product.name}" не найден')
+                    return redirect('cart:cart_detail')
 
         order = Order.objects.create(
             user=request.user,
@@ -207,12 +238,38 @@ def create_order(request):
             delivery_point_address=point_data.get('address', ''),
         )
 
+        # ===== Уменьшаем остатки на складе =====
+        from apps.products.models import ProductSize
+
+        for item_data in order_items_data:
+            product = item_data['product']
+            quantity = item_data['quantity']
+            size = item_data.get('size', '')
+
+            if product.has_any_sizes and size:
+                try:
+                    ps = ProductSize.objects.get(product=product, size=size)
+                    ps.quantity -= quantity
+                    if ps.quantity < 0:
+                        ps.quantity = 0
+                    ps.save(update_fields=['quantity'])
+                    logger.info(
+                        f'Заказ #{order.id}: товар "{product.name}" (размер {size}) — '
+                        f'остаток уменьшен на {quantity}, стало {ps.quantity}'
+                    )
+                except ProductSize.DoesNotExist:
+                    logger.warning(
+                        f'Заказ #{order.id}: не найден размер {size} '
+                        f'для товара "{product.name}"'
+                    )
+
         for item in order_items_data:
             OrderItem.objects.create(
                 order=order,
                 product=item['product'],
                 price=item['price'],
                 quantity=item['quantity'],
+                size=item.get('size', ''),
             )
 
         # ===== Уведомление админам о новом заказе =====
@@ -490,27 +547,12 @@ def cancel_order(request, order_id):
             messages.error(request, 'Этот заказ нельзя отменить')
             return redirect('orders:order_detail', order_id=order.id)
 
-        # cancel() сам вернёт деньги через ЮKassa и удалит заказ в СДЭК
         if order.cancel():
             messages.success(
                 request,
                 f'Заказ №{order.id} отменён. '
-                f'Деньги вернутся на карту в течение 3–10 рабочих дней.'
+                + ('Деньги вернутся на карту в течение 3–10 рабочих дней.' if order.paid else 'Заказ не был оплачен.')
             )
-
-            # Push-уведомление
-            try:
-                from apps.accounts.utils import send_push_safe
-                if order.user:
-                    payload = {
-                        "head": "✅ Заказ отменён",
-                        "body": f"Заказ №{order.id} отменён. Деньги вернутся в течение 3–10 дней.",
-                        "icon": "/static/icons/icon-192x192.png",
-                        "url": f"/orders/{order.id}/",
-                    }
-                    send_push_safe(order.user, payload)
-            except Exception as e:
-                logger.error(f'Push error (cancel): {e}')
         else:
             messages.error(
                 request,

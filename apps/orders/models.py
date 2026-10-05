@@ -184,6 +184,8 @@ class Order(models.Model):
         if not self.can_cancel():
             return False
 
+        was_paid = self.paid
+
         # 1. Возврат денег (только если платёж succeeded)
         if self.paid and self.payment_id:
             from yookassa import Configuration, Payment
@@ -225,9 +227,50 @@ class Order(models.Model):
                     f'Нужно удалить вручную: {self.cdek_order_uuid}'
                 )
 
+        # ===== Возвращаем товары на склад =====
+        from apps.products.models import ProductSize
+
+        for item in self.items.all():
+            if item.product and item.product.has_any_sizes:
+                # Ищем размер: у OrderItem нет поля size, но можно взять из корзины или добавить
+                # Если у вас OrderItem не хранит size — нужно добавить поле size в OrderItem
+                try:
+                    ps = ProductSize.objects.get(product=item.product, size=item.size)
+                    ps.quantity += item.quantity
+                    ps.save(update_fields=['quantity'])
+                    logger.info(
+                        f'Заказ #{self.id}: товар "{item.product.name}" (размер {item.size}) — '
+                        f'остаток возвращён на склад: +{item.quantity}'
+                    )
+                except ProductSize.DoesNotExist:
+                    logger.warning(
+                        f'Заказ #{self.id}: не найден размер {item.size} '
+                        f'для товара "{item.product.name}"'
+                    )
+
         # 3. Смена статуса
         self.status = 'cancelled'
         self.save()
+
+        # 4. Push-уведомление клиенту
+        try:
+            from apps.accounts.utils import send_push_safe
+            if self.user:
+                if was_paid:
+                    body = f"Заказ №{self.id} отменён. Деньги вернутся в течение 3–10 дней."
+                else:
+                    body = f"Заказ №{self.id} отменён без оплаты."
+
+                payload = {
+                    "head": "❌ Заказ отменён",
+                    "body": body,
+                    "icon": "/static/icons/icon-192x192.png",
+                    "url": f"/orders/{self.id}/",
+                }
+                send_push_safe(self.user, payload)
+        except Exception as e:
+            logger.error(f'Push error (cancel): {e}')
+
         return True
 
 
@@ -236,6 +279,7 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='orderitem')
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField('Количество', default=1)
+    size = models.CharField('Размер', max_length=20, blank=True, null=True)
 
     class Meta:
         verbose_name = 'Товар в заказе'

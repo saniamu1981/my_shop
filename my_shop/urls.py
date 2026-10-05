@@ -10,6 +10,7 @@ from apps.products import feeds
 
 from django.contrib.sitemaps.views import sitemap
 from apps.products.sitemaps import ProductSitemap, CategorySitemap, StaticViewSitemap
+from .views import yandex_verify
 
 sitemaps = {
     'products': ProductSitemap,
@@ -30,6 +31,7 @@ urlpatterns = [
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('webpush/', include('webpush.urls')),
+    path('zbWxDvr6uVru67mynf3g59z.txt', yandex_verify),
 
     # Свой service worker ПЕРЕД pwa.urls — он перекроет встроенный
     path('serviceworker.js', products_views.service_worker, name='pwa_service_worker'),
