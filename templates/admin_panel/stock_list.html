@@ -18,14 +18,15 @@
 
                 <!-- ===== ДЕСКТОП: таблица ===== -->
                 <div class="table-responsive d-none d-md-block">
-                    <table class="table table-sm table-hover mb-0">
+                    <table class="table table-sm table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 30%;">Товар</th>
+                                <th style="width: 60px;"></th>
+                                <th style="width: 25%;">Товар</th>
                                 <th style="width: 10%;">Размер</th>
-                                <th style="width: 15%;">Цена</th>
-                                <th style="width: 15%;">Остаток</th>
-                                <th style="width: 30%;">Изменить</th>
+                                <th style="width: 12%;">Цена</th>
+                                <th style="width: 12%;">Остаток</th>
+                                <th style="width: 25%;">Изменить</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -34,6 +35,15 @@
                                     {% for size in product.sizes.all %}
                                         <tr>
                                             {% if forloop.first %}
+                                                <td rowspan="{{ product.sizes.count }}" style="vertical-align: middle;">
+                                                    {% if product.image %}
+                                                        <img src="{{ product.image.url }}"
+                                                             alt="{{ product.name }}"
+                                                             class="stock-thumb">
+                                                    {% else %}
+                                                        <div class="stock-thumb stock-thumb-empty">—</div>
+                                                    {% endif %}
+                                                </td>
                                                 <td rowspan="{{ product.sizes.count }}" style="vertical-align: middle;">
                                                     <strong>{{ product.name }}</strong>
                                                     {% if product.sku %}
@@ -73,6 +83,15 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
+                                        <td style="vertical-align: middle;">
+                                            {% if product.image %}
+                                                <img src="{{ product.image.url }}"
+                                                     alt="{{ product.name }}"
+                                                     class="stock-thumb">
+                                            {% else %}
+                                                <div class="stock-thumb stock-thumb-empty">—</div>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             <strong>{{ product.name }}</strong>
                                             {% if product.sku %}
@@ -93,11 +112,21 @@
                 <div class="d-md-none p-2">
                     {% for product in products %}
                         <div class="stock-product-card mb-3">
-                            <div class="stock-product-title">
-                                <strong>{{ product.name }}</strong>
-                                {% if product.sku %}
-                                    <div class="text-muted small">Арт: {{ product.sku }}</div>
-                                {% endif %}
+                            <div class="stock-product-header">
+                                <div class="stock-product-thumb">
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}"
+                                             alt="{{ product.name }}">
+                                    {% else %}
+                                        <div class="stock-thumb-empty">—</div>
+                                    {% endif %}
+                                </div>
+                                <div class="stock-product-title">
+                                    <strong>{{ product.name }}</strong>
+                                    {% if product.sku %}
+                                        <div class="text-muted small">Арт: {{ product.sku }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             {% if product.sizes.all %}
@@ -196,7 +225,6 @@ function saveStock(sizeId, quantity, qtyElementId, inputElement) {
                 }
             }
 
-            // Подсветка кнопки сохранения
             if (inputElement) {
                 const btn = inputElement.parentElement.querySelector('button:last-child');
                 if (btn) {
@@ -262,7 +290,30 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <style>
-/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ СТРАНИЦЫ ОСТАТКОВ ============ */
+/* ============ МИНИАТЮРЫ В ДЕСКТОПНОЙ ТАБЛИЦЕ ============ */
+.stock-thumb {
+    width: 168px;
+    height: 224px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    display: block;
+}
+
+.stock-thumb-empty {
+    width: 168px;
+    height: 224px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    color: #adb5bd;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-size: 14px;
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ============ */
 
 @media (max-width: 767.98px) {
     .container {
@@ -290,11 +341,35 @@ document.addEventListener('DOMContentLoaded', function () {
         padding: 10px 12px;
     }
 
-    .stock-product-title {
-        font-size: 14px;
+    /* Шапка карточки: миниатюра + название */
+    .stock-product-header {
+        display: flex;
+        gap: 10px;
+        align-items: center;
         margin-bottom: 8px;
         padding-bottom: 8px;
         border-bottom: 1px solid #e9ecef;
+    }
+
+    .stock-product-thumb img {
+        width: 44px;
+        height: 58px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+        display: block;
+    }
+
+    .stock-product-thumb .stock-thumb-empty {
+        width: 44px;
+        height: 58px;
+        font-size: 12px;
+    }
+
+    .stock-product-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
         word-break: break-word;
     }
 
@@ -352,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
     .stock-input {
         flex: 1;
         text-align: center;
-        font-size: 16px !important;   /* ← важно для iOS */
+        font-size: 16px !important;
         height: 36px;
         padding: 0;
     }
