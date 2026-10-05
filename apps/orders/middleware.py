@@ -31,10 +31,15 @@ class AutoCancelUnpaidOrdersMiddleware:
         return self.get_response(request)
 
     def _cancel_expired_orders(self):
-        """Отменяет все просроченные неоплаченные заказы."""
         from apps.orders.models import Order
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db import connection
 
-        cutoff = timezone.now() - timedelta(hours=self.CANCEL_AFTER_HOURS)
+        cutoff = timezone.now() - timedelta(minutes=2)
+        print(f"[AutoCancel] Cutoff: {cutoff}")
+        print(f"[AutoCancel] Now: {timezone.now()}")
+        print(f"[AutoCancel] DB: {connection.settings_dict['HOST']}")
 
         orders = Order.objects.filter(
             paid=False,
@@ -42,16 +47,6 @@ class AutoCancelUnpaidOrdersMiddleware:
             created__lt=cutoff,
         )
         print(f"[AutoCancel] Найдено: {orders.count()}")
-
         for order in orders:
             print(f"[AutoCancel] Отменяю #{order.id}")
-            result = order.cancel()
-            print(f"[AutoCancel] Результат: {result}")
-            try:
-                if order.cancel():
-                    logger.info(
-                        f'Заказ #{order.id}: автоматически отменён '
-                        f'(не оплачен, старше {self.CANCEL_AFTER_HOURS} ч.)'
-                    )
-            except Exception as e:
-                logger.error(f'Ошибка автоотмены заказа #{order.id}: {e}')
+            order.cancel()
