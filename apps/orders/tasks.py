@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 @shared_task
 def cancel_unpaid_orders():
     """Отменяет неоплаченные заказы старше 72 часов."""
-    cutoff = timezone.now() - timedelta(hours=72)
+    cutoff = timezone.now() - timedelta(minutes=2)
 
     orders = Order.objects.filter(
         paid=False,
