@@ -326,7 +326,8 @@ class CartItem(models.Model):
         return f'{self.product.name} - {self.size or "Без размера"} x {self.quantity}'
 
     def get_total_price(self):
-        return self.product.price * self.quantity
+        price = self.product.get_price_for_size(self.size)
+        return price * self.quantity
 
 
 # ============ ВОЗВРАТЫ ============

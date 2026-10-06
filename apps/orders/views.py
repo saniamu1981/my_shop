@@ -173,24 +173,22 @@ def create_order(request):
 
         # ---- Считаем сумму и собираем позиции ----
         if buy_now_data:
-            # быстрая покупка — один товар из сессии
             product = get_object_or_404(Product, id=buy_now_data.get('product_id'))
             quantity = int(buy_now_data.get('quantity', 1) or 1)
-            price = product.price
+            size = buy_now_data.get('size', '')
+            price = product.get_price_for_size(size)
             total_price = price * quantity
-
             order_items_data = [{
                 'product': product,
                 'price': price,
                 'quantity': quantity,
-                'size': buy_now_data.get('size', ''),
+                'size': size,
             }]
         else:
-            # обычная корзина
             total_price = cart.get_total_price()
             order_items_data = [{
                 'product': item['product'],
-                'price': item['price'],
+                'price': item['product'].get_price_for_size(item.get('size', '')),
                 'quantity': item['quantity'],
                 'size': item.get('size', ''),
             } for item in cart]
@@ -316,13 +314,18 @@ def create_order(request):
     # Показываем в правой колонке либо корзину, либо один товар быстрой покупки
     if buy_now_data:
         product = get_object_or_404(Product, id=buy_now_data.get('product_id'))
+        quantity = int(buy_now_data.get('quantity', 1) or 1)
+        size = buy_now_data.get('size', '')
+        price = product.get_price_for_size(size)
+
         cart_context = [{
             'product': product,
-            'price': product.price,
-            'quantity': int(buy_now_data.get('quantity', 1) or 1),
-            'total_price': product.price * int(buy_now_data.get('quantity', 1) or 1),
+            'size': size,
+            'price': price,
+            'quantity': quantity,
+            'total_price': price * quantity,
         }]
-        total_price = sum(x['total_price'] for x in cart_context)
+        total_price = price * quantity
     else:
         cart_context = list(cart)
         total_price = cart.get_total_price()

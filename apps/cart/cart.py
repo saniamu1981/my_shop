@@ -91,7 +91,8 @@ class CartManager:
                 cart_item.save()
         else:
             if product_id not in self.cart:
-                self.cart[product_id] = {'quantity': 0, 'price': str(product.price), 'size': size}
+                price = product.get_price_for_size(size)
+                self.cart[product_id] = {'quantity': 0, 'price': str(price), 'size': size}
             else:
                 # Проверяем, совпадает ли размер
                 existing_size = self.cart[product_id].get('size')
@@ -99,7 +100,8 @@ class CartManager:
                     # Если размер другой, создаем новый ключ с размером
                     new_key = f"{product_id}_{size}"
                     if new_key not in self.cart:
-                        self.cart[new_key] = {'quantity': 0, 'price': str(product.price), 'size': size}
+                        price = product.get_price_for_size(size)
+                        self.cart[new_key] = {'quantity': 0, 'price': str(price), 'size': size}
                     if override_quantity:
                         self.cart[new_key]['quantity'] = quantity
                     else:
@@ -140,12 +142,14 @@ class CartManager:
         if self.user:
             items = self.db_cart.items.select_related('product').all()
             for item in items:
+                # В __iter__ для авторизованных:
+                price = item.product.get_price_for_size(item.size)
                 yield {
                     'product': item.product,
                     'size': item.size,
                     'quantity': item.quantity,
-                    'price': str(item.product.price),
-                    'total_price': item.product.price * item.quantity
+                    'price': str(price),
+                    'total_price': price * item.quantity,
                 }
         else:
             product_ids = self.cart.keys()
@@ -155,7 +159,10 @@ class CartManager:
                 for key, item in cart.items():
                     if str(product.id) in key or str(product.id) == key:
                         item['product'] = product
-                        item['total_price'] = Decimal(item['price']) * item['quantity']
+                        # Берём цену размера, если он есть
+                        price = product.get_price_for_size(item.get('size'))
+                        item['price'] = str(price)
+                        item['total_price'] = price * item['quantity']
                         yield item
 
     def __len__(self):

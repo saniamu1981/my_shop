@@ -102,7 +102,12 @@
             <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-3 flex-wrap">
                     {% if product.available and product.has_sizes_in_stock %}
-                        <h2 class="text-primary mb-0" style="font-size: 32px; font-weight: 700;">{{ product.price }} ₽</h2>
+                        <h2 class="text-primary mb-0"
+                            id="productPrice"
+                            data-base-price="{{ product.min_size_price }}"
+                            style="font-size: 32px; font-weight: 700;">
+                            {{ product.min_size_price }} ₽
+                        </h2>
                     {% endif %}
 
                     {% if product.available and product.has_sizes_in_stock %}
@@ -306,6 +311,7 @@
                             {% for size in product.sizes.all %}
                                 <div class="size-item">
                                     <input type="radio" name="size" id="size-{{ size.id }}" value="{{ size.size }}"
+                                           data-price="{{ size.price|default:product.price }}"
                                            {% if size.quantity <= 0 %}disabled{% endif %}>
                                     <label for="size-{{ size.id }}">
                                         <span class="size-name">{{ size.size }}</span>
@@ -1523,8 +1529,37 @@ function initSizeSelection() {
                 sizeTrigger.style.borderColor = '#28a745';
                 sizeTrigger.style.background = '#f0fff4';
             }
+
+            // ===== Обновляем цену =====
+            updateProductPrice(this.dataset.price);
         });
     });
+
+    // Функция обновления цены
+    function updateProductPrice(price) {
+        const priceEl = document.getElementById('productPrice');
+        if (!priceEl) return;
+
+        let num;
+        if (price === undefined || price === null || price === '') {
+            num = parseFloat(priceEl.dataset.basePrice);
+        } else {
+            // На случай, если в data-price всё-таки попала запятая
+            num = parseFloat(String(price).replace(',', '.'));
+        }
+
+        if (isNaN(num)) {
+            priceEl.textContent = (price ?? priceEl.dataset.basePrice) + ' ₽';
+            return;
+        }
+
+        // Всегда 2 знака после точки, разделитель тысяч — пробел
+        priceEl.textContent = num.toLocaleString('ru-RU', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+            useGrouping: false,
+        }) + ' ₽';
+    }
 }
 
 // ============ ДОСТАВКА ============

@@ -5,6 +5,9 @@ from django.core.files import File
 from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.conf import settings
+from django.db.models import Min
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 
 def product_image_upload_path(instance, filename):
@@ -92,6 +95,32 @@ class Product(models.Model):
         default=0,
         help_text='Сколько раз открывали страницу товара авторизованные пользователи',
     )
+
+    def recalculate_price_from_sizes(self):
+        """Пересчитывает Product.price как минимальную цену среди размеров.
+        Если размеров нет — оставляет цену как есть."""
+        if not self.sizes.exists():
+            return
+        min_price = self.sizes.aggregate(m=Min('price'))['m']
+        if min_price is not None and self.price != min_price:
+            # update, чтобы не зациклить save()
+            Product.objects.filter(pk=self.pk).update(price=min_price)
+            self.price = min_price
+
+    def get_price_for_size(self, size):
+        """Цена для конкретного размера. Если размера нет — цена товара."""
+        if not size:
+            return self.price
+        ps = self.sizes.filter(size=size).first()
+        if ps and ps.price is not None:
+            return ps.price
+        return self.price
+
+    @property
+    def min_size_price(self):
+        """Минимальная цена среди размеров (для карточки)."""
+        m = self.sizes.aggregate(m=Min('price'))['m']
+        return m if m is not None else self.price
 
     class Meta:
         verbose_name = 'Товар'
@@ -319,6 +348,11 @@ class ProductSize(models.Model):
     quantity = models.PositiveIntegerField('Количество', default=0)
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2, blank=True, null=True)
 
+    @property
+    def effective_price(self):
+        """Цена размера, либо цена товара, если у размера не задана."""
+        return self.price if self.price is not None else self.product.price
+
     class Meta:
         verbose_name = 'Размер товара'
         verbose_name_plural = 'Размеры товаров'
@@ -449,3 +483,14 @@ class SiteView(models.Model):
 
     def __str__(self):
         return f'{self.path} — {self.city or "?"} — {self.created:%d.%m.%Y}'
+
+
+
+@receiver(post_save, sender=ProductSize)
+def update_product_price_on_size_save(sender, instance, **kwargs):
+    instance.product.recalculate_price_from_sizes()
+
+@receiver(post_delete, sender=ProductSize)
+def update_product_price_on_size_delete(sender, instance, **kwargs):
+    # После удаления размеров может не остаться — тогда цену не трогаем
+    instance.product.recalculate_price_from_sizes()
