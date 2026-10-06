@@ -36,6 +36,16 @@ def dashboard(request):
     pending_orders = Order.objects.filter(status='created').count()
 
     # Статусы заказов с количеством
+    # Иконки и цвета для статусов заказов
+    STATUS_ICONS = {
+        'created': '🆕',
+        'paid': '💰',
+        'confirmed': '✅',
+        'shipped': '🚚',
+        'delivered': '📦',
+        'cancelled': '❌',
+    }
+
     status_stats = []
     for code, name in Order.STATUS_CHOICES:
         count = Order.objects.filter(status=code).count()
@@ -43,6 +53,7 @@ def dashboard(request):
             'code': code,
             'name': name,
             'count': count,
+            'icon': STATUS_ICONS.get(code, '•'),
         })
 
     # ===== ВОЗВРАТЫ =====
