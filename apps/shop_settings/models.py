@@ -223,6 +223,13 @@ class UnitFormula(models.Model):
         help_text='Меньше — выше в списке на дашборде. При равенстве — по дате создания.',
     )
 
+    is_total = models.BooleanField(
+        'Итоговое значение',
+        default=False,
+        help_text='Если отмечено, эта формула показывается в подвале дашборда, '
+                  'а не в основном списке.',
+    )
+
     class Meta:
         verbose_name = 'Формула юнит-экономики'
         verbose_name_plural = 'Формулы юнит-экономики'

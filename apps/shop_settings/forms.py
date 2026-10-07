@@ -6,7 +6,7 @@ from .widgets import FormulaBuilderWidget
 class UnitFormulaForm(forms.ModelForm):
     class Meta:
         model = UnitFormula
-        fields = ('name', 'expression', 'description', 'is_active')
+        fields = ('order', 'is_total', 'name', 'expression', 'description', 'is_active')
         widgets = {
             'expression': FormulaBuilderWidget(),
         }

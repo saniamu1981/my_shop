@@ -80,7 +80,15 @@ class UnitFormulaInline(admin.StackedInline):
     model = UnitFormula
     form = UnitFormulaForm
     extra = 0
-    fields = ('order', 'name', 'expression', 'description', 'is_active', 'calculated_result')
+    fields = (
+        'order',
+        'is_total',
+        'name',
+        'expression',
+        'description',
+        'is_active',
+        'calculated_result',
+    )
     readonly_fields = ('calculated_result',)
     verbose_name = 'Формула'
     verbose_name_plural = 'Формулы'

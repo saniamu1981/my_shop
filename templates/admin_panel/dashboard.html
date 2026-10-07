@@ -520,13 +520,8 @@
                             <tbody>
                                 {% for f in unit_formulas %}
                                     <tr>
-                                        <td>
-                                            <strong>{{ f.name }}</strong>
-                                            {% if f.description %}
-                                                <div class="text-muted small">{{ f.description }}</div>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-end align-middle">
+                                        <td><strong>{{ f.name }}</strong></td>
+                                        <td class="text-end">
                                             {% if f.error %}
                                                 <span class="text-danger small">⚠ {{ f.error }}</span>
                                             {% else %}
@@ -536,6 +531,22 @@
                                     </tr>
                                 {% endfor %}
                             </tbody>
+                            {% if unit_totals %}
+                                <tfoot class="table-light">
+                                    {% for t in unit_totals %}
+                                        <tr>
+                                            <td><strong>{{ t.name }}</strong></td>
+                                            <td class="text-end">
+                                                {% if t.error %}
+                                                    <strong class="text-danger">⚠ {{ t.error }}</strong>
+                                                {% else %}
+                                                    <strong>{{ t.result|floatformat:2 }} ₽</strong>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tfoot>
+                            {% endif %}
                         </table>
                     {% else %}
                         <div class="p-3 text-muted">

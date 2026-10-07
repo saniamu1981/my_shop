@@ -183,14 +183,21 @@ def dashboard(request):
     unit = UnitEconomics.get_solo()
 
     unit_formulas = []
+    unit_totals = []
+
     for f in unit.formulas.filter(is_active=True).order_by('order', 'pk'):
         result, error = f.calculate()
-        unit_formulas.append({
+        item = {
             'name': f.name,
             'description': f.description,
             'result': result,
             'error': error,
-        })
+            'is_total': f.is_total,
+        }
+        if f.is_total:
+            unit_totals.append(item)
+        else:
+            unit_formulas.append(item)
 
     context = {
         # Товары
@@ -239,6 +246,7 @@ def dashboard(request):
 
         # Юнит-экономика
         'unit_formulas': unit_formulas,
+        'unit_totals': unit_totals,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
