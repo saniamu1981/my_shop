@@ -4,12 +4,24 @@ from django import forms
 
 def _metric_group(code):
     """Определяем группу метрики по её коду."""
+    # ===== Заказы =====
     if code.startswith('sum_items_'):
-        return 'Сумма заказов'
+        return 'Заказы: Сумма'
     if code.startswith('count_items_'):
-        return 'Количество товаров'
+        return 'Заказы: Количество товаров'
     if code.startswith('cost_items_'):
-        return 'Сумма себестоимостей'
+        return 'Заказы: Себестоимости'
+
+    # ===== Возвраты =====
+    if code.startswith('return_refund_'):
+        return 'Возвраты: Сумма (деньги)'
+    if code.startswith('return_items_'):
+        return 'Возвраты: Сумма (товары)'
+    if code.startswith('return_count_'):
+        return 'Возвраты: Количество товаров'
+    if code.startswith('return_cost_'):
+        return 'Возвраты: Себестоимости'
+
     return 'Прочее'
 
 
@@ -23,8 +35,8 @@ class FormulaBuilderWidget(forms.Widget):
     template_name = 'admin/shop_settings/widgets/formula_builder.html'
 
     class Media:
-        css = {'all': ('admin/shop_settings/formula_builder.css',)}
-        js = ('admin/shop_settings/formula_builder.js',)
+        css = {'all': ('admin/shop_settings/formula_builder_v2.css',)}
+        js = ('admin/shop_settings/formula_builder_v2.js',)
 
     def __init__(self, variables_getter=None, attrs=None):
         super().__init__(attrs)

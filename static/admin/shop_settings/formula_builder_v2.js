@@ -1,8 +1,11 @@
 (function () {
+    // WeakSet — не копируется при клонировании узла Django
+    const initializedWidgets = new WeakSet();
+
     function initAllWidgets() {
         document.querySelectorAll('.fb-widget').forEach(function (root) {
-            if (root.dataset.initialized) return;
-            root.dataset.initialized = '1';
+            if (initializedWidgets.has(root)) return;
+            initializedWidgets.add(root);
 
             const hiddenInput = root.querySelector('.fb-widget-hidden');
             const exprBox = root.querySelector('.fb-widget-expression');
@@ -78,8 +81,8 @@
                 const overlay = modal.querySelector('.fb-widget-modal-overlay');
                 const closeBtn = modal.querySelector('.fb-widget-modal-close');
 
-                function openModal() { modal.style.display = 'flex'; }
-                function closeModal() { modal.style.display = 'none'; }
+                function openModal() { modal.classList.add('is-open'); }
+                function closeModal() { modal.classList.remove('is-open'); }
 
                 openBtn.addEventListener('click', openModal);
                 if (overlay) overlay.addEventListener('click', closeModal);
@@ -99,20 +102,37 @@
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAllWidgets);
-    } else {
-        initAllWidgets();
+    function startObserver() {
+        if (!document.body) return;
+
+        let pending = false;
+        const observer = new MutationObserver(function () {
+            if (pending) return;
+            pending = true;
+            setTimeout(function () {
+                pending = false;
+                initAllWidgets();
+            }, 50);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Дополнительно: клик по «Добавить ещё один Формула» в inline
+        document.addEventListener('click', function (e) {
+            const target = e.target;
+            if (target && target.classList && target.classList.contains('add-row')) {
+                setTimeout(initAllWidgets, 100);
+            }
+        }, true);
     }
 
-    // На случай, если Django подгружает inline-формы динамически
-    // (кнопка «Добавить ещё один …»)
-    document.addEventListener('formset:added', function (e) {
-        if (e.target && e.target.classList && e.target.classList.contains('fb-widget')) {
-            initAllWidgets();
-        }
-        // Переинициализируем всё — на случай, если внутри добавленного
-        // блока есть виджеты
+    function boot() {
         initAllWidgets();
-    });
+        startObserver();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();

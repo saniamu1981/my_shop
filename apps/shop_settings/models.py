@@ -155,6 +155,54 @@ def _count_items_by_status(status):
     ) or 0
 
 
+# ---- Метрики по возвратам ----
+
+def _return_refund_by_status(status):
+    """Сумма возвращённых денег по возвратам в указанном статусе."""
+    from apps.orders.models import Return
+    return (
+        Return.objects
+        .filter(status=status)
+        .aggregate(t=Sum('refund_amount'))['t']
+    ) or 0
+
+
+def _return_items_sum_by_status(status):
+    """Сумма (price × quantity) по всем позициям возвратов в указанном статусе."""
+    from apps.orders.models import ReturnItem
+    return (
+        ReturnItem.objects
+        .filter(return_request__status=status)
+        .aggregate(t=Sum(F('price') * F('quantity')))['t']
+    ) or 0
+
+
+def _return_items_count_by_status(status):
+    """Суммарное количество единиц товара в возвратах указанного статуса."""
+    from apps.orders.models import ReturnItem
+    return (
+        ReturnItem.objects
+        .filter(return_request__status=status)
+        .aggregate(t=Sum('quantity'))['t']
+    ) or 0
+
+def _return_cost_by_status(status):
+    """Сумма себестоимостей возвращённых товаров по возвратам в указанном статусе.
+
+    Считаем: ProductCost.cost × ReturnItem.quantity.
+    Товары без себестоимости (нет записи ProductCost) не учитываются.
+    """
+    from apps.orders.models import ReturnItem
+    return (
+        ReturnItem.objects
+        .filter(
+            return_request__status=status,
+            product__cost__isnull=False,
+        )
+        .aggregate(t=Sum(F('product__cost__cost') * F('quantity')))['t']
+    ) or 0
+
+
 # ---- Реестр встроенных метрик ----
 # Генерируется автоматически по Order.STATUS_CHOICES.
 
@@ -170,10 +218,11 @@ def _cost_items_by_status(status):
 
 
 def _build_builtin_metrics():
-    from apps.orders.models import Order
+    from apps.orders.models import Order, Return
 
     metrics = {}
 
+    # ===== Заказы =====
     for code, label in Order.STATUS_CHOICES:
         metrics[f'sum_items_{code}'] = {
             'label': f'Сумма заказов: {label}',
@@ -186,6 +235,25 @@ def _build_builtin_metrics():
         metrics[f'cost_items_{code}'] = {
             'label': f'Сумма себестоимостей: {label}',
             'resolver': (lambda c=code: _cost_items_by_status(c)),
+        }
+
+    # ===== Возвраты =====
+    for code, label in Return.STATUS_CHOICES:
+        metrics[f'return_refund_{code}'] = {
+            'label': f'Сумма возвратов (деньги): {label}',
+            'resolver': (lambda c=code: _return_refund_by_status(c)),
+        }
+        metrics[f'return_items_{code}'] = {
+            'label': f'Сумма возвратов (товары): {label}',
+            'resolver': (lambda c=code: _return_items_sum_by_status(c)),
+        }
+        metrics[f'return_count_{code}'] = {
+            'label': f'Количество товаров в возвратах: {label}',
+            'resolver': (lambda c=code: _return_items_count_by_status(c)),
+        }
+        metrics[f'return_cost_{code}'] = {
+            'label': f'Себестоимость возвратов: {label}',
+            'resolver': (lambda c=code: _return_cost_by_status(c)),
         }
 
     return metrics
