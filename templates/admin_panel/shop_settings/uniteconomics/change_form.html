@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+
+{% block after_field_sets %}
+    {{ block.super }}
+    {% if formula_builder_url %}
+        <div style="margin: 16px 0;">
+            <a href="{{ formula_builder_url }}" class="button"
+               style="background: #007bff; color: #fff; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                🧮 Открыть конструктор формул
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}

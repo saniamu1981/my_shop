@@ -11,6 +11,7 @@ from apps.accounts.models import ChatMessage, Offer
 from apps.products.models import Product, Category, Favorite, Review
 from apps.orders.models import Order, Cart, Return
 from apps.products.models import SiteView, Product, ProductSize
+from apps.shop_settings.models import UnitEconomics
 
 User = get_user_model()
 
@@ -179,6 +180,18 @@ def dashboard(request):
     else:
         shop_avg_rating = None
 
+    unit = UnitEconomics.get_solo()
+
+    unit_formulas = []
+    for f in unit.formulas.filter(is_active=True).order_by('order', 'pk'):
+        result, error = f.calculate()
+        unit_formulas.append({
+            'name': f.name,
+            'description': f.description,
+            'result': result,
+            'error': error,
+        })
+
     context = {
         # Товары
         'total_products': total_products,
@@ -223,6 +236,9 @@ def dashboard(request):
         'products_ratings': products_ratings,
         'shop_avg_rating': shop_avg_rating,
         'total_reviews_count': total_reviews_count,
+
+        # Юнит-экономика
+        'unit_formulas': unit_formulas,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
@@ -435,3 +451,5 @@ def stock_update_price(request):
         })
     except ProductSize.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Размер не найден'}, status=404)
+
+

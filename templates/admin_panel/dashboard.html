@@ -499,6 +499,53 @@
                 </div>
             </div>
         </div>
+
+        <!-- ===== ЮНИТ-ЭКОНОМИКА ===== -->
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">💹 Юнит-экономика</h5>
+                    <a href="{% url 'admin:shop_settings_uniteconomics_changelist' %}"
+                       class="btn btn-sm btn-outline-secondary">⚙️</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if unit_formulas %}
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Показатель</th>
+                                    <th class="text-end">Результат</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for f in unit_formulas %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ f.name }}</strong>
+                                            {% if f.description %}
+                                                <div class="text-muted small">{{ f.description }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end align-middle">
+                                            {% if f.error %}
+                                                <span class="text-danger small">⚠ {{ f.error }}</span>
+                                            {% else %}
+                                                <strong>{{ f.result|floatformat:2 }} ₽</strong>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-muted">
+                            Формул пока нет.
+                            <a href="{% url 'admin:shop_settings_uniteconomics_changelist' %}">Добавить</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -663,6 +710,46 @@
     .table-sm td {
         font-size: 13px;
         padding: 8px 10px;
+    }
+}
+
+/* ===== ЮНИТ-ЭКОНОМИКА ===== */
+.unit-earned-box {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.unit-earned-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 6px;
+}
+.unit-earned-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    word-break: break-word;
+}
+.unit-block-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 767.98px) {
+    .unit-earned-box {
+        padding: 16px;
+    }
+    .unit-earned-value {
+        font-size: 24px;
     }
 }
 </style>
