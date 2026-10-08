@@ -11,7 +11,7 @@ from apps.accounts.models import ChatMessage, Offer
 from apps.products.models import Product, Category, Favorite, Review
 from apps.orders.models import Order, Cart, Return
 from apps.products.models import SiteView, Product, ProductSize
-from apps.shop_settings.models import UnitEconomics
+from apps.shop_settings.models import UnitEconomics, ExcludedCity
 
 User = get_user_model()
 
@@ -125,15 +125,24 @@ def dashboard(request):
     total_views_auth = Product.objects.aggregate(total=Sum('views_count_auth'))['total'] or 0
 
     # Топ-10 городов по просмотрам
+    excluded_cities = list(
+        ExcludedCity.objects.values_list('city', flat=True)
+    )
+
     top_cities = (
         SiteView.objects
         .exclude(city='')
+        .exclude(city__in=excluded_cities)
         .values('city')
         .annotate(views=Count('id'))
         .order_by('-views')[:10]
     )
 
-    total_site_views = SiteView.objects.count()
+    total_site_views = (
+        SiteView.objects
+        .exclude(city__in=excluded_cities)
+        .count()
+    )
 
     # Топ-10 регионов
     top_regions = (
@@ -461,3 +470,39 @@ def stock_update_price(request):
         return JsonResponse({'success': False, 'error': 'Размер не найден'}, status=404)
 
 
+@staff_member_required
+@require_POST
+def delete_city_views(request):
+    """Удаляет все SiteView указанного города (без чёрного списка)."""
+    city = (request.POST.get('city') or '').strip()
+
+    if not city:
+        return JsonResponse({'success': False, 'error': 'Город не указан'}, status=400)
+
+    deleted, _ = SiteView.objects.filter(city=city).delete()
+
+    return JsonResponse({
+        'success': True,
+        'deleted': deleted,
+        'city': city,
+    })
+
+
+@staff_member_required
+@require_POST
+def exclude_city(request):
+    """Добавляет город в чёрный список и удаляет его SiteView."""
+    city = (request.POST.get('city') or '').strip()
+
+    if not city:
+        return JsonResponse({'success': False, 'error': 'Город не указан'}, status=400)
+
+    ExcludedCity.objects.get_or_create(city=city)
+    deleted, _ = SiteView.objects.filter(city=city).delete()
+
+    return JsonResponse({
+        'success': True,
+        'deleted': deleted,
+        'city': city,
+        'excluded': True,
+    })

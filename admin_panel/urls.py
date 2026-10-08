@@ -14,4 +14,6 @@ urlpatterns = [
     path('stock/', views.stock_list, name='stock_list'),
     path('stock/update/', views.stock_update, name='stock_update'),
     path('stock/update-price/', views.stock_update_price, name='stock_update_price'),
+    path('city/delete-views/', views.delete_city_views, name='delete_city_views'),
+    path('city/exclude/', views.exclude_city, name='exclude_city'),
 ]

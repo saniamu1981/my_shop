@@ -481,3 +481,29 @@ class ProductCost(models.Model):
 
     def __str__(self):
         return f'{self.product.name}: {self.cost}'
+
+
+class ExcludedCity(models.Model):
+    """Город, исключённый из статистики просмотров.
+
+    Если город в этом списке — его просмотры:
+    - не удаляются автоматически при добавлении,
+    - не учитываются в top_cities и total_site_views на дашборде.
+    """
+
+    city = models.CharField(
+        'Город',
+        max_length=100,
+        unique=True,
+        help_text='Название города, как оно приходит из геолокации (совпадает с SiteView.city)',
+    )
+    created = models.DateTimeField('Добавлен', auto_now_add=True)
+    note = models.CharField('Комментарий', max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = 'Исключённый город'
+        verbose_name_plural = 'Исключённые города'
+        ordering = ('city',)
+
+    def __str__(self):
+        return self.city

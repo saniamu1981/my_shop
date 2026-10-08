@@ -401,14 +401,32 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Город</th>
-                                    <th class="text-end">Просмотров</th>
+                                    <th class="text-end" colspan="2">Просмотров</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for city in top_cities %}
                                     <tr>
                                         <td>{{ city.city }}</td>
-                                        <td class="text-end"><strong>{{ city.views }}</strong></td>
+                                        <td class="text-end">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger city-action-btn"
+                                                    data-city="{{ city.city }}"
+                                                    data-action="delete-views"
+                                                    title="Удалить просмотры этого города">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-dark city-action-btn"
+                                                    data-city="{{ city.city }}"
+                                                    data-action="exclude"
+                                                    title="Удалить и больше не учитывать этот город">
+                                                <i class="bi bi-slash-circle"></i>
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <strong>{{ city.views }}</strong>
+                                        </td>
                                     </tr>
                                 {% empty %}
                                     <tr><td colspan="2" class="text-muted text-center">Нет данных</td></tr>
@@ -417,7 +435,7 @@
                             <tfoot class="table-light">
                                 <tr>
                                     <td><strong>Всего просмотров</strong></td>
-                                    <td class="text-end"><strong>{{ total_site_views }}</strong></td>
+                                    <td class="text-end" colspan="2"><strong>{{ total_site_views }}</strong></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -763,6 +781,35 @@
         font-size: 24px;
     }
 }
+
+
+/* ===== Кнопки действий для городов ===== */
+.city-action-btn {
+    padding: 1px 6px !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    border-radius: 4px !important;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+.city-action-btn i {
+    font-size: 10ыpx;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* На мобильном ещё компактнее */
+@media (max-width: 767.98px) {
+    .city-action-btn {
+        padding: 1px 5px !important;
+        font-size: 10px !important;
+    }
+    .city-action-btn i {
+        font-size: 11px;
+    }
+}
 </style>
 
 <script>
@@ -847,6 +894,66 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    // ===== Кнопки действий для городов =====
+    document.querySelectorAll('.city-action-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const city = this.dataset.city;
+            const action = this.dataset.action;
+
+            const confirmText = action === 'exclude'
+                ? `Удалить все просмотры города "${city}" и больше не учитывать его в статистике?`
+                : `Удалить все просмотры города "${city}"?`;
+
+            if (!confirm(confirmText)) return;
+
+            const url = action === 'exclude'
+                ? '{% url "admin_panel:exclude_city" %}'
+                : '{% url "admin_panel:delete_city_views" %}';
+
+            const csrfToken = getCookie('csrftoken');
+            const btnOriginalHtml = this.innerHTML;
+
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            const formData = new FormData();
+            formData.append('city', city);
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Убираем строку из таблицы без перезагрузки страницы
+                    const row = btn.closest('tr');
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    }
+                } else {
+                    alert(data.error || 'Не удалось выполнить действие');
+                    this.disabled = false;
+                    this.innerHTML = btnOriginalHtml;
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка:', err);
+                alert('Ошибка сети. Попробуйте ещё раз.');
+                this.disabled = false;
+                this.innerHTML = btnOriginalHtml;
+            });
+        });
+    });
 
     // Вспомогательная функция для получения CSRF-токена из cookie
     function getCookie(name) {
