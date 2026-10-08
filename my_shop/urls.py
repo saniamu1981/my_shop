@@ -29,6 +29,11 @@ urlpatterns = [
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('delivery/', include('delivery.urls')),
     path('feed.yml', feeds.yml_feed, name='yml_feed'),
+    # robots.txt
+    path('robots.txt', TemplateView.as_view(
+        template_name='robots.txt',
+        content_type='text/plain'
+    ), name='robots_file'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('webpush/', include('webpush.urls')),
     path('zbWxDvr6uVru67mynf3g59z.txt', yandex_verify),
