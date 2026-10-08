@@ -3,7 +3,7 @@ from django.urls import path, include, re_path
 from django.contrib.staticfiles.views import serve as staticfiles_serve
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from apps.products import views as products_views
 
 from apps.products import feeds
@@ -36,10 +36,10 @@ urlpatterns = [
         content_type='text/plain'
     ), name='robots_file'),
 
-    # favicon.ico (новый маршрут)
-    path('favicon.ico', TemplateView.as_view(
-        template_name='favicon.ico',
-        content_type='image/x-icon'
+    # favicon.ico → простой редирект на статический файл
+    path('favicon.ico', RedirectView.as_view(
+        url='/static/favicon.ico',   # ← ПРОСТАЯ СТРОКА, без static(), без path()
+        permanent=True
     ), name='favicon'),
 
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
