@@ -466,7 +466,6 @@
                                     <th>Товар</th>
                                     <th class="text-end">Рейтинг</th>
                                     <th class="text-end">Отзывов</th>
-                                    <th class="text-end">На модерации</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -491,16 +490,13 @@
                                                 <span class="text-muted">—</span>
                                             {% endif %}
                                         </td>
-                                        <td class="text-end">{{ p.reviews_count }}</td>
                                         <td class="text-end">
+                                            <span class="text-success" title="Одобренных">{{ p.reviews_count }}</span>
                                             {% if p.pending_count %}
-                                                <a href="{% url 'admin:products_review_changelist' %}?is_approved__exact=0"
-                                                   class="text-warning"
-                                                   title="Отзывы на модерации">
-                                                    {{ p.pending_count }}
-                                                </a>
-                                            {% else %}
-                                                <span class="text-muted">0</span>
+                                                / <a href="{% url 'admin:products_review_changelist' %}?is_approved__exact=0"
+                                                     class="text-warning fw-bold"
+                                                     title="На модерации"
+                                                     style="text-decoration: none;">{{ p.pending_count }}</a>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -529,15 +525,17 @@
                                             <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-end"><strong>{{ total_reviews_count }}</strong></td>
                                     <td class="text-end">
+                                        <span class="text-success" title="Одобренных">
+                                            <strong>{{ total_reviews_count }}</strong>
+                                        </span>
                                         {% if total_pending_reviews %}
-                                            <a href="{% url 'admin:products_review_changelist' %}?is_approved__exact=0"
-                                               class="text-warning">
-                                                <strong>{{ total_pending_reviews }}</strong>
+                                            / <a href="{% url 'admin:products_review_changelist' %}?is_approved__exact=0"
+                                                 class="text-warning fw-bold"
+                                                 title="Всего отзывов на модерации"
+                                                 style="text-decoration: none;">
+                                                {{ total_pending_reviews }}
                                             </a>
-                                        {% else %}
-                                            <strong>0</strong>
                                         {% endif %}
                                     </td>
                                 </tr>
