@@ -520,33 +520,63 @@ def exclude_city(request):
 
 @staff_member_required
 def review_moderation(request):
-    """Страница модерации отзывов: все is_approved=False."""
+    """Страница модерации отзывов.
+
+    Два блока:
+    - «На модерации» — ожидают решения (is_approved=False, is_rejected=False)
+    - «Одобренные и отклонённые» — уже обработаны (is_approved=True или is_rejected=True)
+    """
     from apps.products.models import Review
 
-    reviews_qs = (
+    # ===== Блок 1: на модерации =====
+    pending_qs = (
         Review.objects
-        .filter(is_approved=False, is_rejected=False)  # ← только ожидающие
+        .filter(is_approved=False, is_rejected=False)
         .select_related('product', 'user', 'order')
         .order_by('-created')
     )
 
-    paginator = Paginator(reviews_qs, 20)
-    page = request.GET.get('page', 1)
+    pending_paginator = Paginator(pending_qs, 20)
+    pending_page = request.GET.get('pending_page', 1)
     try:
-        reviews = paginator.page(page)
+        pending_reviews = pending_paginator.page(pending_page)
     except Exception:
-        reviews = paginator.page(1)
+        pending_reviews = pending_paginator.page(1)
 
-    # Считаем количество для бейджа
-    total_pending = reviews_qs.count()
+    for r in pending_reviews:
+        r.media_list = list(r.media.all().order_by('order'))
 
-    # Предзагружаем медиа для каждого отзыва
-    for r in reviews:
+    # ===== Блок 2: одобренные и отклонённые =====
+    processed_qs = (
+        Review.objects
+        .filter(Q(is_approved=True) | Q(is_rejected=True))
+        .select_related('product', 'user', 'order')
+        .order_by('-updated', '-created')
+    )
+
+    # Фильтр по статусу (все / одобренные / отклонённые)
+    status_filter = request.GET.get('status', 'all')
+    if status_filter == 'approved':
+        processed_qs = processed_qs.filter(is_approved=True, is_rejected=False)
+    elif status_filter == 'rejected':
+        processed_qs = processed_qs.filter(is_rejected=True)
+
+    processed_paginator = Paginator(processed_qs, 20)
+    processed_page = request.GET.get('processed_page', 1)
+    try:
+        processed_reviews = processed_paginator.page(processed_page)
+    except Exception:
+        processed_reviews = processed_paginator.page(1)
+
+    for r in processed_reviews:
         r.media_list = list(r.media.all().order_by('order'))
 
     return render(request, 'admin_panel/review_moderation.html', {
-        'reviews': reviews,
-        'total_pending': total_pending,
+        'pending_reviews': pending_reviews,
+        'total_pending': pending_qs.count(),
+        'processed_reviews': processed_reviews,
+        'total_processed': processed_qs.count(),
+        'status_filter': status_filter,
     })
 
 

@@ -17,9 +17,16 @@
         </a>
     </div>
 
-    {% if reviews %}
+    <!-- ===== БЛОК 1: На модерации ===== -->
+    <h2 class="h4 mb-3">
+        ⏳ На модерации
+        {% if total_pending %}
+            <span class="badge bg-warning text-dark">{{ total_pending }}</span>
+        {% endif %}
+    </h2>
+    {% if pending_reviews %}
         <div class="row g-3">
-            {% for review in reviews %}
+            {% for review in pending_reviews %}
                 <div class="col-12">
                     <div class="card review-card" data-review-id="{{ review.id }}">
                         <div class="card-body">
@@ -104,22 +111,182 @@
         </div>
 
         {# Пагинация #}
-        {% if reviews.has_other_pages %}
+        {% if pending_reviews.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if pending_reviews.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?pending_page={{ pending_reviews.previous_page_number }}">← Назад</a>
+                    </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Стр. {{ pending_reviews.number }} из {{ pending_reviews.paginator.num_pages }}
+                    </span>
+                </li>
+                {% if pending_reviews.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?pending_page={{ pending_reviews.next_page_number }}">Вперёд →</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+
+    {% else %}
+        <div class="alert alert-info text-center" style="padding: 30px;">
+            <p class="mb-0">✅ Нет отзывов, ожидающих модерации.</p>
+        </div>
+    {% endif %}
+
+    <!-- ===== БЛОК 2: Одобренные и отклонённые ===== -->
+    <hr class="my-5">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h2 class="h4 mb-0">
+            ✅❌ Одобренные и отклонённые
+            {% if total_processed %}
+                <span class="badge bg-secondary">{{ total_processed }}</span>
+            {% endif %}
+        </h2>
+
+        <div class="btn-group btn-group-sm" role="group">
+            <a href="?status=all#processed"
+               class="btn btn-outline-secondary {% if status_filter == 'all' %}active{% endif %}">
+                Все
+            </a>
+            <a href="?status=approved#processed"
+               class="btn btn-outline-success {% if status_filter == 'approved' %}active{% endif %}">
+                ✅ Одобренные
+            </a>
+            <a href="?status=rejected#processed"
+               class="btn btn-outline-danger {% if status_filter == 'rejected' %}active{% endif %}">
+                ❌ Отклонённые
+            </a>
+        </div>
+    </div>
+
+    {% if processed_reviews %}
+        <div class="row g-3">
+            {% for review in processed_reviews %}
+                <div class="col-12">
+                    <div class="card review-card processed
+                                {% if review.is_rejected %}border-danger{% else %}border-success{% endif %}"
+                         data-review-id="{{ review.id }}">
+                        <div class="card-body">
+
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                                <div>
+                                    <strong style="font-size: 15px;">
+                                        {% if review.user %}
+                                            {{ review.user.get_full_name|default:review.user.email }}
+                                        {% else %}
+                                            <span class="text-muted">Пользователь удалён</span>
+                                        {% endif %}
+                                    </strong>
+                                    <div class="text-warning small mt-1">
+                                        {% for i in "12345"|make_list %}
+                                            {% if forloop.counter <= review.rating %}
+                                                <i class="bi bi-star-fill"></i>
+                                            {% else %}
+                                                <i class="bi bi-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span class="text-muted ms-2">{{ review.rating }}/5</span>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    {% if review.is_rejected %}
+                                        <span class="badge bg-danger">❌ Отклонён</span>
+                                    {% elif review.is_approved %}
+                                        <span class="badge bg-success">✅ Одобрен</span>
+                                    {% endif %}
+                                    <div class="text-muted small mt-1">
+                                        {{ review.updated|date:"d.m.Y H:i" }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <a href="{% url 'products:product_detail' review.product.category.slug review.product.slug %}"
+                                   target="_blank"
+                                   class="text-decoration-none">
+                                    <strong>{{ review.product.name }}</strong>
+                                    <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                </a>
+                                {% if review.order %}
+                                    <span class="badge bg-success ms-2">✅ Подтверждённый заказ</span>
+                                {% endif %}
+                            </div>
+
+                            <p style="white-space: pre-line; line-height: 1.6; font-size: 15px;">
+                                {{ review.comment }}
+                            </p>
+
+                            {% if review.media_list %}
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    {% for m in review.media_list %}
+                                        {% if m.media_type == 'image' and m.image %}
+                                            <a href="{{ m.image.url }}" target="_blank">
+                                                <img src="{{ m.image.url }}" alt="Фото"
+                                                     style="width: 90px; height: 90px; object-fit: cover; border-radius: 6px;">
+                                            </a>
+                                        {% elif m.media_type == 'video' and m.video %}
+                                            <video src="{{ m.video.url }}" controls
+                                                   style="width: 150px; height: 90px; object-fit: cover; border-radius: 6px; background: #000;"></video>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if review.is_rejected %}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-success review-approve-btn"
+                                            data-review-id="{{ review.id }}"
+                                            data-url="{% url 'admin_panel:review_approve' review.id %}">
+                                        ✅ Одобрить
+                                    </button>
+                                {% elif review.is_approved %}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger review-reject-btn"
+                                            data-review-id="{{ review.id }}"
+                                            data-url="{% url 'admin_panel:review_reject' review.id %}">
+                                        ❌ Отклонить
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# Пагинация #}
+        {% if processed_reviews.has_other_pages %}
             <nav class="mt-4">
                 <ul class="pagination justify-content-center">
-                    {% if reviews.has_previous %}
+                    {% if processed_reviews.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ reviews.previous_page_number }}">← Назад</a>
+                            <a class="page-link"
+                               href="?status={{ status_filter }}&processed_page={{ processed_reviews.previous_page_number }}#processed">
+                                ← Назад
+                            </a>
                         </li>
                     {% endif %}
                     <li class="page-item disabled">
                         <span class="page-link">
-                            Стр. {{ reviews.number }} из {{ reviews.paginator.num_pages }}
+                            Стр. {{ processed_reviews.number }} из {{ processed_reviews.paginator.num_pages }}
                         </span>
                     </li>
-                    {% if reviews.has_next %}
+                    {% if processed_reviews.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ reviews.next_page_number }}">Вперёд →</a>
+                            <a class="page-link"
+                               href="?status={{ status_filter }}&processed_page={{ processed_reviews.next_page_number }}#processed">
+                                Вперёд →
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
@@ -127,9 +294,8 @@
         {% endif %}
 
     {% else %}
-        <div class="alert alert-info text-center" style="padding: 50px;">
-            <h3>✅ Все отзывы одобрены</h3>
-            <p class="mt-3 mb-0">Нет отзывов, ожидающих модерации.</p>
+        <div class="alert alert-secondary text-center" style="padding: 30px;">
+            <p class="mb-0">Пока нет ни одобренных, ни отклонённых отзывов.</p>
         </div>
     {% endif %}
 
@@ -218,6 +384,166 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 .review-card:hover {
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.review-card.processed {
+    background: #fafafa;
+}
+.review-card.processed.border-success {
+    border-left: 4px solid #198754 !important;
+}
+.review-card.processed.border-danger {
+    border-left: 4px solid #dc3545 !important;
+}
+.review-card img[style*="width: 90px"] {
+    object-fit: contain !important;
+    background: #f8f9fa;
+}
+
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ============ */
+
+@media (max-width: 767.98px) {
+
+    /* Контейнер — без лишних отступов */
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    /* Заголовок страницы */
+    h1.mb-0 {
+        font-size: 20px !important;
+    }
+    h1.mb-0 .badge {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+
+    /* Заголовки блоков */
+    h2.h4 {
+        font-size: 17px !important;
+    }
+    h2.h4 .badge {
+        font-size: 11px;
+        padding: 3px 7px;
+    }
+
+    /* Разделитель между блоками — компактнее */
+    hr.my-5 {
+        margin-top: 25px !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* Кнопки фильтра — на всю ширину, в столбик */
+    .btn-group[role="group"] {
+        display: flex !important;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .btn-group[role="group"] .btn {
+        flex: 1 1 auto;
+        font-size: 12px;
+        padding: 6px 8px;
+        white-space: nowrap;
+    }
+
+    /* Карточка отзыва */
+    .review-card {
+        border-radius: 10px;
+    }
+    .review-card .card-body {
+        padding: 12px !important;
+    }
+
+    /* Шапка карточки — юзер и дата/статус в столбик */
+    .review-card .d-flex.justify-content-between.align-items-start {
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    /* Имя пользователя — компактнее */
+    .review-card strong[style*="font-size: 15px"] {
+        font-size: 14px !important;
+    }
+
+    /* Комментарий — чуть меньше */
+    .review-card p[style*="font-size: 15px"] {
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+    }
+
+    /* Медиа — сетка по 2-3 в ряд, адаптивные размеры */
+    .review-card .d-flex.flex-wrap.gap-2 {
+        gap: 6px !important;
+    }
+    .review-card img[style*="width: 90px"] {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    .review-card video[style*="width: 150px"] {
+        width: 130px !important;
+        height: 80px !important;
+    }
+
+    /* Кнопки действий — на всю ширину */
+    .review-card .d-flex.gap-2.flex-wrap {
+        flex-direction: column;
+        gap: 6px !important;
+    }
+    .review-card .d-flex.gap-2.flex-wrap .btn {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 14px;
+    }
+
+    /* Бейджи статуса — компактнее */
+    .review-card .badge {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+
+    /* Пагинация — компактнее */
+    .pagination .page-link {
+        padding: 4px 8px;
+        font-size: 13px;
+    }
+    .pagination {
+        margin-bottom: 10px;
+    }
+
+    /* Плашки «Нет отзывов» — меньше отступы */
+    .alert.text-center[style*="padding: 30px"] {
+        padding: 20px 12px !important;
+        font-size: 14px;
+    }
+}
+
+/* ===== ОЧЕНЬ УЗКИЕ ЭКРАНЫ ===== */
+@media (max-width: 400px) {
+    h1.mb-0 {
+        font-size: 18px !important;
+    }
+    h2.h4 {
+        font-size: 16px !important;
+    }
+
+    /* Медиа — ещё компактнее */
+    .review-card img[style*="width: 90px"] {
+        width: 70px !important;
+        height: 70px !important;
+    }
+    .review-card video[style*="width: 150px"] {
+        width: 110px !important;
+        height: 70px !important;
+    }
+
+    /* Кнопки фильтра — по 1-2 в строку */
+    .btn-group[role="group"] .btn {
+        flex: 1 1 45%;
+        font-size: 11px;
+        padding: 5px 6px;
+    }
 }
 </style>
 
