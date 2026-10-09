@@ -25,4 +25,9 @@ urlpatterns = [
     path('unit/cost/save/', views.unit_cost_save, name='unit_cost_save'),
     path('unit/formula/save/', views.unit_formula_save, name='unit_formula_save'),
     path('unit/formula/delete/', views.unit_formula_delete, name='unit_formula_delete'),
+    path('users/', views.users_list, name='users_list'),
+    path('users/export/', views.users_export, name='users_export'),
+    path('users/bulk-action/', views.users_bulk_action, name='users_bulk_action'),
+    path('users/<int:user_id>/', views.user_detail, name='user_detail'),
+    path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
 ]

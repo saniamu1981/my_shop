@@ -1,7 +1,9 @@
 ﻿import json
+
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
 from django.db.models import Count, Q, Sum, Avg
@@ -13,6 +15,9 @@ from apps.products.models import Product, Category, Favorite, Review, SiteView, 
 from apps.orders.models import Order, Cart, Return
 from apps.shop_settings.models import UnitEconomics, ExcludedCity, UnitVariable, UnitFormula, ProductCost
 from django.core.paginator import Paginator
+
+import csv
+from django.http import HttpResponse
 
 User = get_user_model()
 
@@ -818,3 +823,228 @@ def unit_formula_delete(request):
 
     UnitFormula.objects.filter(id=formula_id).delete()
     return JsonResponse({'success': True})
+
+
+
+
+@staff_member_required
+def users_list(request):
+    """Кастомная страница пользователей."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    qs = User.objects.all().order_by('-date_joined')
+
+    # ===== Поиск =====
+    search_query = (request.GET.get('q') or '').strip()
+    if search_query:
+        qs = qs.filter(
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(phone__icontains=search_query)
+        )
+
+    # ===== Фильтры =====
+    is_staff = request.GET.get('is_staff')
+    if is_staff == 'yes':
+        qs = qs.filter(is_staff=True)
+    elif is_staff == 'no':
+        qs = qs.filter(is_staff=False)
+
+    is_superuser = request.GET.get('is_superuser')
+    if is_superuser == 'yes':
+        qs = qs.filter(is_superuser=True)
+    elif is_superuser == 'no':
+        qs = qs.filter(is_superuser=False)
+
+    is_active = request.GET.get('is_active')
+    if is_active == 'yes':
+        qs = qs.filter(is_active=True)
+    elif is_active == 'no':
+        qs = qs.filter(is_active=False)
+
+    consent = request.GET.get('consent')
+    if consent == 'yes':
+        qs = qs.filter(personal_data_consent=True)
+    elif consent == 'no':
+        qs = qs.filter(personal_data_consent=False)
+
+    # ===== Сортировка =====
+    sort = request.GET.get('sort', '-date_joined')
+    allowed_sorts = {
+        'email': 'email',
+        '-email': '-email',
+        'first_name': 'first_name',
+        '-first_name': '-first_name',
+        'last_name': 'last_name',
+        '-last_name': '-last_name',
+        'date_joined': 'date_joined',
+        '-date_joined': '-date_joined',
+        'is_staff': 'is_staff',
+        '-is_staff': '-is_staff',
+    }
+    qs = qs.order_by(allowed_sorts.get(sort, '-date_joined'))
+
+    # ===== Пагинация =====
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 25)
+    page = request.GET.get('page', 1)
+    try:
+        users = paginator.page(page)
+    except Exception:
+        users = paginator.page(1)
+
+    # ===== Оферта =====
+    from apps.accounts.models import Offer
+    active_offer = Offer.objects.filter(is_active=True).first()
+
+    for u in users:
+        u.offer_accepted_flag = bool(
+            active_offer and u.offer_accepted_id == active_offer.id
+        )
+
+    context = {
+        'users': users,
+        'total_users': qs.count(),
+        'search_query': search_query,
+        'is_staff_filter': is_staff or '',
+        'is_superuser_filter': is_superuser or '',
+        'is_active_filter': is_active or '',
+        'consent_filter': consent or '',
+        'sort': sort,
+        'active_offer': active_offer,
+    }
+    return render(request, 'admin_panel/users_list.html', context)
+
+
+@staff_member_required
+def user_detail(request, user_id):
+    """Страница редактирования пользователя."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user_obj = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        user_obj.email = request.POST.get('email', user_obj.email)
+        user_obj.first_name = request.POST.get('first_name', '')
+        user_obj.last_name = request.POST.get('last_name', '')
+        user_obj.phone = request.POST.get('phone', '')
+        user_obj.is_active = request.POST.get('is_active') == 'on'
+        user_obj.is_staff = request.POST.get('is_staff') == 'on'
+        user_obj.is_superuser = request.POST.get('is_superuser') == 'on'
+        user_obj.personal_data_consent = request.POST.get('personal_data_consent') == 'on'
+
+        # Проверка: суперпользователь не может снять с себя is_superuser
+        if request.user.id == user_obj.id and not user_obj.is_superuser:
+            user_obj.is_superuser = True
+
+        user_obj.save()
+
+        messages.success(request, f'Пользователь {user_obj.email} сохранён')
+        return redirect('admin_panel:user_detail', user_id=user_obj.id)
+
+    # Считаем статистику
+    from apps.orders.models import Order
+    from apps.products.models import Review
+
+    context = {
+        'user_obj': user_obj,
+        'orders_count': Order.objects.filter(user=user_obj).count(),
+        'reviews_count': Review.objects.filter(user=user_obj).count(),
+    }
+    return render(request, 'admin_panel/user_detail.html', context)
+
+
+@staff_member_required
+@require_POST
+def user_delete(request, user_id):
+    """AJAX-удаление пользователя."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user_obj = get_object_or_404(User, id=user_id)
+
+    if user_obj.is_superuser:
+        return JsonResponse({
+            'success': False,
+            'error': 'Нельзя удалить суперпользователя',
+        }, status=403)
+
+    email = user_obj.email
+    user_obj.delete()
+    return JsonResponse({'success': True, 'email': email})
+
+
+@staff_member_required
+@require_POST
+def users_bulk_action(request):
+    """Массовые действия над пользователями."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    action = request.POST.get('action')
+    ids = request.POST.getlist('ids[]') or request.POST.get('ids', '').split(',')
+
+    try:
+        ids = [int(i) for i in ids if str(i).strip()]
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Некорректные IDs'}, status=400)
+
+    if not ids:
+        return JsonResponse({'success': False, 'error': 'Не выбрано ни одного пользователя'}, status=400)
+
+    qs = User.objects.filter(id__in=ids)
+
+    if action == 'activate':
+        qs.update(is_active=True)
+        return JsonResponse({'success': True, 'updated': qs.count(), 'action': 'activate'})
+
+    if action == 'deactivate':
+        # Не деактивировать самого себя
+        qs = qs.exclude(id=request.user.id)
+        qs.update(is_active=False)
+        return JsonResponse({'success': True, 'updated': qs.count(), 'action': 'deactivate'})
+
+    if action == 'delete':
+        qs = qs.filter(is_superuser=False).exclude(id=request.user.id)
+        count = qs.count()
+        qs.delete()
+        return JsonResponse({'success': True, 'deleted': count, 'action': 'delete'})
+
+    return JsonResponse({'success': False, 'error': 'Неизвестное действие'}, status=400)
+
+
+@staff_member_required
+def users_export(request):
+    """Выгрузка пользователей в CSV."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    qs = User.objects.all().order_by('-date_joined')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="users.csv"'
+    response.write('\ufeff')  # BOM для Excel
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', 'Email', 'Имя', 'Фамилия', 'Телефон',
+        'Активен', 'Персонал', 'Суперпользователь',
+        'Согласие на ПД', 'Дата регистрации',
+    ])
+
+    for u in qs:
+        writer.writerow([
+            u.id,
+            u.email,
+            u.first_name,
+            u.last_name,
+            getattr(u, 'phone', ''),
+            'Да' if u.is_active else 'Нет',
+            'Да' if u.is_staff else 'Нет',
+            'Да' if u.is_superuser else 'Нет',
+            'Да' if u.personal_data_consent else 'Нет',
+            u.date_joined.strftime('%d.%m.%Y %H:%M'),
+        ])
+
+    return response

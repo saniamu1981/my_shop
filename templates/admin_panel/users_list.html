@@ -1,0 +1,498 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Пользователи — Maidlingerie{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="mb-0">
+            👥 Пользователи
+            <span class="badge bg-secondary">{{ total_users }}</span>
+        </h1>
+        <div class="d-flex gap-2">
+            <a href="{% url 'admin_panel:users_export' %}" class="btn btn-outline-success btn-sm">
+                📥 Экспорт CSV
+            </a>
+            <a href="{% url 'admin:accounts_customuser_add' %}" class="btn btn-primary btn-sm" target="_blank">
+                ➕ Добавить
+            </a>
+            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                ← Назад
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== ФИЛЬТРЫ ===== -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small">Поиск</label>
+                    <input type="text" name="q" class="form-control form-control-sm"
+                           placeholder="Email, имя, телефон"
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small">Персонал</label>
+                    <select name="is_staff" class="form-select form-select-sm">
+                        <option value="">Все</option>
+                        <option value="yes" {% if is_staff_filter == 'yes' %}selected{% endif %}>Да</option>
+                        <option value="no" {% if is_staff_filter == 'no' %}selected{% endif %}>Нет</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small">Суперпольз.</label>
+                    <select name="is_superuser" class="form-select form-select-sm">
+                        <option value="">Все</option>
+                        <option value="yes" {% if is_superuser_filter == 'yes' %}selected{% endif %}>Да</option>
+                        <option value="no" {% if is_superuser_filter == 'no' %}selected{% endif %}>Нет</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small">Активен</label>
+                    <select name="is_active" class="form-select form-select-sm">
+                        <option value="">Все</option>
+                        <option value="yes" {% if is_active_filter == 'yes' %}selected{% endif %}>Да</option>
+                        <option value="no" {% if is_active_filter == 'no' %}selected{% endif %}>Нет</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small">Согласие ПД</label>
+                    <select name="consent" class="form-select form-select-sm">
+                        <option value="">Все</option>
+                        <option value="yes" {% if consent_filter == 'yes' %}selected{% endif %}>Да</option>
+                        <option value="no" {% if consent_filter == 'no' %}selected{% endif %}>Нет</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1">🔍</button>
+                    <a href="{% url 'admin_panel:users_list' %}" class="btn btn-sm btn-outline-secondary">✕</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== ТАБЛИЦА ===== -->
+    <form id="bulkForm" method="post" action="{% url 'admin_panel:users_bulk_action' %}">
+        {% csrf_token %}
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <select name="action" class="form-select form-select-sm" style="width: auto;">
+                        <option value="">--- Действие ---</option>
+                        <option value="activate">✅ Активировать</option>
+                        <option value="deactivate">🚫 Деактивировать</option>
+                        <option value="delete">🗑 Удалить</option>
+                    </select>
+                    <button type="button" id="bulkApplyBtn" class="btn btn-sm btn-secondary">
+                        Выполнить
+                    </button>
+                    <span class="text-muted small ms-2">
+                        Выбрано: <span id="selectedCount">0</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" id="usersTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 30px;">
+                                <input type="checkbox" id="selectAllCheckbox">
+                            </th>
+                            <th>
+                                <a href="?sort={% if sort == 'email' %}-email{% else %}email{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                                   class="text-decoration-none text-dark">
+                                    Email
+                                    {% if sort == 'email' %}▲{% elif sort == '-email' %}▼{% endif %}
+                                </a>
+                            </th>
+                            <th class="d-none d-md-table-cell">
+                                <a href="?sort={% if sort == 'first_name' %}-first_name{% else %}first_name{% endif %}"
+                                   class="text-decoration-none text-dark">
+                                    Имя
+                                    {% if sort == 'first_name' %}▲{% elif sort == '-first_name' %}▼{% endif %}
+                                </a>
+                            </th>
+                            <th class="d-none d-md-table-cell">
+                                <a href="?sort={% if sort == 'last_name' %}-last_name{% else %}last_name{% endif %}"
+                                   class="text-decoration-none text-dark">
+                                    Фамилия
+                                    {% if sort == 'last_name' %}▲{% elif sort == '-last_name' %}▼{% endif %}
+                                </a>
+                            </th>
+                            <th class="d-none d-lg-table-cell">Персонал</th>
+                            <th class="d-none d-lg-table-cell">Согласие ПД</th>
+                            <th class="d-none d-lg-table-cell">Оферта</th>
+                            <th class="text-end" style="width: 130px;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                            <tr data-user-id="{{ u.id }}">
+                                <td>
+                                    <input type="checkbox" class="user-checkbox" value="{{ u.id }}">
+                                </td>
+                                <td>
+                                    <a href="{% url 'admin_panel:user_detail' u.id %}"
+                                       class="text-decoration-none">
+                                        {{ u.email }}
+                                    </a>
+                                    {% if u.is_superuser %}
+                                        <span class="badge bg-danger">super</span>
+                                    {% endif %}
+                                    {% if not u.is_active %}
+                                        <span class="badge bg-secondary">off</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">{{ u.first_name|default:"—" }}</td>
+                                <td class="d-none d-md-table-cell">{{ u.last_name|default:"—" }}</td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if u.is_staff %}✅{% else %}❌{% endif %}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if u.personal_data_consent %}✅{% else %}❌{% endif %}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if u.offer_accepted_flag %}✅ Принята{% else %}❌ Не принята{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'admin_panel:user_detail' u.id %}"
+                                       class="btn btn-sm btn-outline-primary" title="Редактировать">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'admin:accounts_customuser_change' u.id %}"
+                                       class="btn btn-sm btn-outline-secondary" title="В админке" target="_blank">
+                                        <i class="bi bi-gear"></i>
+                                    </a>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger user-delete-btn"
+                                            data-user-id="{{ u.id }}"
+                                            data-user-email="{{ u.email }}"
+                                            title="Удалить">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    Пользователей не найдено.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Пагинация #}
+        {% if users.has_other_pages %}
+            <nav class="mt-3">
+                <ul class="pagination justify-content-center pagination-sm">
+                    {% if users.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ users.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_staff_filter %}&is_staff={{ is_staff_filter }}{% endif %}{% if is_superuser_filter %}&is_superuser={{ is_superuser_filter }}{% endif %}{% if is_active_filter %}&is_active={{ is_active_filter }}{% endif %}{% if consent_filter %}&consent={{ consent_filter }}{% endif %}&sort={{ sort }}">←</a>
+                        </li>
+                    {% endif %}
+                    <li class="page-item disabled">
+                        <span class="page-link">{{ users.number }} / {{ users.paginator.num_pages }}</span>
+                    </li>
+                    {% if users.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ users.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_staff_filter %}&is_staff={{ is_staff_filter }}{% endif %}{% if is_superuser_filter %}&is_superuser={{ is_superuser_filter }}{% endif %}{% if is_active_filter %}&is_active={{ is_active_filter }}{% endif %}{% if consent_filter %}&consent={{ consent_filter }}{% endif %}&sort={{ sort }}">→</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(function (c) {
+            c = c.trim();
+            if (c.startsWith(name + '=')) {
+                v = decodeURIComponent(c.substring(name.length + 1));
+            }
+        });
+        return v;
+    }
+
+    // ===== Select All =====
+    const selectAll = document.getElementById('selectAllCheckbox');
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    const selectedCountEl = document.getElementById('selectedCount');
+
+    function updateSelectedCount() {
+        const n = document.querySelectorAll('.user-checkbox:checked').length;
+        selectedCountEl.textContent = n;
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            checkboxes.forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+            updateSelectedCount();
+        });
+    }
+
+    checkboxes.forEach(function (cb) {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+
+    // ===== Bulk Action =====
+    const bulkApplyBtn = document.getElementById('bulkApplyBtn');
+    if (bulkApplyBtn) {
+        bulkApplyBtn.addEventListener('click', function () {
+            const action = document.querySelector('#bulkForm select[name="action"]').value;
+            if (!action) { alert('Выберите действие'); return; }
+
+            const ids = Array.from(document.querySelectorAll('.user-checkbox:checked'))
+                .map(cb => cb.value);
+
+            if (!ids.length) { alert('Не выбрано ни одного пользователя'); return; }
+
+            const confirmText = action === 'delete'
+                ? 'Удалить выбранных пользователей? Это действие нельзя отменить.'
+                : 'Применить действие к выбранным?';
+            if (!confirm(confirmText)) return;
+
+            const fd = new FormData();
+            fd.append('action', action);
+            ids.forEach(id => fd.append('ids[]', id));
+
+            fetch('{% url "admin_panel:users_bulk_action" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: fd,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Ошибка');
+                }
+            })
+            .catch(() => alert('Ошибка сети'));
+        });
+    }
+
+    // ===== Удаление по одному =====
+    document.querySelectorAll('.user-delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const email = this.dataset.userEmail;
+            const id = this.dataset.userId;
+            if (!confirm('Удалить пользователя ' + email + '?')) return;
+
+            fetch('/admin-panel/users/' + id + '/delete/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const row = btn.closest('tr');
+                    row.style.transition = 'opacity 0.3s';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                } else {
+                    alert(data.error || 'Ошибка');
+                }
+            })
+            .catch(() => alert('Ошибка сети'));
+        });
+    });
+});
+</script>
+
+<style>
+/* ============ ОБЩИЕ СТИЛИ ============ */
+#usersTable th,
+#usersTable td {
+    vertical-align: middle;
+}
+#usersTable th a {
+    white-space: nowrap;
+}
+
+
+/* ============ ПЛАНШЕТ И УЖЕ (≤ 991px) ============ */
+@media (max-width: 991.98px) {
+    /* Скрываем колонку «Оферта» */
+    #usersTable th:nth-child(7),
+    #usersTable td:nth-child(7) {
+        display: none;
+    }
+}
+
+
+/* ============ МОБИЛЬНЫЙ (≤ 767px) ============ */
+@media (max-width: 767.98px) {
+
+    .container-fluid {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    h1.mb-0 {
+        font-size: 20px !important;
+    }
+    h1.mb-0 .badge {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+
+    /* Верхняя панель — кнопки в столбик */
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 8px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 > .d-flex {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    /* Фильтры — компактнее, в столбик */
+    .card-body form.row {
+        row-gap: 8px !important;
+    }
+    .card-body form.row > [class*="col-"] {
+        margin-bottom: 0;
+    }
+    .card-body form.row .form-label.small {
+        font-size: 11px;
+        margin-bottom: 2px;
+    }
+    .card-body form.row .form-control-sm,
+    .card-body form.row .form-select-sm {
+        font-size: 14px;
+        padding: 7px 10px;
+    }
+
+    /* Панель массовых действий — в столбик */
+    .card-header .d-flex.align-items-center.gap-2 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 6px !important;
+    }
+    .card-header select.form-select-sm {
+        width: 100% !important;
+    }
+    .card-header #bulkApplyBtn {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    #selectedCount {
+        font-weight: 600;
+        text-align: center;
+        display: block;
+        font-size: 13px;
+    }
+
+    /* Таблица — компактная */
+    #usersTable th,
+    #usersTable td {
+        padding: 6px 8px !important;
+        font-size: 13px;
+    }
+
+    /* Чекбокс — крупнее для пальца */
+    #usersTable input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    /* Email — не вылезает за экран */
+    #usersTable td:nth-child(2) {
+        max-width: 180px;
+        word-break: break-all;
+    }
+    #usersTable td:nth-child(2) a {
+        font-size: 13px;
+    }
+
+    /* Бейджи — компактнее */
+    #usersTable .badge {
+        font-size: 9px;
+        padding: 2px 5px;
+        margin-left: 2px;
+    }
+
+    /* Кнопки действий — вертикально, крупнее */
+    #usersTable td.text-end {
+        white-space: nowrap;
+        padding-right: 6px !important;
+    }
+    #usersTable td.text-end .btn {
+        padding: 5px 7px;
+        font-size: 13px;
+        margin-left: 2px;
+    }
+
+    /* Пагинация */
+    .pagination-sm .page-link {
+        padding: 4px 9px;
+        font-size: 13px;
+    }
+}
+
+
+/* ============ ОЧЕНЬ УЗКИЕ ЭКРАНЫ (≤ 480px) ============ */
+@media (max-width: 480px) {
+
+    /* Скрываем колонку «Согласие ПД» */
+    #usersTable th:nth-child(6),
+    #usersTable td:nth-child(6) {
+        display: none;
+    }
+
+    h1.mb-0 {
+        font-size: 18px !important;
+    }
+
+    #usersTable th,
+    #usersTable td {
+        padding: 5px 6px !important;
+        font-size: 12px;
+    }
+
+    #usersTable td:nth-child(2) {
+        max-width: 140px;
+    }
+
+    #usersTable td.text-end .btn {
+        padding: 4px 6px;
+        font-size: 12px;
+    }
+
+    .pagination-sm .page-link {
+        padding: 3px 7px;
+        font-size: 12px;
+    }
+}
+</style>
+
+{% endblock %}
