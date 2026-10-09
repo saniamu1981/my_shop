@@ -171,7 +171,10 @@ def dashboard(request):
     products_ratings = []
     products_qs = Product.objects.annotate(
         approved_count=Count('reviews', filter=Q(reviews__is_approved=True)),
-        pending_count=Count('reviews', filter=Q(reviews__is_approved=False)),
+        pending_count=Count(
+            'reviews',
+            filter=Q(reviews__is_approved=False, reviews__is_rejected=False),
+        ),
         avg_rating=Avg('reviews__rating', filter=Q(reviews__is_approved=True)),
     ).order_by('name')
 
@@ -186,7 +189,10 @@ def dashboard(request):
     # Общий рейтинг магазина (средний по всем одобренным отзывам)
     all_reviews = Review.objects.filter(is_approved=True)
     total_reviews_count = all_reviews.count()
-    total_pending_reviews = Review.objects.filter(is_approved=False).count()
+    total_pending_reviews = Review.objects.filter(
+        is_approved=False,
+        is_rejected=False,
+    ).count()
     if total_reviews_count > 0:
         shop_avg_rating = all_reviews.aggregate(Avg('rating'))['rating__avg'] or 0
     else:
@@ -519,7 +525,7 @@ def review_moderation(request):
 
     reviews_qs = (
         Review.objects
-        .filter(is_approved=False)
+        .filter(is_approved=False, is_rejected=False)  # ← только ожидающие
         .select_related('product', 'user', 'order')
         .order_by('-created')
     )

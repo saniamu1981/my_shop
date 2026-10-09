@@ -219,11 +219,6 @@ def chat(request):
 @login_required
 @require_POST
 def chat_send(request):
-    """Отправка сообщения в чат — с вложениями.
-
-    Работает и для пользователя, и для админа.
-    Определяет адресата по роли отправителя.
-    """
     from .models import ChatMessageAttachment
 
     text = (request.POST.get('message') or '').strip()
@@ -235,17 +230,10 @@ def chat_send(request):
             status=400,
         )
 
-    # ===== Кто отправитель? =====
-    is_admin = request.user.is_staff or request.user.is_superuser
+    target_user_id = request.POST.get('target_user_id')
 
-    if is_admin:
-        # Админ отправляет конкретному пользователю
-        target_user_id = request.POST.get('target_user_id')
-        if not target_user_id:
-            return JsonResponse(
-                {'success': False, 'error': 'Не указан получатель (target_user_id)'},
-                status=400,
-            )
+    if target_user_id:
+        # Админ пишет конкретному пользователю
         try:
             target_user_id = int(target_user_id)
         except (TypeError, ValueError):
@@ -254,12 +242,17 @@ def chat_send(request):
                 status=400,
             )
 
-        # Создаём сообщение от админа — оно привязано к пользователю target_user_id
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse(
+                {'success': False, 'error': 'Нет прав'},
+                status=403,
+            )
+
         sender = 'admin'
         user_id_for_message = target_user_id
     else:
-        # Обычный пользователь — сам себе "получатель"
-        sender = 'user'
+        # Обычный сценарий: пользователь пишет "сам себе" — или админ отвечает сам себе
+        sender = 'user' if not (request.user.is_staff or request.user.is_superuser) else 'admin'
         user_id_for_message = request.user.id
         target_user_id = request.user.id
 
