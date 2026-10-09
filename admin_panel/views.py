@@ -141,6 +141,7 @@ def dashboard(request):
 
     total_site_views = (
         SiteView.objects
+        .exclude(city='')
         .exclude(city__in=excluded_cities)
         .count()
     )
