@@ -8,14 +8,6 @@
     <!-- ===== KPI-КАРТОЧКИ ===== -->
     <div class="row g-3 dashboard-kpi-row">
         <div class="col-6 col-md-3">
-            <div class="card text-white bg-primary dashboard-kpi">
-                <div class="card-body">
-                    <h6 class="card-title mb-1">Новые отзывы</h6>
-                    <p class="card-text dashboard-kpi-value">{{ total_pending_reviews }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
             <div class="card text-white bg-success dashboard-kpi">
                 <div class="card-body">
                     <h6 class="card-title mb-1">Все заказы</h6>
@@ -28,6 +20,14 @@
                 <div class="card-body">
                     <h6 class="card-title mb-1">Новые заказы</h6>
                     <p class="card-text dashboard-kpi-value">{{ pending_orders }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-white bg-primary dashboard-kpi">
+                <div class="card-body">
+                    <h6 class="card-title mb-1">Новые отзывы</h6>
+                    <p class="card-text dashboard-kpi-value">{{ total_pending_reviews }}</p>
                 </div>
             </div>
         </div>
