@@ -583,13 +583,10 @@ def review_moderation(request):
 @staff_member_required
 @require_POST
 def review_approve(request, review_id):
-    """Одобрить отзыв."""
-    from apps.products.models import Review
-
     review = get_object_or_404(Review, id=review_id)
     review.is_approved = True
-    review.save(update_fields=['is_approved'])
-
+    review.is_rejected = False
+    review.save(update_fields=['is_approved', 'is_rejected'])
     return JsonResponse({
         'success': True,
         'review_id': review.id,
@@ -600,16 +597,12 @@ def review_approve(request, review_id):
 @staff_member_required
 @require_POST
 def review_reject(request, review_id):
-    """Отклонить (удалить) отзыв."""
-    from apps.products.models import Review
-
     review = get_object_or_404(Review, id=review_id)
-    review.is_rejected = True
     review.is_approved = False
-    review.save(update_fields=['is_rejected', 'is_approved'])
-
+    review.is_rejected = True
+    review.save(update_fields=['is_approved', 'is_rejected'])
     return JsonResponse({
         'success': True,
-        'review_id': review_id,
+        'review_id': review.id,
         'action': 'rejected',
-    })
+    })e
