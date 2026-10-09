@@ -45,14 +45,29 @@ def order_list(request):
     for order in orders:
         order_product_ids = set(order.items.values_list('product_id', flat=True))
 
-        reviewed_ids_in_order = set(
-            Review.objects.filter(
-                user=request.user,
-                order=order,
-                product_id__in=order_product_ids
-            ).values_list('product_id', flat=True)
+        # Все отзывы пользователя по этому заказу
+        reviews_qs = Review.objects.filter(
+            user=request.user,
+            order=order,
+            product_id__in=order_product_ids,
         )
-        order.has_unreviewed_items = bool(order_product_ids - reviewed_ids_in_order)
+
+        approved_ids = set(
+            reviews_qs.filter(is_approved=True).values_list('product_id', flat=True)
+        )
+        pending_ids = set(
+            reviews_qs.filter(is_approved=False, is_rejected=False).values_list('product_id', flat=True)
+        )
+        rejected_ids = set(
+            reviews_qs.filter(is_rejected=True).values_list('product_id', flat=True)
+        )
+
+        order.unreviewed_ids = order_product_ids - approved_ids - pending_ids - rejected_ids
+
+        order.has_unreviewed_items = bool(order.unreviewed_ids)
+        order.has_pending_reviews = bool(pending_ids)
+        order.has_rejected_reviews = bool(rejected_ids)
+        order.has_approved_reviews = bool(approved_ids) and not order.has_unreviewed_items
 
         # Есть ли активная заявка на возврат по этому заказу?
         order.has_active_return = order.returns.exclude(status='cancelled').exists()

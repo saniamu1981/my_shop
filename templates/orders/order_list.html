@@ -118,10 +118,22 @@
                                                 ⭐ Оставить отзыв
                                             </a>
                                         {% else %}
-                                            <span class="badge bg-success"
-                                                  style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
-                                                ✅ Отзыв оставлен
-                                            </span>
+                                            {% if order.has_pending_reviews %}
+                                                <span class="badge bg-warning text-dark"
+                                                      style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
+                                                    ⏳ Отзыв на модерации
+                                                </span>
+                                            {% elif order.has_approved_reviews %}
+                                                <span class="badge bg-success"
+                                                      style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
+                                                    ✅ Отзыв оставлен
+                                                </span>
+                                            {% elif order.has_rejected_reviews %}
+                                                <span class="badge bg-danger"
+                                                      style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
+                                                    ❌ Отзыв отклонён
+                                                </span>
+                                            {% endif %}
                                         {% endif %}
                                     {% endif %}
                                 </div>
@@ -231,10 +243,22 @@
                                     ⭐ Оставить отзыв
                                 </a>
                             {% else %}
-                                <span class="badge bg-success w-100 text-center"
-                                      style="font-size: 13px; font-weight: 400; padding: 8px; border-radius: 6px; display: block;">
-                                    ✅ Отзыв оставлен
-                                </span>
+                                {% if order.has_pending_reviews %}
+                                    <span class="badge bg-warning text-dark"
+                                          style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
+                                        ⏳ Отзыв на модерации
+                                    </span>
+                                {% elif order.has_approved_reviews %}
+                                    <span class="badge bg-success"
+                                          style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
+                                        ✅ Отзыв оставлен
+                                    </span>
+                                {% elif order.has_rejected_reviews %}
+                                    <span class="badge bg-danger"
+                                          style="font-size: 14px; font-weight: 400; padding: 8px 10px; border-radius: 4px;">
+                                        ❌ Отзыв отклонён
+                                    </span>
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% endif %}

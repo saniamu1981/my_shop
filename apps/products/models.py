@@ -393,7 +393,8 @@ class Review(models.Model):
     comment = models.TextField('Комментарий')
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    is_approved = models.BooleanField('Одобрено', default=True)
+    is_approved = models.BooleanField('Одобрено', default=False)
+    is_rejected = models.BooleanField('Отклонён', default=False)
 
     class Meta:
         verbose_name = 'Отзыв'

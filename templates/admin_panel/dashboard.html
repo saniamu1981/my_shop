@@ -10,8 +10,8 @@
         <div class="col-6 col-md-3">
             <div class="card text-white bg-primary dashboard-kpi">
                 <div class="card-body">
-                    <h6 class="card-title mb-1">Товары</h6>
-                    <p class="card-text dashboard-kpi-value">{{ total_products }}</p>
+                    <h6 class="card-title mb-1">Новые отзывы</h6>
+                    <p class="card-text dashboard-kpi-value">{{ total_pending_reviews }}</p>
                 </div>
             </div>
         </div>
@@ -447,8 +447,16 @@
         <!-- ===== РЕЙТИНГ ===== -->
         <div class="col-12 col-md-6 col-lg-6">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">⭐ Рейтинг товаров</h5>
+                    <a href="{% url 'admin_panel:review_moderation' %}"
+                       class="btn btn-sm btn-outline-warning"
+                       title="Отзывы на модерации">
+                        Новые
+                        {% if total_pending_reviews %}
+                            <span class="badge bg-warning text-dark ms-1">{{ total_pending_reviews }}</span>
+                        {% endif %}
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive-sm">
@@ -458,6 +466,7 @@
                                     <th>Товар</th>
                                     <th class="text-end">Рейтинг</th>
                                     <th class="text-end">Отзывов</th>
+                                    <th class="text-end">На модерации</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -483,6 +492,17 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-end">{{ p.reviews_count }}</td>
+                                        <td class="text-end">
+                                            {% if p.pending_count %}
+                                                <a href="{% url 'admin:products_review_changelist' %}?is_approved__exact=0"
+                                                   class="text-warning"
+                                                   title="Отзывы на модерации">
+                                                    {{ p.pending_count }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">0</span>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                 {% empty %}
                                     <tr><td colspan="3" class="text-muted text-center">Нет данных</td></tr>
@@ -510,6 +530,16 @@
                                         {% endif %}
                                     </td>
                                     <td class="text-end"><strong>{{ total_reviews_count }}</strong></td>
+                                    <td class="text-end">
+                                        {% if total_pending_reviews %}
+                                            <a href="{% url 'admin:products_review_changelist' %}?is_approved__exact=0"
+                                               class="text-warning">
+                                                <strong>{{ total_pending_reviews }}</strong>
+                                            </a>
+                                        {% else %}
+                                            <strong>0</strong>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>

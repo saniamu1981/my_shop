@@ -12,6 +12,7 @@ from apps.products.models import Product, Category, Favorite, Review
 from apps.orders.models import Order, Cart, Return
 from apps.products.models import SiteView, Product, ProductSize
 from apps.shop_settings.models import UnitEconomics, ExcludedCity
+from django.core.paginator import Paginator
 
 User = get_user_model()
 
@@ -168,22 +169,24 @@ def dashboard(request):
     # ===== РЕЙТИНГИ =====
     # Рейтинг каждого товара (по одобренным отзывам)
     products_ratings = []
-    for product in Product.objects.all().order_by('name'):
-        reviews = product.reviews.filter(is_approved=True)
-        count = reviews.count()
-        if count > 0:
-            avg = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
-        else:
-            avg = None
+    products_qs = Product.objects.annotate(
+        approved_count=Count('reviews', filter=Q(reviews__is_approved=True)),
+        pending_count=Count('reviews', filter=Q(reviews__is_approved=False)),
+        avg_rating=Avg('reviews__rating', filter=Q(reviews__is_approved=True)),
+    ).order_by('name')
+
+    for p in products_qs:
         products_ratings.append({
-            'name': product.name,
-            'avg_rating': avg,
-            'reviews_count': count,
+            'name': p.name,
+            'avg_rating': p.avg_rating,
+            'reviews_count': p.approved_count,
+            'pending_count': p.pending_count,
         })
 
     # Общий рейтинг магазина (средний по всем одобренным отзывам)
     all_reviews = Review.objects.filter(is_approved=True)
     total_reviews_count = all_reviews.count()
+    total_pending_reviews = Review.objects.filter(is_approved=False).count()
     if total_reviews_count > 0:
         shop_avg_rating = all_reviews.aggregate(Avg('rating'))['rating__avg'] or 0
     else:
@@ -252,6 +255,7 @@ def dashboard(request):
         'products_ratings': products_ratings,
         'shop_avg_rating': shop_avg_rating,
         'total_reviews_count': total_reviews_count,
+        'total_pending_reviews': total_pending_reviews,
 
         # Юнит-экономика
         'unit_formulas': unit_formulas,
@@ -505,4 +509,71 @@ def exclude_city(request):
         'deleted': deleted,
         'city': city,
         'excluded': True,
+    })
+
+
+@staff_member_required
+def review_moderation(request):
+    """Страница модерации отзывов: все is_approved=False."""
+    from apps.products.models import Review
+
+    reviews_qs = (
+        Review.objects
+        .filter(is_approved=False)
+        .select_related('product', 'user', 'order')
+        .order_by('-created')
+    )
+
+    paginator = Paginator(reviews_qs, 20)
+    page = request.GET.get('page', 1)
+    try:
+        reviews = paginator.page(page)
+    except Exception:
+        reviews = paginator.page(1)
+
+    # Считаем количество для бейджа
+    total_pending = reviews_qs.count()
+
+    # Предзагружаем медиа для каждого отзыва
+    for r in reviews:
+        r.media_list = list(r.media.all().order_by('order'))
+
+    return render(request, 'admin_panel/review_moderation.html', {
+        'reviews': reviews,
+        'total_pending': total_pending,
+    })
+
+
+@staff_member_required
+@require_POST
+def review_approve(request, review_id):
+    """Одобрить отзыв."""
+    from apps.products.models import Review
+
+    review = get_object_or_404(Review, id=review_id)
+    review.is_approved = True
+    review.save(update_fields=['is_approved'])
+
+    return JsonResponse({
+        'success': True,
+        'review_id': review.id,
+        'action': 'approved',
+    })
+
+
+@staff_member_required
+@require_POST
+def review_reject(request, review_id):
+    """Отклонить (удалить) отзыв."""
+    from apps.products.models import Review
+
+    review = get_object_or_404(Review, id=review_id)
+    review.is_rejected = True
+    review.is_approved = False
+    review.save(update_fields=['is_rejected', 'is_approved'])
+
+    return JsonResponse({
+        'success': True,
+        'review_id': review_id,
+        'action': 'rejected',
     })

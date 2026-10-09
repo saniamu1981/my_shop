@@ -16,4 +16,7 @@ urlpatterns = [
     path('stock/update-price/', views.stock_update_price, name='stock_update_price'),
     path('city/delete-views/', views.delete_city_views, name='delete_city_views'),
     path('city/exclude/', views.exclude_city, name='exclude_city'),
+    path('reviews/moderation/', views.review_moderation, name='review_moderation'),
+    path('reviews/<int:review_id>/approve/', views.review_approve, name='review_approve'),
+    path('reviews/<int:review_id>/reject/', views.review_reject, name='review_reject'),
 ]
