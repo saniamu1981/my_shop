@@ -1,0 +1,487 @@
+{% extends 'base.html' %}
+{% load l10n %}
+{% load static %}
+
+{% block title %}Юнит-экономика — Maidlingerie{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="mb-0">💹 Юнит-экономика</h1>
+        <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            ← Назад в дашборд
+        </a>
+    </div>
+
+    <!-- ===== ПЕРЕМЕННЫЕ ===== -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">🔢 Свои переменные</h5>
+            <button type="button" class="btn btn-sm btn-primary" id="addVariableBtn">
+                ➕ Добавить переменную
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0" id="variablesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Название</th>
+                        <th style="width: 180px;">Значение</th>
+                        <th>Описание</th>
+                        <th style="width: 120px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in variables %}
+                        <tr data-variable-id="{{ v.id }}">
+                            <td><code class="variable-name">{{ v.name }}</code></td>
+                            <td>
+                                <input type="number" step="0.01"
+                                       class="form-control form-control-sm variable-value"
+                                       value="{{ v.value|unlocalize }}">
+                            </td>
+                            <td>
+                                <input type="text"
+                                       class="form-control form-control-sm variable-description"
+                                       value="{{ v.description }}">
+                            </td>
+                            <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-success variable-save-btn"
+                                        title="Сохранить">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger variable-delete-btn"
+                                        title="Удалить">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr class="empty-row">
+                            <td colspan="4" class="text-muted text-center py-3">
+                                Переменных пока нет. Нажмите «Добавить переменную».
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== ТОВАРЫ ===== -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📦 Товары — себестоимость</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Товар</th>
+                        <th style="width: 180px;">Себестоимость</th>
+                        <th style="width: 60px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pc in product_costs %}
+                        <tr data-cost-id="{{ pc.id }}">
+                            <td>{{ pc.product.name }}</td>
+                            <td>
+                                <input type="number" step="0.01"
+                                       class="form-control form-control-sm cost-value"
+                                       value="{{ pc.cost|unlocalize }}">
+                            </td>
+                            <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-success cost-save-btn"
+                                        title="Сохранить">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== ФОРМУЛЫ ===== -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📐 Формулы</h5>
+            <button type="button" class="btn btn-sm btn-primary" id="addFormulaBtn">
+                ➕ Добавить формулу
+            </button>
+        </div>
+        <div class="card-body" id="formulasContainer">
+            {% for f in formulas %}
+                {% include 'admin_panel/_unit_formula_card.html' with f=f %}
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== МОДАЛКА ВЫБОРА ПРАВИЛА ===== -->
+<div class="modal fade" id="metricPickerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Все правила</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="metricPickerBody"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.UNIT = {
+    csrf: '{{ csrf_token }}',
+    urls: {
+        variableSave: '{% url "admin_panel:unit_variable_save" %}',
+        variableDelete: '{% url "admin_panel:unit_variable_delete" %}',
+        costSave: '{% url "admin_panel:unit_cost_save" %}',
+        formulaSave: '{% url "admin_panel:unit_formula_save" %}',
+        formulaDelete: '{% url "admin_panel:unit_formula_delete" %}',
+    },
+    builtinMetrics: {{ builtin_metrics|safe }},
+    variables: [
+        {% for v in variables %}
+            { name: '{{ v.name|escapejs }}', value: '{{ v.value }}' },
+        {% endfor %}
+    ],
+};
+</script>
+
+<script src="{% static 'js/unit_economics.js' %}"></script>
+
+<style>
+/* стили можно вынести в static, но для скорости — здесь */
+.formula-card {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #fff;
+}
+.formula-card.is-total {
+    background: #fffef5;
+    border-color: #ffe066;
+}
+.formula-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.formula-card-actions .btn { margin-left: 4px; }
+
+.fb-widget-blocks {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 10px;
+}
+.fb-widget-group { margin-bottom: 10px; }
+.fb-widget-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 4px;
+}
+.fb-widget-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+.fb-widget-btn {
+    border: 1px solid #ccc;
+    background: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.fb-widget-btn:hover { background: #e9ecef; border-color: #007bff; }
+.fb-widget-btn-metric { background: #e7f5ff; border-color: #74c0fc; }
+.fb-widget-btn-variable { background: #fff5e6; border-color: #ffc078; }
+.fb-widget-btn-op { background: #f3e8ff; border-color: #b197fc; font-weight: 700; min-width: 32px; }
+.fb-widget-btn-paren { background: #fff3bf; border-color: #ffd43b; font-weight: 700; min-width: 32px; }
+.fb-widget-number-input { width: 90px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; }
+
+.fb-widget-expression {
+    min-height: 40px;
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    padding: 6px;
+    background: #fafafa;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.fb-widget-token {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #e7f5ff;
+    border: 1px solid #74c0fc;
+    font-size: 12px;
+}
+.fb-widget-token-op { background: #f3e8ff; border-color: #b197fc; font-weight: 700; }
+.fb-widget-token-number { background: #e6fcf5; border-color: #63e6be; }
+.fb-widget-token-paren { background: #fff3bf; border-color: #ffd43b; font-weight: 700; }
+.fb-widget-token .fb-widget-remove {
+    border: none;
+    background: transparent;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+}
+
+/* ============ МОБИЛЬНАЯ АДАПТАЦИЯ ============ */
+
+@media (max-width: 767.98px) {
+
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    h1.mb-0 {
+        font-size: 20px !important;
+    }
+
+    /* Заголовки карточек */
+    .card-header {
+        padding: 10px 14px !important;
+    }
+    .card-header h5 {
+        font-size: 15px !important;
+    }
+    .card-header .btn-sm {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    /* ===== ТАБЛИЦА ПЕРЕМЕННЫХ ===== */
+    #variablesTable thead th,
+    #variablesTable tbody td {
+        font-size: 13px;
+        padding: 6px 8px !important;
+    }
+
+    /* Скрываем колонку «Описание» на узких экранах */
+    #variablesTable thead th:nth-child(3),
+    #variablesTable tbody td:nth-child(3) {
+        display: none;
+    }
+
+    #variablesTable .variable-value {
+        font-size: 14px;
+        padding: 6px 8px;
+    }
+
+    #variablesTable .btn-sm {
+        padding: 4px 6px;
+        font-size: 12px;
+    }
+
+    /* ===== ТАБЛИЦА ТОВАРОВ ===== */
+    .table-sm th,
+    .table-sm td {
+        font-size: 13px;
+        padding: 6px 8px !important;
+    }
+
+    .cost-value {
+        font-size: 14px;
+        padding: 6px 8px;
+    }
+
+    /* ===== КАРТОЧКА ФОРМУЛЫ ===== */
+    .formula-card {
+        padding: 12px !important;
+        border-radius: 8px;
+    }
+
+    /* Заголовок карточки — в столбик */
+    .formula-card-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+    .formula-card-actions {
+        display: flex !important;
+        gap: 6px;
+    }
+    .formula-card-actions .btn {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    /* Название и результат */
+    .formula-card-header strong {
+        font-size: 15px;
+    }
+    .formula-card-header .badge {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    /* Поля в редакторе — крупные */
+    .formula-edit-area .form-label {
+        font-size: 12px;
+    }
+    .formula-edit-area .form-control-sm {
+        font-size: 14px;
+        padding: 7px 10px;
+    }
+
+    /* Конструктор — в столбик */
+    .formula-edit-area .row > [class*="col-"] {
+        margin-bottom: 12px;
+    }
+
+    /* Блоки кнопок конструктора */
+    .fb-widget-blocks {
+        padding: 10px;
+    }
+    .fb-widget-group {
+        margin-bottom: 10px;
+    }
+    .fb-widget-group-title {
+        font-size: 11px;
+    }
+
+    .fb-widget-buttons {
+        gap: 5px;
+    }
+    .fb-widget-btn {
+        font-size: 12px;
+        padding: 6px 10px;
+        min-height: 32px;
+    }
+    .fb-widget-btn-op,
+    .fb-widget-btn-paren {
+        min-width: 36px;
+        font-size: 14px;
+    }
+    .fb-widget-open-metrics {
+        font-size: 13px;
+        padding: 8px 12px;
+        width: 100%;
+    }
+
+    /* Поле ввода числа */
+    .fb-widget-number-input {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        padding: 6px 10px;
+        height: 36px;
+    }
+
+    /* Область формулы */
+    .fb-widget-expression {
+        min-height: 50px;
+        padding: 8px;
+        gap: 5px;
+    }
+    .fb-widget-token {
+        font-size: 12px;
+        padding: 5px 9px;
+    }
+    .fb-widget-token .fb-widget-remove {
+        font-size: 16px;
+        padding: 0 2px;
+    }
+
+    /* Кнопка «Очистить» */
+    .formula-clear-btn {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    /* Кнопки сохранения / отмены */
+    .formula-card .mt-3.d-flex {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .formula-save-btn,
+    .formula-cancel-btn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+}
+
+/* ===== ОЧЕНЬ УЗКИЕ ЭКРАНЫ (< 400px) ===== */
+@media (max-width: 400px) {
+
+    h1.mb-0 {
+        font-size: 18px !important;
+    }
+
+    .card-header h5 {
+        font-size: 14px !important;
+    }
+
+    /* Токены в формуле — мельче */
+    .fb-widget-token {
+        font-size: 11px;
+        padding: 4px 7px;
+    }
+
+    /* Кнопки конструктора — мельче */
+    .fb-widget-btn {
+        font-size: 11px;
+        padding: 5px 8px;
+    }
+    .fb-widget-btn-op,
+    .fb-widget-btn-paren {
+        min-width: 32px;
+    }
+}
+
+/* ===== МОДАЛКА ВЫБОРА ПРАВИЛА ===== */
+@media (max-width: 767.98px) {
+
+    #metricPickerModal .modal-dialog {
+        margin: 8px;
+        max-width: calc(100% - 16px);
+    }
+
+    #metricPickerModal .modal-body {
+        padding: 14px 12px;
+    }
+
+    #metricPickerBody .mb-3 {
+        margin-bottom: 14px !important;
+    }
+
+    #metricPickerBody .metric-pick-btn {
+        display: block;
+        width: 100%;
+        text-align: left;
+        font-size: 13px;
+        padding: 8px 12px;
+        min-height: 38px;
+    }
+
+    /* Группы метрик — заголовок на всю ширину */
+    #metricPickerBody .text-muted.small {
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}

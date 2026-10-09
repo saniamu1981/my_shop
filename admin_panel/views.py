@@ -1,4 +1,5 @@
-﻿from django.contrib.auth import get_user_model
+﻿import json
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -8,10 +9,9 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.accounts.models import ChatMessage, Offer
-from apps.products.models import Product, Category, Favorite, Review
+from apps.products.models import Product, Category, Favorite, Review, SiteView, ProductSize
 from apps.orders.models import Order, Cart, Return
-from apps.products.models import SiteView, Product, ProductSize
-from apps.shop_settings.models import UnitEconomics, ExcludedCity
+from apps.shop_settings.models import UnitEconomics, ExcludedCity, UnitVariable, UnitFormula, ProductCost
 from django.core.paginator import Paginator
 
 User = get_user_model()
@@ -607,3 +607,214 @@ def review_reject(request, review_id):
         'review_id': review.id,
         'action': 'rejected',
     })
+
+
+
+@staff_member_required
+def unit_economics_page(request):
+    """Кастомная страница юнит-экономики."""
+    unit = UnitEconomics.get_solo()
+
+    # Переменные
+    variables = list(unit.variables.all().order_by('name'))
+
+    # Товары с себестоимостью (создаём ProductCost при отсутствии)
+    products = Product.objects.all().order_by('category__name', 'name')
+    existing_costs = {
+        pc.product_id: pc
+        for pc in ProductCost.objects.filter(unit=unit)
+    }
+    product_costs = []
+    for p in products:
+        pc = existing_costs.get(p.id)
+        if pc is None:
+            pc = ProductCost.objects.create(unit=unit, product=p, cost=0)
+        product_costs.append({
+            'product': p,
+            'cost': pc.cost,
+            'id': pc.id,
+        })
+
+    # Формулы
+    formulas = []
+    for f in unit.formulas.filter(is_active=True).order_by('order', 'pk'):
+        result, error = f.calculate()
+        formulas.append({
+            'obj': f,
+            'name': f.name,
+            'description': f.description,
+            'expression': f.expression or [],
+            'expression_json': json.dumps(f.expression or []),  # ← добавить
+            'order': f.order,
+            'is_total': f.is_total,
+            'is_active': f.is_active,
+            'result': result,
+            'error': error,
+        })
+
+    # Встроенные метрики — из реестра
+    from apps.shop_settings.models import BUILTIN_METRICS
+    builtin_metrics = [
+        {'code': code, 'label': meta['label']}
+        for code, meta in BUILTIN_METRICS.items()
+    ]
+
+    print('=== UNIT PAGE DEBUG ===')
+    print('variables:', [(v.id, v.name, v.value) for v in variables])
+    print('formulas:', [(f['name'], f['order']) for f in formulas])
+    print('product_costs:', [(pc['product'].name, pc['cost']) for pc in product_costs])
+    print('builtin count:', len(builtin_metrics))
+
+    return render(request, 'admin_panel/unit_economics.html', {
+        'unit': unit,
+        'variables': variables,
+        'product_costs': product_costs,
+        'formulas': formulas,
+        'builtin_metrics': builtin_metrics,
+    })
+
+
+@staff_member_required
+@require_POST
+def unit_variable_save(request):
+    """Создать или обновить переменную."""
+    variable_id = request.POST.get('id')
+    name = (request.POST.get('name') or '').strip()
+    value = request.POST.get('value') or '0'
+    description = (request.POST.get('description') or '').strip()
+
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Укажите название'}, status=400)
+
+    try:
+        from decimal import Decimal, InvalidOperation
+        value = Decimal(value)
+    except (InvalidOperation, TypeError):
+        return JsonResponse({'success': False, 'error': 'Некорректное значение'}, status=400)
+
+    unit = UnitEconomics.get_solo()
+
+    if variable_id:
+        var = get_object_or_404(UnitVariable, id=variable_id, unit=unit)
+    else:
+        var = UnitVariable(unit=unit)
+
+    var.name = name
+    var.value = value
+    var.description = description
+    var.save()
+
+    return JsonResponse({
+        'success': True,
+        'variable': {
+            'id': var.id,
+            'name': var.name,
+            'value': str(var.value),
+            'description': var.description,
+        },
+    })
+
+
+@staff_member_required
+@require_POST
+def unit_variable_delete(request):
+    """Удалить переменную."""
+    variable_id = request.POST.get('id')
+    if not variable_id:
+        return JsonResponse({'success': False, 'error': 'Не указан id'}, status=400)
+
+    UnitVariable.objects.filter(id=variable_id).delete()
+    return JsonResponse({'success': True})
+
+
+@staff_member_required
+@require_POST
+def unit_cost_save(request):
+    """Обновить себестоимость товара."""
+    pc_id = request.POST.get('id')
+    cost = request.POST.get('cost') or '0'
+
+    if not pc_id:
+        return JsonResponse({'success': False, 'error': 'Не указан id'}, status=400)
+
+    try:
+        from decimal import Decimal, InvalidOperation
+        cost = Decimal(cost)
+    except (InvalidOperation, TypeError):
+        return JsonResponse({'success': False, 'error': 'Некорректная цена'}, status=400)
+
+    pc = get_object_or_404(ProductCost, id=pc_id)
+    pc.cost = cost
+    pc.save(update_fields=['cost'])
+
+    return JsonResponse({
+        'success': True,
+        'cost': str(pc.cost),
+    })
+
+
+@staff_member_required
+@require_POST
+def unit_formula_save(request):
+    """Создать или обновить формулу."""
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Bad JSON'}, status=400)
+
+    formula_id = data.get('id')
+    name = (data.get('name') or '').strip()
+    description = (data.get('description') or '').strip()
+    expression = data.get('expression') or []
+    order = data.get('order', 0)
+    is_total = bool(data.get('is_total', False))
+    is_active = bool(data.get('is_active', True))
+
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Укажите название'}, status=400)
+    if not expression:
+        return JsonResponse({'success': False, 'error': 'Формула пуста'}, status=400)
+
+    unit = UnitEconomics.get_solo()
+
+    if formula_id:
+        formula = get_object_or_404(UnitFormula, id=formula_id, unit=unit)
+    else:
+        formula = UnitFormula(unit=unit)
+
+    formula.name = name
+    formula.description = description
+    formula.expression = expression
+    formula.order = order
+    formula.is_total = is_total
+    formula.is_active = is_active
+    formula.save()
+
+    result, error = formula.calculate()
+
+    return JsonResponse({
+        'success': True,
+        'formula': {
+            'id': formula.id,
+            'name': formula.name,
+            'description': formula.description,
+            'expression': formula.expression,
+            'order': formula.order,
+            'is_total': formula.is_total,
+            'is_active': formula.is_active,
+            'result': str(result) if result is not None else None,
+            'error': error,
+        },
+    })
+
+
+@staff_member_required
+@require_POST
+def unit_formula_delete(request):
+    """Удалить формулу."""
+    formula_id = request.POST.get('id')
+    if not formula_id:
+        return JsonResponse({'success': False, 'error': 'Не указан id'}, status=400)
+
+    UnitFormula.objects.filter(id=formula_id).delete()
+    return JsonResponse({'success': True})

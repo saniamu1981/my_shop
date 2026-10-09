@@ -19,4 +19,10 @@ urlpatterns = [
     path('reviews/moderation/', views.review_moderation, name='review_moderation'),
     path('reviews/<int:review_id>/approve/', views.review_approve, name='review_approve'),
     path('reviews/<int:review_id>/reject/', views.review_reject, name='review_reject'),
+    path('unit-economics/', views.unit_economics_page, name='unit_economics'),
+    path('unit/variable/save/', views.unit_variable_save, name='unit_variable_save'),
+    path('unit/variable/delete/', views.unit_variable_delete, name='unit_variable_delete'),
+    path('unit/cost/save/', views.unit_cost_save, name='unit_cost_save'),
+    path('unit/formula/save/', views.unit_formula_save, name='unit_formula_save'),
+    path('unit/formula/delete/', views.unit_formula_delete, name='unit_formula_delete'),
 ]
