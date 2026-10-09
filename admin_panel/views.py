@@ -605,4 +605,4 @@ def review_reject(request, review_id):
         'success': True,
         'review_id': review.id,
         'action': 'rejected',
-    })e
+    })
