@@ -42,4 +42,10 @@ urlpatterns = [
     path('categories/add/', views.category_add, name='category_add'),
     path('categories/<int:category_id>/edit/', views.category_edit, name='category_edit'),
     path('categories/<int:category_id>/delete/', views.category_delete, name='category_delete'),
+    path('returns/', views.returns_list, name='returns_list'),
+    path('returns/export/', views.returns_export, name='returns_export'),
+    path('returns/<int:return_id>/', views.return_admin_detail, name='return_admin_detail'),
+    path('returns/<int:return_id>/approve/', views.return_admin_approve, name='return_admin_approve'),
+    path('returns/<int:return_id>/reject/', views.return_admin_reject, name='return_admin_reject'),
+    path('returns/<int:return_id>/complete/', views.return_admin_complete, name='return_admin_complete'),
 ]

@@ -59,6 +59,12 @@
                         <a href="{% url 'admin_panel:orders_list' %}" class="btn btn-info">
                             📋 Заказы
                         </a>
+                        <a href="{% url 'admin_panel:returns_list' %}" class="btn btn-danger">
+                            ↩️ Возвраты
+                        </a>
+                        <a href="{% url 'admin_panel:stock_list' %}" class="btn btn-outline-primary">
+                            💰 Цены и остатки
+                        </a>
                         <button type="button"
                                 class="btn btn-warning"
                                 id="usersListBtn"
@@ -66,9 +72,6 @@
                                 data-users-url="{% url 'admin_panel:users_list' %}">
                             👥 Пользователи
                         </button>
-                        <a href="{% url 'admin_panel:stock_list' %}" class="btn btn-outline-primary">
-                            💰 Цены и остатки
-                        </a>
                         <a href="{% url 'admin:index' %}" class="btn btn-secondary">
                             ⚙️ Расширенная админка
                         </a>

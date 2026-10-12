@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Возврат R-{{ return.id }} — Maidlingerie{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="mb-0">
+            ↩️ Возврат R-{{ return.id }}
+            <span class="badge bg-secondary">{{ return.get_status_display }}</span>
+        </h1>
+        <div class="d-flex gap-2">
+            {% if request.user.is_superuser %}
+                <a href="{% url 'admin:orders_return_change' return.id %}"
+                   class="btn btn-outline-secondary btn-sm" target="_blank">
+                    ⚙️ В админке
+                </a>
+            {% endif %}
+            <a href="{% url 'admin_panel:returns_list' %}" class="btn btn-outline-secondary btn-sm">
+                ← К списку
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== БЫСТРЫЕ ДЕЙСТВИЯ ===== -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">⚡ Быстрые действия</h5></div>
+        <div class="card-body">
+            <div class="d-flex gap-2 flex-wrap return-action-buttons">
+                {% if return.status == 'new' or return.status == 'review' %}
+                    <button type="button"
+                            class="btn btn-success return-approve-btn"
+                            data-return-id="{{ return.id }}">
+                        ✅ Одобрить
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-danger return-reject-btn"
+                            data-return-id="{{ return.id }}">
+                        ❌ Отклонить
+                    </button>
+                {% elif return.status == 'approved' %}
+                    <button type="button"
+                            class="btn btn-primary return-complete-btn"
+                            data-return-id="{{ return.id }}">
+                        🏁 Завершить (товар получен)
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-danger return-reject-btn"
+                            data-return-id="{{ return.id }}">
+                        ❌ Отклонить
+                    </button>
+                {% else %}
+                    <span class="text-muted">Действия недоступны для текущего статуса.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="returnForm">
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <div class="col-12 col-md-7">
+
+                <!-- ===== ИНФОРМАЦИЯ О ВОЗВРАТЕ ===== -->
+                <div class="card mb-3">
+                    <div class="card-header"><h5 class="mb-0">📋 Информация о возврате</h5></div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-6 col-md-4">
+                                <label class="form-label small">ID</label>
+                                <input type="text" class="form-control" value="R-{{ return.id }}" disabled>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <label class="form-label small">Дата заявки</label>
+                                <input type="text" class="form-control" value="{{ return.created|date:'d.m.Y H:i' }}" disabled>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small">Заказ</label>
+                                <a href="{% url 'admin_panel:order_admin_detail' return.order.id %}"
+                                   class="form-control btn btn-outline-primary btn-sm d-block text-start"
+                                   style="border-radius: 8px;">
+                                    №{{ return.order.id }} → открыть
+                                </a>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3">Клиент</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Email</label>
+                                <input type="text" class="form-control" value="{{ return.user.email }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Телефон</label>
+                                <input type="text" class="form-control" value="{{ return.order.phone }}" disabled>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3">Причина возврата</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Причина</label>
+                                <input type="text" class="form-control" value="{{ return.get_reason_display }}" disabled>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">Комментарий клиента</label>
+                                <textarea class="form-control" rows="3" disabled>{{ return.comment }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ОБРАБОТКА АДМИНОМ ===== -->
+                <div class="card mb-3">
+                    <div class="card-header"><h5 class="mb-0">💬 Комментарий администратора</h5></div>
+                    <div class="card-body">
+                        <textarea name="admin_comment" class="form-control" rows="4"
+                                  placeholder="Комментарий для клиента...">{{ return.admin_comment }}</textarea>
+                    </div>
+                </div>
+
+                <!-- ===== СТАТУС ===== -->
+                <div class="card mb-3">
+                    <div class="card-header"><h5 class="mb-0">📊 Статус и обработка</h5></div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Статус</label>
+                                <select name="status" class="form-select">
+                                    {% for code, name in status_choices %}
+                                        <option value="{{ code }}" {% if return.status == code %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Обработал</label>
+                                <input type="text" class="form-control"
+                                       value="{% if return.processed_by %}{{ return.processed_by.email }}{% else %}—{% endif %}"
+                                       disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Дата обработки</label>
+                                <input type="text" class="form-control"
+                                       value="{% if return.processed_at %}{{ return.processed_at|date:'d.m.Y H:i' }}{% else %}—{% endif %}"
+                                       disabled>
+                            </div>
+                            {% if return.refund_amount %}
+                            <div class="col-md-6">
+                                <label class="form-label small">Сумма возврата</label>
+                                <input type="text" class="form-control" value="{{ return.refund_amount }} ₽" disabled>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== КНОПКИ ===== -->
+                <div class="d-flex gap-2 mb-4 flex-wrap form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+                    <a href="{% url 'admin_panel:returns_list' %}" class="btn btn-secondary">Отмена</a>
+                </div>
+            </div>
+
+            <!-- ===== ПРАВАЯ КОЛОНКА ===== -->
+            <div class="col-12 col-md-5">
+
+                <!-- Позиции -->
+                <div class="card mb-3">
+                    <div class="card-header"><h5 class="mb-0">📦 Позиции ({{ items|length }})</h5></div>
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                {% for item in items %}
+                                    <tr>
+                                        <td>
+                                            <div>{{ item.product_name }}</div>
+                                            {% if item.size %}<small class="text-muted">Размер: {{ item.size }}</small>{% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {{ item.price }} ₽ × {{ item.quantity }}
+                                            <div><strong>{{ item.total_price }} ₽</strong></div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td class="text-muted">Позиций нет</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td><strong>Итого</strong></td>
+                                    <td class="text-end"><strong>{{ return.total_price }} ₽</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Фото -->
+                {% if photos %}
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">📷 Фото ({{ photos|length }})</h5></div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for photo in photos %}
+                                <a href="{{ photo.image.url }}" target="_blank">
+                                    <img src="{{ photo.image.url }}" alt="Фото"
+                                         style="width: 90px; height: 90px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef;">
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(function (c) {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+        return v;
+    }
+
+    function sendAction(url, confirmText, btn) {
+        if (!confirm(confirmText)) return;
+
+        btn.disabled = true;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Ошибка');
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        })
+        .catch(() => {
+            alert('Ошибка сети');
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        });
+    }
+
+    const approveBtn = document.querySelector('.return-approve-btn');
+    if (approveBtn) {
+        approveBtn.addEventListener('click', function () {
+            sendAction(
+                '/admin-panel/returns/{{ return.id }}/approve/',
+                'Одобрить возврат R-{{ return.id }}?',
+                this
+            );
+        });
+    }
+
+    const rejectBtn = document.querySelector('.return-reject-btn');
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', function () {
+            sendAction(
+                '/admin-panel/returns/{{ return.id }}/reject/',
+                'Отклонить возврат R-{{ return.id }}?',
+                this
+            );
+        });
+    }
+
+    const completeBtn = document.querySelector('.return-complete-btn');
+    if (completeBtn) {
+        completeBtn.addEventListener('click', function () {
+            sendAction(
+                '/admin-panel/returns/{{ return.id }}/complete/',
+                'Завершить возврат R-{{ return.id }}? Товар вернётся на склад.',
+                this
+            );
+        });
+    }
+});
+</script>
+
+<style>
+/* ============ ОБЩИЕ ============ */
+.form-label.small { font-weight: 500; font-size: 12px; }
+form hr { margin: 16px 0; }
+form h6 { font-weight: 600; color: #495057; }
+
+.card-body.p-0 .table { margin-bottom: 0; }
+.card-body.p-0 .table td { vertical-align: middle; }
+
+.return-action-buttons .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+}
+
+/* ============ МОБИЛЬНЫЙ ============ */
+@media (max-width: 767.98px) {
+    .container { padding-left: 8px; padding-right: 8px; }
+    h1.mb-0 { font-size: 17px !important; word-break: break-word; line-height: 1.3; }
+    h1.mb-0 .badge { font-size: 11px; padding: 3px 8px; vertical-align: middle; }
+
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 8px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 > .d-flex {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .card-body { padding: 14px !important; }
+    .card-header h5 { font-size: 15px; }
+
+    .form-control, .form-select {
+        font-size: 15px;
+        padding: 9px 12px;
+        border-radius: 8px;
+    }
+
+    .return-action-buttons {
+        flex-direction: column;
+        gap: 8px !important;
+    }
+    .return-action-buttons .btn {
+        width: 100%;
+        padding: 11px 14px;
+        font-size: 15px;
+    }
+
+    form .d-flex.gap-2.flex-wrap {
+        flex-direction: column;
+        gap: 8px !important;
+    }
+    form .d-flex.gap-2.flex-wrap .btn {
+        width: 100%;
+        padding: 11px 14px;
+        font-size: 15px;
+        border-radius: 8px;
+        margin-left: 0 !important;
+    }
+
+    .card-body.p-0 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .card-body.p-0 .table { font-size: 13px; min-width: 280px; }
+    .card-body.p-0 .table td { padding: 8px 10px; }
+
+    form hr { margin: 12px 0; }
+    form h6 { font-size: 14px; margin-bottom: 10px !important; }
+}
+
+@media (max-width: 400px) {
+    h1.mb-0 { font-size: 16px !important; }
+    .form-control, .form-select { font-size: 14px; padding: 8px 10px; }
+    .card-body { padding: 12px !important; }
+}
+</style>
+
+{% endblock %}

@@ -160,10 +160,16 @@
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             {% for r in returns %}
-                                <li class="list-group-item">
-                                    <a href="/admin/orders/return/{{ r.id }}/change/" target="_blank">
-                                        Возврат R-{{ r.id }}
-                                    </a>
+                                <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    {% if request.user.is_superuser %}
+                                        <a href="{% url 'admin:orders_return_change' r.id %}" target="_blank">
+                                            Возврат R-{{ r.id }}
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'admin_panel:return_admin_detail' r.id %}">
+                                            Возврат R-{{ r.id }}
+                                        </a>
+                                    {% endif %}
                                     <span class="badge bg-secondary">{{ r.get_status_display }}</span>
                                 </li>
                             {% endfor %}

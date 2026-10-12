@@ -1480,3 +1480,225 @@ def category_delete(request, category_id):
 
     category.delete()
     return JsonResponse({'success': True, 'name': name})
+
+
+@staff_member_required
+def returns_list(request):
+    """Кастомная страница возвратов."""
+    from apps.orders.models import Return
+
+    qs = Return.objects.all().select_related('order', 'user').order_by('-created')
+
+    # ===== Поиск =====
+    search_query = (request.GET.get('q') or '').strip()
+    if search_query:
+        qs = qs.filter(
+            Q(id__icontains=search_query) |
+            Q(order__id__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(comment__icontains=search_query)
+        )
+
+    # ===== Фильтр по статусу =====
+    status = request.GET.get('status')
+    if status:
+        qs = qs.filter(status=status)
+
+    # ===== Фильтр по причине =====
+    reason = request.GET.get('reason')
+    if reason:
+        qs = qs.filter(reason=reason)
+
+    # ===== Фильтр по дате =====
+    date_filter = request.GET.get('date')
+    now = timezone.now()
+    if date_filter == 'today':
+        qs = qs.filter(created__date=now.date())
+    elif date_filter == 'week':
+        qs = qs.filter(created__gte=now - timedelta(days=7))
+    elif date_filter == 'month':
+        qs = qs.filter(created__year=now.year, created__month=now.month)
+    elif date_filter == 'year':
+        qs = qs.filter(created__year=now.year)
+
+    # ===== Сортировка =====
+    sort = request.GET.get('sort', '-created')
+    allowed_sorts = {
+        'id': 'id', '-id': '-id',
+        'created': 'created', '-created': '-created',
+        'status': 'status', '-status': '-status',
+        'reason': 'reason', '-reason': '-reason',
+    }
+    qs = qs.order_by(allowed_sorts.get(sort, '-created'))
+
+    # ===== Пагинация =====
+    paginator = Paginator(qs, 25)
+    page = request.GET.get('page', 1)
+    try:
+        returns = paginator.page(page)
+    except Exception:
+        returns = paginator.page(1)
+
+    # Аннотируем количество позиций и фото
+    for ret in returns:
+        ret.items_count = ret.items.count()
+
+    context = {
+        'returns': returns,
+        'total_returns': qs.count(),
+        'search_query': search_query,
+        'status_filter': status or '',
+        'reason_filter': reason or '',
+        'date_filter': date_filter or '',
+        'sort': sort,
+        'status_choices': Return.STATUS_CHOICES,
+        'reason_choices': Return.REASON_CHOICES,
+    }
+    return render(request, 'admin_panel/returns_list.html', context)
+
+
+@staff_member_required
+def return_admin_detail(request, return_id):
+    """Страница просмотра/редактирования возврата."""
+    from apps.orders.models import Return, ReturnItem, ReturnPhoto
+    ret = get_object_or_404(Return, id=return_id)
+
+    if request.method == 'POST':
+        # Обновление комментария администратора
+        ret.admin_comment = request.POST.get('admin_comment', '')
+        ret.status = request.POST.get('status', ret.status)
+        ret.processed_by = request.user
+        ret.processed_at = timezone.now()
+        ret.save()
+
+        messages.success(request, f'Возврат R-{ret.id} сохранён')
+        return redirect('admin_panel:return_admin_detail', return_id=ret.id)
+
+    items = ret.items.select_related('product').all()
+    photos = ret.photos.all()
+    order = ret.order
+
+    context = {
+        'return': ret,
+        'items': items,
+        'photos': photos,
+        'order': order,
+        'status_choices': Return.STATUS_CHOICES,
+        'reason_choices': Return.REASON_CHOICES,
+    }
+    return render(request, 'admin_panel/return_detail.html', context)
+
+
+@staff_member_required
+@require_POST
+def return_admin_approve(request, return_id):
+    """Одобрить возврат."""
+    from apps.orders.models import Return
+    ret = get_object_or_404(Return, id=return_id)
+
+    if ret.status not in ('new', 'review'):
+        return JsonResponse({
+            'success': False,
+            'error': f'Нельзя одобрить возврат в статусе «{ret.get_status_display()}»',
+        }, status=400)
+
+    if ret.approve(request.user):
+        return JsonResponse({
+            'success': True,
+            'return_id': ret.id,
+            'action': 'approved',
+            'status': ret.get_status_display(),
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'error': 'Не удалось одобрить возврат',
+        }, status=400)
+
+
+@staff_member_required
+@require_POST
+def return_admin_reject(request, return_id):
+    """Отклонить возврат."""
+    from apps.orders.models import Return
+    ret = get_object_or_404(Return, id=return_id)
+
+    if ret.status not in ('new', 'review', 'approved'):
+        return JsonResponse({
+            'success': False,
+            'error': f'Нельзя отклонить возврат в статусе «{ret.get_status_display()}»',
+        }, status=400)
+
+    ret.status = 'rejected'
+    ret.processed_by = request.user
+    ret.processed_at = timezone.now()
+    ret.save(update_fields=['status', 'processed_by', 'processed_at'])
+
+    return JsonResponse({
+        'success': True,
+        'return_id': ret.id,
+        'action': 'rejected',
+        'status': ret.get_status_display(),
+    })
+
+
+@staff_member_required
+@require_POST
+def return_admin_complete(request, return_id):
+    """Завершить возврат (товар получен обратно)."""
+    from apps.orders.models import Return
+    ret = get_object_or_404(Return, id=return_id)
+
+    if ret.status != 'approved':
+        return JsonResponse({
+            'success': False,
+            'error': f'Завершить можно только одобренный возврат (текущий: «{ret.get_status_display()}»)',
+        }, status=400)
+
+    if ret.complete(request.user):
+        return JsonResponse({
+            'success': True,
+            'return_id': ret.id,
+            'action': 'completed',
+            'status': ret.get_status_display(),
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'error': 'Не удалось завершить возврат',
+        }, status=400)
+
+
+@staff_member_required
+def returns_export(request):
+    """Выгрузка возвратов в CSV."""
+    from apps.orders.models import Return
+
+    qs = Return.objects.all().select_related('order', 'user').order_by('-created')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="returns.csv"'
+    response.write('\ufeff')
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', 'Дата', 'Заказ', 'Клиент', 'Причина', 'Комментарий',
+        'Статус', 'Позиций', 'Сумма', 'Обработал', 'Обработан',
+    ])
+
+    for r in qs:
+        writer.writerow([
+            r.id,
+            r.created.strftime('%d.%m.%Y %H:%M'),
+            f'№{r.order.id}' if r.order else '',
+            r.user.email if r.user else '',
+            r.get_reason_display(),
+            r.comment,
+            r.get_status_display(),
+            r.items.count(),
+            r.total_price,
+            r.processed_by.email if r.processed_by else '',
+            r.processed_at.strftime('%d.%m.%Y %H:%M') if r.processed_at else '',
+        ])
+
+    return response
