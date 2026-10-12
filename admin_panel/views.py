@@ -829,7 +829,14 @@ def unit_formula_delete(request):
 
 @staff_member_required
 def users_list(request):
-    """Кастомная страница пользователей."""
+    """Кастомная страница пользователей. Только для суперпользователей."""
+    if not request.user.is_superuser:
+        messages.warning(
+            request,
+            'Просмотр данного раздела разрешён только суперпользователю!'
+        )
+        return redirect('admin_panel:dashboard')
+
     from django.contrib.auth import get_user_model
     User = get_user_model()
 
@@ -1182,7 +1189,11 @@ def order_admin_detail(request, order_id):
 @staff_member_required
 @require_POST
 def order_admin_delete(request, order_id):
-    """AJAX-удаление заказа."""
+    if not request.user.is_superuser:
+        return JsonResponse({
+            'success': False,
+            'error': 'Удалять заказы может только суперпользователь',
+        }, status=403)
     order = get_object_or_404(Order, id=order_id)
     order_id_str = order.id
     order.delete()
@@ -1224,6 +1235,11 @@ def orders_bulk_action(request):
         return JsonResponse({'success': True, 'updated': qs.count(), 'action': action})
 
     if action == 'delete':
+        if not request.user.is_superuser:
+            return JsonResponse({
+                'success': False,
+                'error': 'Удалять заказы может только суперпользователь',
+            }, status=403)
         count = qs.count()
         qs.delete()
         return JsonResponse({'success': True, 'deleted': count, 'action': action})

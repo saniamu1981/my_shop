@@ -51,17 +51,21 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-center gap-2 dashboard-actions">
                         <a href="{% url 'admin_panel:category_add' %}" class="btn btn-success">
-                            ➕ Добавить категорию
+                            ➕ Категории
                         </a>
                         <a href="{% url 'admin_panel:product_add' %}" class="btn btn-primary">
-                            ➕ Добавить товар
+                            ➕ Товары
                         </a>
                         <a href="{% url 'admin_panel:orders_list' %}" class="btn btn-info">
-                            📋 Просмотр заказов
+                            📋 Заказы
                         </a>
-                        <a href="{% url 'admin_panel:users_list' %}" class="btn btn-warning">
-                            👥 Просмотр пользователей
-                        </a>
+                        <button type="button"
+                                class="btn btn-warning"
+                                id="usersListBtn"
+                                data-is-superuser="{% if request.user.is_superuser %}1{% else %}0{% endif %}"
+                                data-users-url="{% url 'admin_panel:users_list' %}">
+                            👥 Пользователи
+                        </button>
                         <a href="{% url 'admin_panel:stock_list' %}" class="btn btn-outline-primary">
                             💰 Цены и остатки
                         </a>
@@ -608,6 +612,28 @@
     </div>
 </div>
 
+<!-- ===== Модалка: доступ только суперпользователю ===== -->
+<div class="modal fade" id="superuserOnlyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">⚠️ Внимание!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-shield-lock" style="font-size: 48px; color: #ffc107;"></i>
+                <h4 class="mt-3">Доступ запрещён</h4>
+                <p class="text-muted mb-0">
+                    Просмотр данного раздела разрешён только суперпользователю!
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 /* Уменьшаем шрифт в таблицах дашборда */
 .dashboard-table-sm th,
@@ -994,6 +1020,26 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     });
+
+    // ===== Кнопка "Просмотр пользователей" — только для суперпользователя =====
+    const usersListBtn = document.getElementById('usersListBtn');
+    if (usersListBtn) {
+        usersListBtn.addEventListener('click', function () {
+            const isSuperuser = this.dataset.isSuperuser === '1';
+            const url = this.dataset.usersUrl;
+
+            if (isSuperuser) {
+                window.location.href = url;
+            } else {
+                const modalEl = document.getElementById('superuserOnlyModal');
+                if (modalEl) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else {
+                    alert('Просмотр данного раздела разрешён только суперпользователю!');
+                }
+            }
+        });
+    }
 
     // Вспомогательная функция для получения CSRF-токена из cookie
     function getCookie(name) {

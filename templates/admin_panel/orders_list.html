@@ -90,7 +90,9 @@
                         <option value="mark_paid">✅ Отметить оплаченными</option>
                         <option value="mark_unpaid">❌ Отметить неоплаченными</option>
                         <option value="set_status">🔄 Сменить статус…</option>
-                        <option value="delete">🗑 Удалить</option>
+                        {% if request.user.is_superuser %}
+                            <option value="delete">🗑 Удалить</option>
+                        {% endif %}
                     </select>
                     <select name="new_status" class="form-select form-select-sm d-none bulk-status-select" id="newStatusSelect">
                         <option value="">--- Новый статус ---</option>
@@ -188,16 +190,18 @@
                                        class="btn btn-sm btn-outline-primary" title="Просмотр">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{% url 'admin:orders_order_change' order.id %}"
-                                       class="btn btn-sm btn-outline-secondary" title="В админке" target="_blank">
-                                        <i class="bi bi-gear"></i>
-                                    </a>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger order-delete-btn"
-                                            data-order-id="{{ order.id }}"
-                                            title="Удалить">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    {% if request.user.is_superuser %}
+                                        <a href="{% url 'admin:orders_order_change' order.id %}"
+                                           class="btn btn-sm btn-outline-secondary" title="В админке" target="_blank">
+                                            <i class="bi bi-gear"></i>
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger order-delete-btn"
+                                                data-order-id="{{ order.id }}"
+                                                title="Удалить">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% empty %}
@@ -267,21 +271,24 @@
                                class="btn btn-sm btn-outline-primary">
                                 👁 Открыть
                             </a>
-                            <a href="{% url 'admin:orders_order_change' order.id %}"
-                               class="btn btn-sm btn-outline-secondary" target="_blank">
-                                ⚙️ Админка
-                            </a>
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-danger order-delete-btn"
-                                    data-order-id="{{ order.id }}">
-                                🗑 Удалить
-                            </button>
+                            {% if request.user.is_superuser %}
+                                <a href="{% url 'admin:orders_order_change' order.id %}"
+                                   class="btn btn-sm btn-outline-secondary" target="_blank">
+                                    ⚙️ Админка
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger order-delete-btn"
+                                        data-order-id="{{ order.id }}">
+                                    🗑 Удалить
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
                 {% empty %}
                     <div class="text-center text-muted py-4">Заказов не найдено.</div>
                 {% endfor %}
             </div>
+        </div>
 
         {# Пагинация #}
         {% if orders.has_other_pages %}

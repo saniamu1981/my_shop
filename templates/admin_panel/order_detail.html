@@ -12,10 +12,12 @@
             {% if order.paid %}<span class="badge bg-success">Оплачен</span>{% endif %}
         </h1>
         <div class="d-flex gap-2">
-            <a href="{% url 'admin:orders_order_change' order.id %}"
-               class="btn btn-outline-secondary btn-sm" target="_blank">
-                ⚙️ В админке
-            </a>
+            {% if request.user.is_superuser %}
+                <a href="{% url 'admin:orders_order_change' order.id %}"
+                   class="btn btn-outline-secondary btn-sm" target="_blank">
+                    ⚙️ В админке
+                </a>
+            {% endif %}
             <a href="{% url 'admin_panel:orders_list' %}" class="btn btn-outline-secondary btn-sm">
                 ← К списку
             </a>

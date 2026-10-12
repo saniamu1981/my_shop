@@ -63,10 +63,12 @@
                                    class="btn btn-sm btn-outline-primary" title="Редактировать">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a href="{% url 'admin:products_category_change' cat.id %}"
-                                   class="btn btn-sm btn-outline-secondary" title="В админке" target="_blank">
-                                    <i class="bi bi-gear"></i>
-                                </a>
+                                {% if request.user.is_superuser %}
+                                    <a href="{% url 'admin:products_category_change' cat.id %}"
+                                       class="btn btn-sm btn-outline-secondary" title="В админке" target="_blank">
+                                        <i class="bi bi-gear"></i>
+                                    </a>
+                                {% endif %}
                                 <button type="button"
                                         class="btn btn-sm btn-outline-danger category-delete-btn"
                                         data-category-id="{{ cat.id }}"
@@ -115,10 +117,12 @@
                            class="btn btn-sm btn-outline-primary">
                             ✏️ Редактировать
                         </a>
-                        <a href="{% url 'admin:products_category_change' cat.id %}"
-                           class="btn btn-sm btn-outline-secondary" target="_blank">
-                            ⚙️ Админка
-                        </a>
+                        {% if request.user.is_superuser %}
+                            <a href="{% url 'admin:products_category_change' cat.id %}"
+                               class="btn btn-sm btn-outline-secondary" target="_blank">
+                                ⚙️ Админка
+                            </a>
+                        {% endif %}
                         <button type="button"
                                 class="btn btn-sm btn-outline-danger category-delete-btn"
                                 data-category-id="{{ cat.id }}"

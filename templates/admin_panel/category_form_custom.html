@@ -15,7 +15,7 @@
             {% endif %}
         </h1>
         <div class="d-flex gap-2">
-            {% if is_edit %}
+            {% if is_edit and request.user.is_superuser %}
                 <a href="{% url 'admin:products_category_change' category.id %}"
                    class="btn btn-outline-secondary btn-sm" target="_blank">
                     ⚙️ В админке
