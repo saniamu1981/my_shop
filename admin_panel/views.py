@@ -1377,3 +1377,90 @@ def product_delete(request, product_id):
     name = product.name
     product.delete()
     return JsonResponse({'success': True, 'name': name})
+
+
+
+@staff_member_required
+def categories_list(request):
+    """Список всех категорий."""
+    from apps.products.models import Category
+
+    categories = Category.objects.annotate(
+        products_count=Count('products')
+    ).order_by('name')
+
+    context = {
+        'categories': categories,
+    }
+    return render(request, 'admin_panel/categories_list.html', context)
+
+
+@staff_member_required
+def category_add(request):
+    """Кастомная страница добавления категории."""
+    from apps.products.forms import CategoryForm
+
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, request.FILES)
+        if form.is_valid():
+            category = form.save()
+            messages.success(request, f'Категория «{category.name}» создана')
+            return redirect('admin_panel:categories_list')
+        else:
+            messages.error(request, 'Проверьте ошибки в форме')
+    else:
+        form = CategoryForm()
+
+    context = {
+        'form': form,
+        'is_edit': False,
+    }
+    return render(request, 'admin_panel/category_form_custom.html', context)
+
+
+@staff_member_required
+def category_edit(request, category_id):
+    """Кастомная страница редактирования категории."""
+    from apps.products.forms import CategoryForm
+    from apps.products.models import Category
+
+    category = get_object_or_404(Category, id=category_id)
+
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, request.FILES, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Категория «{category.name}» сохранена')
+            return redirect('admin_panel:categories_list')
+        else:
+            messages.error(request, 'Проверьте ошибки в форме')
+    else:
+        form = CategoryForm(instance=category)
+
+    context = {
+        'form': form,
+        'category': category,
+        'is_edit': True,
+    }
+    return render(request, 'admin_panel/category_form_custom.html', context)
+
+
+@staff_member_required
+@require_POST
+def category_delete(request, category_id):
+    """AJAX-удаление категории."""
+    from apps.products.models import Category
+
+    category = get_object_or_404(Category, id=category_id)
+    name = category.name
+
+    # Проверка: есть ли товары в категории
+    products_count = category.products.count()
+    if products_count > 0:
+        return JsonResponse({
+            'success': False,
+            'error': f'Нельзя удалить категорию: в ней {products_count} товаров',
+        }, status=400)
+
+    category.delete()
+    return JsonResponse({'success': True, 'name': name})

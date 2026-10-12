@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Категории — Maidlingerie{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="mb-0">
+            🏷️ Категории
+            <span class="badge bg-secondary">{{ categories|length }}</span>
+        </h1>
+        <div class="d-flex gap-2">
+            <a href="{% url 'admin_panel:category_add' %}" class="btn btn-primary btn-sm">
+                ➕ Добавить категорию
+            </a>
+            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                ← Назад
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive d-none d-md-block">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 80px;">Фото</th>
+                        <th>Название</th>
+                        <th class="d-none d-lg-table-cell">Slug</th>
+                        <th class="text-end">Товаров</th>
+                        <th class="text-end" style="width: 130px;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                        <tr data-category-id="{{ cat.id }}">
+                            <td>
+                                {% if cat.image %}
+                                    <img src="{{ cat.image.url }}" alt="{{ cat.name }}"
+                                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                {% else %}
+                                    <div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 10px;">
+                                        нет
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'admin_panel:category_edit' cat.id %}"
+                                   class="text-decoration-none">
+                                    <strong>{{ cat.name }}</strong>
+                                </a>
+                            </td>
+                            <td class="d-none d-lg-table-cell">
+                                <code>{{ cat.slug }}</code>
+                            </td>
+                            <td class="text-end">
+                                <span class="badge bg-info text-dark">{{ cat.products_count }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'admin_panel:category_edit' cat.id %}"
+                                   class="btn btn-sm btn-outline-primary" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'admin:products_category_change' cat.id %}"
+                                   class="btn btn-sm btn-outline-secondary" title="В админке" target="_blank">
+                                    <i class="bi bi-gear"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger category-delete-btn"
+                                        data-category-id="{{ cat.id }}"
+                                        data-category-name="{{ cat.name }}"
+                                        title="Удалить">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                Категорий пока нет.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ===== МОБИЛЬНЫЕ КАРТОЧКИ ===== -->
+        <div class="d-md-none p-3">
+            {% for cat in categories %}
+                <div class="category-card">
+                    <div class="category-card-header">
+                        <div class="category-card-thumb">
+                            {% if cat.image %}
+                                <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+                            {% else %}
+                                <div class="category-card-thumb-empty">🏷️</div>
+                            {% endif %}
+                        </div>
+                        <div class="category-card-info">
+                            <a href="{% url 'admin_panel:category_edit' cat.id %}"
+                               class="category-card-title">
+                                {{ cat.name }}
+                            </a>
+                            <div class="category-card-meta">
+                                <span class="badge bg-info text-dark">{{ cat.products_count }} товаров</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="category-card-actions">
+                        <a href="{% url 'admin_panel:category_edit' cat.id %}"
+                           class="btn btn-sm btn-outline-primary">
+                            ✏️ Редактировать
+                        </a>
+                        <a href="{% url 'admin:products_category_change' cat.id %}"
+                           class="btn btn-sm btn-outline-secondary" target="_blank">
+                            ⚙️ Админка
+                        </a>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger category-delete-btn"
+                                data-category-id="{{ cat.id }}"
+                                data-category-name="{{ cat.name }}">
+                            🗑 Удалить
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center text-muted py-4">
+                    Категорий пока нет.
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(function (c) {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+        return v;
+    }
+
+    document.querySelectorAll('.category-delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = this.dataset.categoryId;
+            const name = this.dataset.categoryName;
+            if (!confirm('Удалить категорию «' + name + '»?')) return;
+
+            fetch('/admin-panel/categories/' + id + '/delete/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Ошибка');
+                }
+            })
+            .catch(() => alert('Ошибка сети'));
+        });
+    });
+});
+</script>
+
+<style>
+/* ============ ОБЩИЕ ============ */
+.category-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.category-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.category-card-thumb img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+    border: 1px solid #e9ecef;
+}
+.category-card-thumb-empty {
+    width: 60px;
+    height: 60px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.category-card-info {
+    flex: 1;
+    min-width: 0;
+}
+.category-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #212529;
+    text-decoration: none;
+    display: block;
+    word-break: break-word;
+    margin-bottom: 4px;
+}
+.category-card-title:hover {
+    color: #0d6efd;
+}
+.category-card-meta .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+.category-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.category-card-actions .btn {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 8px;
+}
+
+
+/* ============ МОБИЛЬНЫЙ ============ */
+@media (max-width: 767.98px) {
+    .container-fluid {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    h1.mb-0 {
+        font-size: 20px !important;
+    }
+    h1.mb-0 .badge {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 8px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 > .d-flex {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 400px) {
+    h1.mb-0 {
+        font-size: 18px !important;
+    }
+    .category-card-thumb img,
+    .category-card-thumb-empty {
+        width: 50px;
+        height: 50px;
+    }
+    .category-card-title {
+        font-size: 14px;
+    }
+    .category-card-actions .btn {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
+</style>
+
+{% endblock %}
