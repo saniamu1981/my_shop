@@ -83,31 +83,32 @@
         {% csrf_token %}
 
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <select name="action" class="form-select form-select-sm" style="width: auto;">
+            <div class="card-header">
+                <div class="bulk-actions">
+                    <select name="action" class="form-select form-select-sm bulk-action-select">
                         <option value="">--- Действие ---</option>
                         <option value="mark_paid">✅ Отметить оплаченными</option>
                         <option value="mark_unpaid">❌ Отметить неоплаченными</option>
                         <option value="set_status">🔄 Сменить статус…</option>
                         <option value="delete">🗑 Удалить</option>
                     </select>
-                    <select name="new_status" class="form-select form-select-sm d-none" id="newStatusSelect" style="width: auto;">
+                    <select name="new_status" class="form-select form-select-sm d-none bulk-status-select" id="newStatusSelect">
                         <option value="">--- Новый статус ---</option>
                         {% for code, name in status_choices %}
                             <option value="{{ code }}">{{ name }}</option>
                         {% endfor %}
                     </select>
-                    <button type="button" id="bulkApplyBtn" class="btn btn-sm btn-secondary">
+                    <button type="button" id="bulkApplyBtn" class="btn btn-sm btn-secondary bulk-apply-btn">
                         Выполнить
                     </button>
-                    <span class="text-muted small">
+                    <span class="text-muted small bulk-selected">
                         Выбрано: <span id="selectedCount">0</span>
                     </span>
                 </div>
             </div>
 
-            <div class="table-responsive">
+            <!-- ===== ДЕСКТОП: таблица ===== -->
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-sm table-hover align-middle mb-0" id="ordersTable">
                     <thead class="table-light">
                         <tr>
@@ -119,20 +120,20 @@
                                     ID {% if sort == 'id' %}▲{% elif sort == '-id' %}▼{% endif %}
                                 </a>
                             </th>
-                            <th class="d-none d-md-table-cell">Клиент</th>
+                            <th>Клиент</th>
                             <th class="text-end">
                                 <a href="?sort={% if sort == 'total_price' %}-total_price{% else %}total_price{% endif %}" class="text-decoration-none text-dark">
                                     Сумма {% if sort == 'total_price' %}▲{% elif sort == '-total_price' %}▼{% endif %}
                                 </a>
                             </th>
-                            <th class="d-none d-lg-table-cell text-center">Оплачен</th>
+                            <th class="text-center">Оплачен</th>
                             <th>
                                 <a href="?sort={% if sort == 'status' %}-status{% else %}status{% endif %}" class="text-decoration-none text-dark">
                                     Статус {% if sort == 'status' %}▲{% elif sort == '-status' %}▼{% endif %}
                                 </a>
                             </th>
-                            <th class="d-none d-lg-table-cell">Доставка</th>
-                            <th class="d-none d-xl-table-cell">
+                            <th>Доставка</th>
+                            <th>
                                 <a href="?sort={% if sort == 'created' %}-created{% else %}created{% endif %}" class="text-decoration-none text-dark">
                                     Дата {% if sort == 'created' %}▲{% elif sort == '-created' %}▼{% endif %}
                                 </a>
@@ -147,25 +148,18 @@
                                     <input type="checkbox" class="order-checkbox" value="{{ order.id }}">
                                 </td>
                                 <td>
-                                    <a href="{% url 'admin_panel:order_admin_detail' order.id %}"
-                                       class="text-decoration-none">
+                                    <a href="{% url 'admin_panel:order_admin_detail' order.id %}" class="text-decoration-none">
                                         <strong>№{{ order.id }}</strong>
                                     </a>
                                 </td>
-                                <td class="d-none d-md-table-cell">
+                                <td>
                                     {% if order.user %}
                                         <div>{{ order.user.email|truncatechars:25 }}</div>
                                     {% endif %}
-                                    <small class="text-muted">
-                                        {{ order.first_name }} {{ order.last_name }}
-                                    </small>
+                                    <small class="text-muted">{{ order.first_name }} {{ order.last_name }}</small>
                                 </td>
-                                <td class="text-end">
-                                    <strong>{{ order.total_price }} ₽</strong>
-                                </td>
-                                <td class="d-none d-lg-table-cell text-center">
-                                    {% if order.paid %}✅{% else %}❌{% endif %}
-                                </td>
+                                <td class="text-end"><strong>{{ order.total_price }} ₽</strong></td>
+                                <td class="text-center">{% if order.paid %}✅{% else %}❌{% endif %}</td>
                                 <td>
                                     {% if order.status == 'created' %}
                                         <span class="badge bg-warning text-dark">🆕 Создан</span>
@@ -181,16 +175,14 @@
                                         <span class="badge bg-danger">❌ Отменён</span>
                                     {% endif %}
                                 </td>
-                                <td class="d-none d-lg-table-cell">
+                                <td>
                                     {% if order.delivery_method %}
                                         <span class="badge bg-secondary">{{ order.get_delivery_method_display }}</span>
                                     {% else %}
                                         <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="d-none d-xl-table-cell">
-                                    <small>{{ order.created|date:"d.m.Y H:i" }}</small>
-                                </td>
+                                <td><small>{{ order.created|date:"d.m.Y H:i" }}</small></td>
                                 <td class="text-end">
                                     <a href="{% url 'admin_panel:order_admin_detail' order.id %}"
                                        class="btn btn-sm btn-outline-primary" title="Просмотр">
@@ -218,7 +210,78 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+
+            <!-- ===== МОБИЛЬНЫЙ: карточки ===== -->
+            <div class="d-md-none" id="ordersCards">
+                {% for order in orders %}
+                    <div class="order-card" data-order-id="{{ order.id }}">
+                        <div class="order-card-header">
+                            <div class="order-card-check">
+                                <input type="checkbox" class="order-checkbox" value="{{ order.id }}">
+                            </div>
+                            <a href="{% url 'admin_panel:order_admin_detail' order.id %}" class="order-card-id">
+                                №{{ order.id }}
+                            </a>
+                            <div class="order-card-sum">{{ order.total_price }} ₽</div>
+                        </div>
+
+                        <div class="order-card-client">
+                            {% if order.user %}
+                                {{ order.user.email|truncatechars:30 }}
+                            {% endif %}
+                            <div class="text-muted small">{{ order.first_name }} {{ order.last_name }}</div>
+                        </div>
+
+                        <div class="order-card-badges">
+                            {% if order.status == 'created' %}
+                                <span class="badge bg-warning text-dark">🆕 Создан</span>
+                            {% elif order.status == 'paid' %}
+                                <span class="badge bg-success">💳 Оплачен</span>
+                            {% elif order.status == 'confirmed' %}
+                                <span class="badge bg-info text-dark">✅ Подтверждён</span>
+                            {% elif order.status == 'shipped' %}
+                                <span class="badge bg-primary">📦 Отправлен</span>
+                            {% elif order.status == 'delivered' %}
+                                <span class="badge bg-success">🏁 Доставлен</span>
+                            {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">❌ Отменён</span>
+                            {% endif %}
+
+                            {% if order.paid %}
+                                <span class="badge bg-success">✅ Оплачен</span>
+                            {% else %}
+                                <span class="badge bg-secondary">❌ Не оплачен</span>
+                            {% endif %}
+
+                            {% if order.delivery_method %}
+                                <span class="badge bg-secondary">{{ order.get_delivery_method_display }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="order-card-date">
+                            <small class="text-muted">{{ order.created|date:"d.m.Y H:i" }}</small>
+                        </div>
+
+                        <div class="order-card-actions">
+                            <a href="{% url 'admin_panel:order_admin_detail' order.id %}"
+                               class="btn btn-sm btn-outline-primary">
+                                👁 Открыть
+                            </a>
+                            <a href="{% url 'admin:orders_order_change' order.id %}"
+                               class="btn btn-sm btn-outline-secondary" target="_blank">
+                                ⚙️ Админка
+                            </a>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger order-delete-btn"
+                                    data-order-id="{{ order.id }}">
+                                🗑 Удалить
+                            </button>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center text-muted py-4">Заказов не найдено.</div>
+                {% endfor %}
+            </div>
 
         {# Пагинация #}
         {% if orders.has_other_pages %}
@@ -371,14 +434,11 @@ document.addEventListener('DOMContentLoaded', function () {
 #ordersTable th a {
     white-space: nowrap;
 }
-
 #ordersTable input[type="checkbox"] {
     width: 18px;
     height: 18px;
     cursor: pointer;
 }
-
-/* Действия — в одну строку */
 #ordersTable td.text-end {
     white-space: nowrap;
 }
@@ -391,12 +451,21 @@ document.addEventListener('DOMContentLoaded', function () {
     margin-left: 0;
 }
 
-
-/* ============ ПЛАНШЕТ (≤ 991px) ============ */
-@media (max-width: 991.98px) {
-    /* Скрываем колонку «Доставка» */
-    #ordersTable th:nth-child(7),
-    #ordersTable td:nth-child(7) { display: none; }
+/* Панель массовых действий — десктоп */
+.bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.bulk-action-select,
+.bulk-status-select {
+    width: auto;
+    max-width: 260px;
+}
+.bulk-selected {
+    margin-left: auto;
+    white-space: nowrap;
 }
 
 
@@ -427,110 +496,157 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     .d-flex.justify-content-between.align-items-center.mb-4 .btn {
         width: 100%;
-        padding: 8px 12px;
+        padding: 10px 12px;
         font-size: 14px;
         text-align: center;
     }
 
     /* ===== Фильтры ===== */
+    .card-body form.row {
+        row-gap: 8px;
+    }
     .card-body form.row > [class*="col-"] {
         margin-bottom: 0;
     }
     .card-body form.row .form-label.small {
         font-size: 11px;
-        margin-bottom: 2px;
+        margin-bottom: 3px;
     }
     .card-body form.row .form-control-sm,
     .card-body form.row .form-select-sm {
         font-size: 14px;
-        padding: 7px 10px;
+        padding: 8px 10px;
+        height: auto;
+        min-height: 38px;
     }
 
     /* ===== Панель массовых действий ===== */
-    .card-header .d-flex.align-items-center.gap-2 {
+    .bulk-actions {
         flex-direction: column;
-        align-items: stretch !important;
-        gap: 6px !important;
+        align-items: stretch;
+        gap: 8px;
     }
-    .card-header select.form-select-sm {
+    .bulk-action-select,
+    .bulk-status-select {
         width: 100% !important;
+        max-width: 100%;
+        font-size: 14px;
+        padding: 9px 12px;
+        min-height: 42px;
     }
-    .card-header #bulkApplyBtn {
+    .bulk-apply-btn {
         width: 100%;
-        padding: 8px 12px;
+        padding: 10px 12px;
         font-size: 14px;
     }
-    #selectedCount {
-        font-weight: 600;
+    .bulk-selected {
+        margin-left: 0;
         text-align: center;
         display: block;
         font-size: 13px;
     }
-
-    /* ===== Таблица — компактнее ===== */
-    #ordersTable th,
-    #ordersTable td {
-        padding: 6px 8px !important;
-        font-size: 13px;
+    #selectedCount {
+        font-weight: 600;
     }
-    #ordersTable input[type="checkbox"] {
+
+    /* ===== Карточки заказов ===== */
+    .order-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .order-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .order-card-check input[type="checkbox"] {
         width: 20px;
         height: 20px;
+        cursor: pointer;
+    }
+    .order-card-id {
+        font-size: 15px;
+        font-weight: 600;
+        color: #0d6efd;
+        text-decoration: none;
+        flex: 1;
+    }
+    .order-card-sum {
+        font-size: 16px;
+        font-weight: 700;
+        color: #212529;
+        white-space: nowrap;
     }
 
-    /* Кнопки действий — компактнее, но крупнее иконки */
-    #ordersTable td.text-end {
-        padding-right: 6px !important;
-    }
-    #ordersTable td.text-end .btn {
-        padding: 5px 7px;
-        font-size: 14px;
-        margin-left: 2px;
+    .order-card-client {
+        font-size: 13px;
+        color: #495057;
+        margin-bottom: 8px;
+        word-break: break-word;
     }
 
-    #ordersTable .badge {
-        font-size: 10px;
-        padding: 3px 6px;
+    .order-card-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    .order-card-badges .badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 6px;
     }
 
-    /* Колонка «Клиент» уже скрыта Bootstrap-ом, оставим */
-    /* Скрываем колонку «Оплачен» на мобильном для компактности */
-    #ordersTable th:nth-child(5),
-    #ordersTable td:nth-child(5) { display: none; }
-
-    /* Скрываем колонку «Дата» — она и так d-none d-xl-table-cell */
-}
-
-
-/* ============ ОЧЕНЬ УЗКИЕ ЭКРАНЫ (≤ 480px) ============ */
-@media (max-width: 480px) {
-
-    h1.mb-0 {
-        font-size: 18px !important;
-    }
-
-    #ordersTable th,
-    #ordersTable td {
-        padding: 5px 6px !important;
+    .order-card-date {
+        margin-bottom: 10px;
         font-size: 12px;
     }
 
-    /* Скрываем колонку «Статус» — оставляем ID, Сумма, Действия */
-    #ordersTable th:nth-child(6),
-    #ordersTable td:nth-child(6) { display: none; }
-
-    /* Кнопки действий — по 2 в строку */
-    #ordersTable td.text-end {
+    .order-card-actions {
         display: flex;
         flex-direction: column;
-        gap: 3px;
-        align-items: flex-end;
+        gap: 6px;
     }
-    #ordersTable td.text-end .btn {
-        padding: 4px 6px;
+    .order-card-actions .btn {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 14px;
+        border-radius: 8px;
+        text-align: center;
+    }
+}
+
+
+/* ============ ОЧЕНЬ УЗКИЕ ЭКРАНЫ (≤ 400px) ============ */
+@media (max-width: 400px) {
+    h1.mb-0 {
+        font-size: 18px !important;
+    }
+    .card-body form.row .form-control-sm,
+    .card-body form.row .form-select-sm {
         font-size: 13px;
-        width: 36px;
-        margin-left: 0;
+        padding: 7px 10px;
+    }
+    .order-card {
+        padding: 12px;
+    }
+    .order-card-id {
+        font-size: 14px;
+    }
+    .order-card-sum {
+        font-size: 15px;
+    }
+    .order-card-actions .btn {
+        padding: 8px 10px;
+        font-size: 13px;
     }
 }
 </style>

@@ -50,10 +50,12 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Slug генерируется автоматически, но можно и руками
         self.fields['slug'].required = False
-        # Категория — с пустым option
         self.fields['category'].empty_label = '--- Выберите категорию ---'
+
+        # ===== «В наличии» включено по умолчанию =====
+        if not self.instance.pk:  # только для новых товаров
+            self.fields['available'].initial = True
 
 
 class ProductImageForm(forms.ModelForm):

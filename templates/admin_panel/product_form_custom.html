@@ -88,10 +88,12 @@
                         {{ form.weight }}
                         {% if form.weight.errors %}<div class="text-danger small">{{ form.weight.errors }}</div>{% endif %}
                     </div>
-                    <div class="col-12 col-md-4 d-flex align-items-end">
+                    <div class="col-12 col-md-4 d-flex align-items-center">
                         <div class="form-check form-switch">
                             {{ form.available }}
-                            <label class="form-check-label" for="{{ form.available.id_for_label }}">В наличии</label>
+                            <label class="form-check-label ms-2" for="{{ form.available.id_for_label }}">
+                                В наличии
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -823,6 +825,49 @@ document.addEventListener('DOMContentLoaded', function () {
     margin: 0;
     cursor: pointer;
     vertical-align: middle;
+}
+
+/* ===== Чекбокс "В наличии" ===== */
+#productForm .form-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    margin: 0;
+    padding-left: 0;
+}
+#productForm .form-check-input {
+    width: 20px;
+    height: 20px;
+    margin: 0 !important;
+    flex-shrink: 0;
+    cursor: pointer;
+    position: static !important;
+    float: none !important;
+}
+#productForm .form-check-label {
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+}
+
+/* Switch-вариант (если оставляете form-switch) */
+#productForm .form-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 0 !important;
+    min-height: 38px;
+}
+#productForm .form-switch .form-check-input {
+    margin-left: 0 !important;
+    width: 40px;
+    height: 20px;
+    flex-shrink: 0;
+}
+#productForm .form-switch .form-check-label {
+    margin-left: 0 !important;
 }
 </style>
 
