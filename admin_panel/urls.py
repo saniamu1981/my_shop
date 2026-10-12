@@ -48,4 +48,6 @@ urlpatterns = [
     path('returns/<int:return_id>/approve/', views.return_admin_approve, name='return_admin_approve'),
     path('returns/<int:return_id>/reject/', views.return_admin_reject, name='return_admin_reject'),
     path('returns/<int:return_id>/complete/', views.return_admin_complete, name='return_admin_complete'),
+    path('returns/bulk-action/', views.returns_bulk_action, name='returns_bulk_action'),
+    path('returns/<int:return_id>/delete/', views.return_admin_delete, name='return_admin_delete'),
 ]

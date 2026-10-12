@@ -1702,3 +1702,74 @@ def returns_export(request):
         ])
 
     return response
+
+@staff_member_required
+@require_POST
+def returns_bulk_action(request):
+    """Массовые действия над возвратами."""
+    from apps.orders.models import Return
+
+    action = request.POST.get('action')
+    ids = request.POST.getlist('ids[]') or request.POST.get('ids', '').split(',')
+
+    try:
+        ids = [int(i) for i in ids if str(i).strip()]
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Некорректные IDs'}, status=400)
+
+    if not ids:
+        return JsonResponse({'success': False, 'error': 'Не выбрано ни одного возврата'}, status=400)
+
+    qs = Return.objects.filter(id__in=ids)
+
+    if action == 'approve':
+        count = 0
+        for ret in qs:
+            if ret.status in ('new', 'review') and ret.approve(request.user):
+                count += 1
+        return JsonResponse({'success': True, 'updated': count, 'action': action})
+
+    if action == 'reject':
+        count = qs.filter(status__in=['new', 'review', 'approved']).update(
+            status='rejected',
+            processed_by=request.user,
+            processed_at=timezone.now(),
+        )
+        return JsonResponse({'success': True, 'updated': count, 'action': action})
+
+    if action == 'complete':
+        count = 0
+        for ret in qs.filter(status='approved'):
+            if ret.complete(request.user):
+                count += 1
+        return JsonResponse({'success': True, 'updated': count, 'action': action})
+
+    if action == 'delete':
+        if not request.user.is_superuser:
+            return JsonResponse({
+                'success': False,
+                'error': 'Удалять возвраты может только суперпользователь',
+            }, status=403)
+        count = qs.count()
+        qs.delete()
+        return JsonResponse({'success': True, 'deleted': count, 'action': action})
+
+    return JsonResponse({'success': False, 'error': 'Неизвестное действие'}, status=400)
+
+
+@staff_member_required
+@require_POST
+def return_admin_delete(request, return_id):
+    """AJAX-удаление возврата (только суперпользователь)."""
+    from apps.orders.models import Return
+
+    if not request.user.is_superuser:
+        return JsonResponse({
+            'success': False,
+            'error': 'Удалять возвраты может только суперпользователь',
+        }, status=403)
+
+    ret = get_object_or_404(Return, id=return_id)
+    ret_id = ret.id
+    ret.delete()
+    return JsonResponse({'success': True, 'return_id': ret_id})
