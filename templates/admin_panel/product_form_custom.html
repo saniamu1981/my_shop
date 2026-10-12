@@ -1,0 +1,829 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Редактирование: {{ product.name }}{% else %}Добавить товар{% endif %} — Maidlingerie{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="mb-0">
+            {% if is_edit %}
+                ✏️ {{ product.name }}
+            {% else %}
+                ➕ Добавить товар
+            {% endif %}
+        </h1>
+        <div class="d-flex gap-2">
+            {% if is_edit %}
+                <a href="{% url 'admin:products_product_change' product.id %}"
+                   class="btn btn-outline-secondary btn-sm" target="_blank">
+                    ⚙️ В админке
+                </a>
+            {% endif %}
+            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                ← Назад
+            </a>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="productForm">
+        {% csrf_token %}
+
+        <!-- ===== ОСНОВНАЯ ИНФОРМАЦИЯ ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">📋 Основная информация</h5></div>
+            <div class="card-body">
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Категория *</label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="text-danger small">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Артикул</label>
+                        {{ form.sku }}
+                        {% if form.sku.errors %}<div class="text-danger small">{{ form.sku.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Название *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Slug</label>
+                        {{ form.slug }}
+                        <div class="form-text">Генерируется автоматически при сохранении, если оставить пустым.</div>
+                        {% if form.slug.errors %}<div class="text-danger small">{{ form.slug.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Описание *</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ЦЕНА И НАЛИЧИЕ ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">💰 Цена и наличие</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Цена *</label>
+                        {{ form.price }}
+                        <div class="form-text">Если есть размеры с ценами, эта цена будет пересчитана как минимальная.</div>
+                        {% if form.price.errors %}<div class="text-danger small">{{ form.price.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Вес, г</label>
+                        {{ form.weight }}
+                        {% if form.weight.errors %}<div class="text-danger small">{{ form.weight.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end">
+                        <div class="form-check form-switch">
+                            {{ form.available }}
+                            <label class="form-check-label" for="{{ form.available.id_for_label }}">В наличии</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ГЛАВНОЕ ИЗОБРАЖЕНИЕ ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">🖼 Главное изображение</h5></div>
+            <div class="card-body">
+                {{ form.image }}
+                {% if form.image.errors %}<div class="text-danger small">{{ form.image.errors }}</div>{% endif %}
+                {% if is_edit and product.image %}
+                    <div class="mt-2">
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="max-width: 150px; border-radius: 8px;">
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ===== ХАРАКТЕРИСТИКИ ===== -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">📝 Характеристики товара</h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+                        data-bs-target="#specsBlock">
+                    Показать / Скрыть
+                </button>
+            </div>
+            <div class="collapse" id="specsBlock">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Материал</label>{{ form.material }}</div>
+                        <div class="col-md-6"><label class="form-label">Состав материала</label>{{ form.composition }}</div>
+                        <div class="col-md-6"><label class="form-label">Размер на модели</label>{{ form.size_on_model }}</div>
+                        <div class="col-md-6"><label class="form-label">Рост на модели</label>{{ form.height_on_model }}</div>
+                        <div class="col-md-6"><label class="form-label">Параметры модели</label>{{ form.model_params }}</div>
+                        <div class="col-md-6"><label class="form-label">Цвет</label>{{ form.color }}</div>
+                        <div class="col-md-6"><label class="form-label">Российский размер</label>{{ form.russian_size }}</div>
+                        <div class="col-md-6"><label class="form-label">Страна-изготовитель</label>{{ form.country }}</div>
+                        <div class="col-md-6"><label class="form-label">Материал подкладки</label>{{ form.lining_material }}</div>
+                        <div class="col-md-6"><label class="form-label">Вид застежки</label>{{ form.fastener_type }}</div>
+                        <div class="col-md-6"><label class="form-label">Рукав</label>{{ form.sleeve }}</div>
+                        <div class="col-md-6"><label class="form-label">Состав комплекта</label>{{ form.set_composition }}</div>
+                        <div class="col-12"><label class="form-label">Уход за вещами</label>{{ form.care_instructions }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ДОКУМЕНТЫ КАЧЕСТВА ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">📄 Документы качества</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Название документа</label>{{ form.quality_document_name }}</div>
+                    <div class="col-md-6"><label class="form-label">Ссылка на документ</label>{{ form.quality_document }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ИЗОБРАЖЕНИЯ ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">🖼 Изображения товара</h5></div>
+            <div class="card-body">
+                {{ image_formset.management_form }}
+
+                <div id="imagesContainer">
+                    {% for img_form in image_formset %}
+                        <div class="inline-row" data-prefix="images">
+                            {{ img_form.id }}
+                            <div class="row g-2 align-items-end mb-2">
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label small">Изображение</label>
+                                    {{ img_form.image }}
+                                    {% if img_form.instance.image %}
+                                        <div class="mt-1">
+                                            <img src="{{ img_form.instance.image.url }}" style="max-width: 70px; border-radius: 6px;">
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label small">Основное</label>
+                                    <div>{{ img_form.is_main }}</div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label small">Порядок</label>
+                                    {{ img_form.order }}
+                                </div>
+                                <div class="col-12 col-md-4 text-end">
+                                    {% if img_form.instance.pk %}
+                                        <div class="form-check d-inline-block">
+                                            {{ img_form.DELETE }}
+                                            <label class="form-check-label text-danger" for="{{ img_form.DELETE.id_for_label }}">
+                                                🗑 Удалить
+                                            </label>
+                                        </div>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger inline-remove-btn">
+                                            🗑 Удалить
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addImageBtn">
+                    ➕ Добавить ещё одно изображение
+                </button>
+
+                {# Шаблон пустой формы #}
+                <template id="imageEmptyForm">
+                    <div class="inline-row" data-prefix="images">
+                        <div class="row g-2 align-items-end mb-2">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small">Изображение</label>
+                                {{ image_formset.empty_form.image }}
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label small">Основное</label>
+                                <div>{{ image_formset.empty_form.is_main }}</div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label small">Порядок</label>
+                                {{ image_formset.empty_form.order }}
+                            </div>
+                            <div class="col-12 col-md-4 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger inline-remove-btn">
+                                    🗑 Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ===== ВИДЕО ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">🎬 Видео товара</h5></div>
+            <div class="card-body">
+                {{ video_formset.management_form }}
+
+                <div id="videosContainer">
+                    {% for v_form in video_formset %}
+                        <div class="inline-row" data-prefix="videos">
+                            {{ v_form.id }}
+                            <div class="row g-2 align-items-end mb-2">
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label small">Видео</label>
+                                    {{ v_form.video }}
+                                    {% if v_form.instance.video %}
+                                        <div class="mt-1">
+                                            <video src="{{ v_form.instance.video.url }}" controls style="max-width: 120px; border-radius: 6px;"></video>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label small">Название</label>
+                                    {{ v_form.title }}
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label small">Основное</label>
+                                    <div>{{ v_form.is_main }}</div>
+                                </div>
+                                <div class="col-6 col-md-1">
+                                    <label class="form-label small">Порядок</label>
+                                    {{ v_form.order }}
+                                </div>
+                                <div class="col-12 col-md-2 text-end">
+                                    {% if v_form.instance.pk %}
+                                        <div class="form-check d-inline-block">
+                                            {{ v_form.DELETE }}
+                                            <label class="form-check-label text-danger">🗑 Удалить</label>
+                                        </div>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger inline-remove-btn">🗑 Удалить</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addVideoBtn">
+                    ➕ Добавить ещё одно видео
+                </button>
+
+                <template id="videoEmptyForm">
+                    <div class="inline-row" data-prefix="videos">
+                        <div class="row g-2 align-items-end mb-2">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small">Видео</label>
+                                {{ video_formset.empty_form.video }}
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small">Название</label>
+                                {{ video_formset.empty_form.title }}
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label small">Основное</label>
+                                <div>{{ video_formset.empty_form.is_main }}</div>
+                            </div>
+                            <div class="col-6 col-md-1">
+                                <label class="form-label small">Порядок</label>
+                                {{ video_formset.empty_form.order }}
+                            </div>
+                            <div class="col-12 col-md-2 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger inline-remove-btn">🗑 Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ===== РАЗМЕРЫ ===== -->
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">📏 Размеры товара</h5></div>
+            <div class="card-body">
+                {{ size_formset.management_form }}
+
+                <div id="sizesContainer">
+                    {% for size_form in size_formset %}
+                        <div class="inline-row" data-prefix="sizes">
+                            {{ size_form.id }}
+                            <div class="row g-2 align-items-end mb-2">
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small">Размер</label>
+                                    {{ size_form.size }}
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small">Количество</label>
+                                    {{ size_form.quantity }}
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label small">Цена</label>
+                                    {{ size_form.price }}
+                                </div>
+                                <div class="col-6 col-md-3 text-end">
+                                    {% if size_form.instance.pk %}
+                                        <div class="form-check d-inline-block">
+                                            {{ size_form.DELETE }}
+                                            <label class="form-check-label text-danger">🗑 Удалить</label>
+                                        </div>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger inline-remove-btn">🗑 Удалить</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addSizeBtn">
+                    ➕ Добавить ещё один размер
+                </button>
+
+                <template id="sizeEmptyForm">
+                    <div class="inline-row" data-prefix="sizes">
+                        <div class="row g-2 align-items-end mb-2">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small">Размер</label>
+                                {{ size_formset.empty_form.size }}
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small">Количество</label>
+                                {{ size_formset.empty_form.quantity }}
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small">Цена</label>
+                                {{ size_formset.empty_form.price }}
+                            </div>
+                            <div class="col-6 col-md-3 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger inline-remove-btn">🗑 Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ===== КНОПКИ ===== -->
+        <div class="d-flex gap-2 mb-5 flex-wrap">
+            <button type="submit" class="btn btn-primary">
+                💾 {% if is_edit %}Сохранить{% else %}Создать товар{% endif %}
+            </button>
+            <a href="{% url 'admin_panel:dashboard' %}" class="btn btn-secondary">Отмена</a>
+
+            {% if is_edit %}
+                <button type="button"
+                        class="btn btn-outline-danger ms-auto product-delete-btn"
+                        data-product-id="{{ product.id }}"
+                        data-product-name="{{ product.name }}">
+                    🗑 Удалить товар
+                </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(function (c) {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+        return v;
+    }
+
+    // ===== Автогенерация slug =====
+    const nameInput = document.querySelector('input[name="name"]');
+    const slugInput = document.querySelector('input[name="slug"]');
+
+    if (nameInput && slugInput) {
+        // Простая транслитерация
+        const map = {
+            'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i',
+            'й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t',
+            'у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y',
+            'ь':'','э':'e','ю':'yu','я':'ya',' ':'-'
+        };
+        nameInput.addEventListener('input', function () {
+            if (slugInput.readOnly || !slugInput.dataset.userEdited) {
+                const v = this.value.toLowerCase().split('').map(c => map[c] !== undefined ? map[c] : c).join('');
+                slugInput.value = v.replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            }
+        });
+        slugInput.addEventListener('input', function () {
+            this.dataset.userEdited = '1';
+        });
+    }
+
+    // ===== Удаление товара =====
+    const delBtn = document.querySelector('.product-delete-btn');
+    if (delBtn) {
+        delBtn.addEventListener('click', function () {
+            const id = this.dataset.productId;
+            const name = this.dataset.productName;
+            if (!confirm('Удалить товар «' + name + '»? Это действие нельзя отменить.')) return;
+
+            fetch('/admin-panel/products/' + id + '/delete/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '{% url "admin_panel:dashboard" %}';
+                } else {
+                    alert(data.error || 'Ошибка');
+                }
+            })
+            .catch(() => alert('Ошибка сети'));
+        });
+    }
+
+    // ===== Inline-формсеты: добавление / удаление / превью =====
+    function initInlineFormset(config) {
+        const {
+            containerId,      // id контейнера с .inline-row
+            addBtnId,         // id кнопки "Добавить"
+            templateId,       // id <template> с пустой формой
+            prefix,           // 'images', 'videos', 'sizes'
+            totalFormsId,     // id скрытого input TOTAL_FORMS
+        } = config;
+
+        const container = document.getElementById(containerId);
+        const addBtn = document.getElementById(addBtnId);
+        const template = document.getElementById(templateId);
+        const totalForms = document.getElementById(totalFormsId);
+        if (!container || !addBtn || !template || !totalForms) return;
+
+        // ===== Добавление новой формы =====
+        addBtn.addEventListener('click', function () {
+            const formIndex = parseInt(totalForms.value, 10);
+            const html = template.innerHTML.replace(/__prefix__/g, formIndex);
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = html.trim();
+            const newRow = wrapper.firstElementChild;
+            container.appendChild(newRow);
+
+            totalForms.value = formIndex + 1;
+
+            bindRemoveButton(newRow);
+            bindFilePreview(newRow);
+        });
+
+        // ===== Удаление строк =====
+        function bindRemoveButton(row) {
+            const btn = row.querySelector('.inline-remove-btn');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    if (!confirm('Удалить эту строку?')) return;
+                    row.remove();
+                });
+            }
+        }
+
+        container.querySelectorAll('.inline-row').forEach(function (row) {
+            bindRemoveButton(row);
+            bindFilePreview(row);
+        });
+
+        // ===== Превью загружаемых файлов =====
+        function bindFilePreview(row) {
+            const fileInput = row.querySelector('input[type="file"]');
+            if (!fileInput) return;
+
+            // Убираем предыдущее превью, если есть
+            const oldPreview = row.querySelector('.inline-file-preview');
+            if (oldPreview) oldPreview.remove();
+
+            fileInput.addEventListener('change', function () {
+                const old = row.querySelector('.inline-file-preview');
+                if (old) old.remove();
+
+                if (!this.files || !this.files.length) return;
+
+                const file = this.files[0];
+                const url = URL.createObjectURL(file);
+                const preview = document.createElement('div');
+                preview.className = 'inline-file-preview mt-1';
+
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.maxWidth = '70px';
+                    img.style.borderRadius = '6px';
+                    img.onload = () => URL.revokeObjectURL(url);
+                    preview.appendChild(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.controls = true;
+                    video.style.maxWidth = '120px';
+                    video.style.borderRadius = '6px';
+                    preview.appendChild(video);
+                }
+
+                fileInput.parentElement.appendChild(preview);
+            });
+        }
+    }
+
+    // Инициализация
+    initInlineFormset({
+        containerId: 'imagesContainer',
+        addBtnId: 'addImageBtn',
+        templateId: 'imageEmptyForm',
+        prefix: 'images',
+        totalFormsId: 'id_images-TOTAL_FORMS',
+    });
+    initInlineFormset({
+        containerId: 'videosContainer',
+        addBtnId: 'addVideoBtn',
+        templateId: 'videoEmptyForm',
+        prefix: 'videos',
+        totalFormsId: 'id_videos-TOTAL_FORMS',
+    });
+    initInlineFormset({
+        containerId: 'sizesContainer',
+        addBtnId: 'addSizeBtn',
+        templateId: 'sizeEmptyForm',
+        prefix: 'sizes',
+        totalFormsId: 'id_sizes-TOTAL_FORMS',
+    });
+});
+</script>
+
+<style>
+/* ============ ОБЩИЕ СТИЛИ ============ */
+
+#productForm .form-control,
+#productForm .form-select,
+#productForm textarea {
+    font-size: 14px;
+}
+#productForm label {
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+/* Inline-строки */
+.inline-row {
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+.inline-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+.inline-file-preview img,
+.inline-file-preview video {
+    border: 1px solid #e9ecef;
+    display: block;
+    margin-top: 4px;
+}
+
+/* Кнопки «Добавить ещё …» */
+#addImageBtn,
+#addVideoBtn,
+#addSizeBtn {
+    margin-top: 6px;
+}
+
+
+/* ============ ПЛАНШЕТ ============ */
+@media (max-width: 991.98px) {
+    .card-body { padding: 16px !important; }
+    .inline-row .row > [class*="col-"] {
+        margin-bottom: 6px;
+    }
+}
+
+
+/* ============ МОБИЛЬНЫЙ ============ */
+@media (max-width: 767.98px) {
+
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    /* Заголовок страницы */
+    h1.mb-0 {
+        font-size: 18px !important;
+        word-break: break-word;
+        line-height: 1.3;
+    }
+
+    /* Кнопки «В админке» и «Назад» — на всю ширину */
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 8px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 > .d-flex {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    /* Карточки */
+    .card-body {
+        padding: 12px !important;
+    }
+    .card-header {
+        padding: 10px 14px !important;
+    }
+    .card-header h5 {
+        font-size: 15px !important;
+    }
+
+    /* Кнопка «Показать / Скрыть» характеристик */
+    .card-header .btn-sm {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    /* Поля — крупные, удобно нажимать пальцем */
+    #productForm .form-control,
+    #productForm .form-select,
+    #productForm textarea {
+        font-size: 15px;
+        padding: 9px 12px;
+        border-radius: 8px;
+    }
+    #productForm label {
+        font-size: 12px;
+    }
+
+    /* File input — компактный */
+    #productForm input[type="file"] {
+        font-size: 13px;
+        padding: 6px 8px;
+    }
+
+    /* Чекбоксы — крупнее */
+    #productForm input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+    }
+
+    /* Inline-строки — все поля в столбик */
+    .inline-row .row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .inline-row .row > [class*="col-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+        margin-bottom: 0;
+    }
+
+    /* Кнопка «Удалить» у inline-строки — на всю ширину */
+    .inline-row .text-end {
+        text-align: left !important;
+        margin-top: 6px;
+    }
+    .inline-row .text-end .btn,
+    .inline-row .form-check.d-inline-block {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    /* Кнопки «Добавить ещё …» — на всю ширину */
+    #addImageBtn,
+    #addVideoBtn,
+    #addSizeBtn {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+
+    /* Превью файлов — крупнее */
+    .inline-file-preview img {
+        max-width: 100px !important;
+        max-height: 130px;
+        object-fit: contain;
+    }
+    .inline-file-preview video {
+        max-width: 100% !important;
+        max-height: 180px;
+    }
+
+    /* Нижние кнопки формы — в столбик на всю ширину */
+    form > .d-flex.gap-2.mb-5 {
+        flex-direction: column;
+        gap: 8px !important;
+    }
+    form > .d-flex.gap-2.mb-5 .btn {
+        width: 100%;
+        padding: 11px 14px;
+        font-size: 15px;
+        border-radius: 8px;
+        margin-left: 0 !important;
+    }
+}
+
+
+/* ============ ОЧЕНЬ УЗКИЕ ЭКРАНЫ ============ */
+@media (max-width: 400px) {
+    h1.mb-0 {
+        font-size: 16px !important;
+    }
+    #productForm .form-control,
+    #productForm .form-select,
+    #productForm textarea {
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+    .card-body {
+        padding: 10px !important;
+    }
+    .inline-file-preview img {
+        max-width: 80px !important;
+        max-height: 100px;
+    }
+}
+
+/* Bootstrap-стили для полей (на случай, если Django не применил классы) */
+#productForm input[type="text"]:not([type="checkbox"]):not([type="radio"]),
+#productForm input[type="email"],
+#productForm input[type="number"],
+#productForm input[type="url"],
+#productForm input[type="password"],
+#productForm select,
+#productForm textarea {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+#productForm input[type="text"]:focus,
+#productForm input[type="email"]:focus,
+#productForm input[type="number"]:focus,
+#productForm input[type="url"]:focus,
+#productForm select:focus,
+#productForm textarea:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+#productForm input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    background: #fff;
+}
+
+/* Чекбоксы */
+#productForm input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    vertical-align: middle;
+}
+</style>
+
+{% endblock %}

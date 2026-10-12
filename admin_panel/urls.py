@@ -30,4 +30,12 @@ urlpatterns = [
     path('users/bulk-action/', views.users_bulk_action, name='users_bulk_action'),
     path('users/<int:user_id>/', views.user_detail, name='user_detail'),
     path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
+    path('orders/', views.orders_list, name='orders_list'),
+    path('orders/export/', views.orders_export, name='orders_export'),
+    path('orders/bulk-action/', views.orders_bulk_action, name='orders_bulk_action'),
+    path('orders/<int:order_id>/', views.order_admin_detail, name='order_admin_detail'),
+    path('orders/<int:order_id>/delete/', views.order_admin_delete, name='order_admin_delete'),
+    path('products/add/', views.product_add, name='product_add'),
+    path('products/<int:product_id>/edit/', views.product_edit, name='product_edit'),
+    path('products/<int:product_id>/delete/', views.product_delete, name='product_delete'),
 ]

@@ -53,10 +53,10 @@
                         <a href="{% url 'admin:products_category_add' %}" class="btn btn-success">
                             ➕ Добавить категорию
                         </a>
-                        <a href="{% url 'admin:products_product_add' %}" class="btn btn-primary">
+                        <a href="{% url 'admin_panel:product_add' %}" class="btn btn-primary">
                             ➕ Добавить товар
                         </a>
-                        <a href="{% url 'admin:orders_order_changelist' %}" class="btn btn-info">
+                        <a href="{% url 'admin_panel:orders_list' %}" class="btn btn-info">
                             📋 Просмотр заказов
                         </a>
                         <a href="{% url 'admin_panel:users_list' %}" class="btn btn-warning">
@@ -435,7 +435,9 @@
                             <tfoot class="table-light">
                                 <tr>
                                     <td><strong>Всего просмотров</strong></td>
-                                    <td class="text-end" colspan="2"><strong>{{ total_site_views }}</strong></td>
+                                    <td class="text-end" colspan="2">
+                                        <strong id="totalSiteViews">{{ total_site_views }}</strong>
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -941,7 +943,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 ? '{% url "admin_panel:exclude_city" %}'
                 : '{% url "admin_panel:delete_city_views" %}';
 
-            const csrfToken = getCookie('csrftoken');
+            // ↓↓↓ ВОТ ЭТА СТРОКА БЫЛА ПРОПУЩЕНА ↓↓↓
+            const csrftoken = getCookie('csrftoken');
+
             const btnOriginalHtml = this.innerHTML;
 
             this.disabled = true;
@@ -953,7 +957,7 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrfToken,
+                    'X-CSRFToken': csrftoken,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 body: formData,
@@ -961,24 +965,32 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    // Убираем строку из таблицы без перезагрузки страницы
+                    // 1. Убираем строку из таблицы
                     const row = btn.closest('tr');
                     if (row) {
                         row.style.transition = 'opacity 0.3s';
                         row.style.opacity = '0';
                         setTimeout(() => row.remove(), 300);
                     }
+
+                    // 2. Пересчитываем «Всего просмотров»
+                    const totalEl = document.getElementById('totalSiteViews');
+                    if (totalEl && typeof data.deleted !== 'undefined') {
+                        const current = parseInt(totalEl.textContent, 10) || 0;
+                        const newTotal = Math.max(0, current - data.deleted);
+                        totalEl.textContent = newTotal;
+                    }
                 } else {
                     alert(data.error || 'Не удалось выполнить действие');
-                    this.disabled = false;
-                    this.innerHTML = btnOriginalHtml;
+                    btn.disabled = false;
+                    btn.innerHTML = btnOriginalHtml;
                 }
             })
             .catch(err => {
                 console.error('Ошибка:', err);
                 alert('Ошибка сети. Попробуйте ещё раз.');
-                this.disabled = false;
-                this.innerHTML = btnOriginalHtml;
+                btn.disabled = false;
+                btn.innerHTML = btnOriginalHtml;
             });
         });
     });

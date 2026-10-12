@@ -1048,3 +1048,332 @@ def users_export(request):
         ])
 
     return response
+
+
+@staff_member_required
+def orders_list(request):
+    """Кастомная страница заказов."""
+    from apps.orders.models import Order, OrderItem
+
+    qs = Order.objects.all().select_related('user').order_by('-created')
+
+    # ===== Поиск =====
+    search_query = (request.GET.get('q') or '').strip()
+    if search_query:
+        qs = qs.filter(
+            Q(id__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(phone__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+
+    # ===== Фильтры =====
+    paid = request.GET.get('paid')
+    if paid == 'yes':
+        qs = qs.filter(paid=True)
+    elif paid == 'no':
+        qs = qs.filter(paid=False)
+
+    status = request.GET.get('status')
+    if status:
+        qs = qs.filter(status=status)
+
+    delivery = request.GET.get('delivery')
+    if delivery:
+        qs = qs.filter(delivery_method=delivery)
+
+    # ===== Фильтр по дате =====
+    date_filter = request.GET.get('date')
+    now = timezone.now()
+    if date_filter == 'today':
+        qs = qs.filter(created__date=now.date())
+    elif date_filter == 'week':
+        qs = qs.filter(created__gte=now - timedelta(days=7))
+    elif date_filter == 'month':
+        qs = qs.filter(created__year=now.year, created__month=now.month)
+    elif date_filter == 'year':
+        qs = qs.filter(created__year=now.year)
+
+    # ===== Сортировка =====
+    sort = request.GET.get('sort', '-created')
+    allowed_sorts = {
+        'id': 'id', '-id': '-id',
+        'total_price': 'total_price', '-total_price': '-total_price',
+        'created': 'created', '-created': '-created',
+        'status': 'status', '-status': '-status',
+    }
+    qs = qs.order_by(allowed_sorts.get(sort, '-created'))
+
+    # ===== Пагинация =====
+    paginator = Paginator(qs, 25)
+    page = request.GET.get('page', 1)
+    try:
+        orders = paginator.page(page)
+    except Exception:
+        orders = paginator.page(1)
+
+    # Аннотируем количеством позиций
+    for order in orders:
+        order.items_count = order.items.count()
+
+    context = {
+        'orders': orders,
+        'total_orders': qs.count(),
+        'search_query': search_query,
+        'paid_filter': paid or '',
+        'status_filter': status or '',
+        'delivery_filter': delivery or '',
+        'date_filter': date_filter or '',
+        'sort': sort,
+        'status_choices': Order.STATUS_CHOICES,
+        'delivery_choices': Order.DELIVERY_CHOICES,
+    }
+    return render(request, 'admin_panel/orders_list.html', context)
+
+
+@staff_member_required
+def order_admin_detail(request, order_id):
+    """Страница просмотра/редактирования заказа."""
+    from apps.orders.models import Order, OrderItem
+    order = get_object_or_404(Order, id=order_id)
+
+    if request.method == 'POST':
+        order.first_name = request.POST.get('first_name', '')
+        order.last_name = request.POST.get('last_name', '')
+        order.email = request.POST.get('email', order.email)
+        order.phone = request.POST.get('phone', '')
+        order.address = request.POST.get('address', '')
+        order.status = request.POST.get('status', order.status)
+        order.paid = request.POST.get('paid') == 'on'
+        order.delivery_method = request.POST.get('delivery_method') or None
+        order.delivery_point_code = request.POST.get('delivery_point_code', '')
+        order.delivery_point_name = request.POST.get('delivery_point_name', '')
+        order.delivery_point_address = request.POST.get('delivery_point_address', '')
+
+        # Пользователь (опционально)
+        user_id = request.POST.get('user_id')
+        if user_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                order.user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                pass
+
+        order.save()
+        messages.success(request, f'Заказ №{order.id} сохранён')
+        return redirect('admin_panel:order_admin_detail', order_id=order.id)
+
+    items = order.items.select_related('product').all()
+    returns = order.returns.all()
+
+    context = {
+        'order': order,
+        'items': items,
+        'returns': returns,
+        'status_choices': Order.STATUS_CHOICES,
+        'delivery_choices': Order.DELIVERY_CHOICES,
+    }
+    return render(request, 'admin_panel/order_detail.html', context)
+
+
+@staff_member_required
+@require_POST
+def order_admin_delete(request, order_id):
+    """AJAX-удаление заказа."""
+    order = get_object_or_404(Order, id=order_id)
+    order_id_str = order.id
+    order.delete()
+    return JsonResponse({'success': True, 'order_id': order_id_str})
+
+
+@staff_member_required
+@require_POST
+def orders_bulk_action(request):
+    """Массовые действия над заказами."""
+    from apps.orders.models import Order
+
+    action = request.POST.get('action')
+    ids = request.POST.getlist('ids[]') or request.POST.get('ids', '').split(',')
+
+    try:
+        ids = [int(i) for i in ids if str(i).strip()]
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Некорректные IDs'}, status=400)
+
+    if not ids:
+        return JsonResponse({'success': False, 'error': 'Не выбрано ни одного заказа'}, status=400)
+
+    qs = Order.objects.filter(id__in=ids)
+
+    if action == 'mark_paid':
+        qs.update(paid=True)
+        return JsonResponse({'success': True, 'updated': qs.count(), 'action': action})
+
+    if action == 'mark_unpaid':
+        qs.update(paid=False)
+        return JsonResponse({'success': True, 'updated': qs.count(), 'action': action})
+
+    if action == 'set_status':
+        new_status = request.POST.get('new_status')
+        if new_status not in dict(Order.STATUS_CHOICES):
+            return JsonResponse({'success': False, 'error': 'Некорректный статус'}, status=400)
+        qs.update(status=new_status)
+        return JsonResponse({'success': True, 'updated': qs.count(), 'action': action})
+
+    if action == 'delete':
+        count = qs.count()
+        qs.delete()
+        return JsonResponse({'success': True, 'deleted': count, 'action': action})
+
+    return JsonResponse({'success': False, 'error': 'Неизвестное действие'}, status=400)
+
+
+@staff_member_required
+def orders_export(request):
+    """Выгрузка заказов в CSV."""
+    from apps.orders.models import Order
+
+    qs = Order.objects.all().order_by('-created')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="orders.csv"'
+    response.write('\ufeff')
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', 'Дата', 'Клиент', 'Email', 'Телефон',
+        'Адрес', 'Сумма', 'Оплачен', 'Статус', 'Доставка',
+    ])
+
+    for o in qs:
+        writer.writerow([
+            o.id,
+            o.created.strftime('%d.%m.%Y %H:%M'),
+            f'{o.first_name} {o.last_name}'.strip() or (o.user.email if o.user else ''),
+            o.email,
+            o.phone,
+            o.address,
+            o.total_price,
+            'Да' if o.paid else 'Нет',
+            o.get_status_display(),
+            o.get_delivery_method_display() if o.delivery_method else '',
+        ])
+
+    return response
+
+
+@staff_member_required
+def product_add(request):
+    """Кастомная страница добавления товара."""
+    from apps.products.forms import (
+        ProductForm,
+        ProductImageFormSet,
+        ProductVideoFormSet,
+        ProductSizeFormSet,
+    )
+    from apps.products.models import Category
+
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES)
+        image_formset = ProductImageFormSet(request.POST, request.FILES, prefix='images')
+        video_formset = ProductVideoFormSet(request.POST, request.FILES, prefix='videos')
+        size_formset = ProductSizeFormSet(request.POST, prefix='sizes')
+
+        if form.is_valid() and image_formset.is_valid() and video_formset.is_valid() and size_formset.is_valid():
+            product = form.save()
+
+            # Сохраняем изображения, видео, размеры
+            image_formset.instance = product
+            image_formset.save()
+
+            video_formset.instance = product
+            video_formset.save()
+
+            size_formset.instance = product
+            size_formset.save()
+
+            # Пересчёт цены из размеров
+            product.recalculate_price_from_sizes()
+
+            messages.success(request, f'Товар «{product.name}» создан')
+            return redirect('admin_panel:product_edit', product_id=product.id)
+        else:
+            messages.error(request, 'Проверьте ошибки в форме')
+    else:
+        form = ProductForm()
+        image_formset = ProductImageFormSet(prefix='images')
+        video_formset = ProductVideoFormSet(prefix='videos')
+        size_formset = ProductSizeFormSet(prefix='sizes')
+
+    context = {
+        'form': form,
+        'image_formset': image_formset,
+        'video_formset': video_formset,
+        'size_formset': size_formset,
+        'categories': Category.objects.all(),
+        'is_edit': False,
+    }
+    return render(request, 'admin_panel/product_form_custom.html', context)
+
+
+@staff_member_required
+def product_edit(request, product_id):
+    """Кастомная страница редактирования товара."""
+    from apps.products.forms import (
+        ProductForm,
+        ProductImageFormSet,
+        ProductVideoFormSet,
+        ProductSizeFormSet,
+    )
+    from apps.products.models import Category, Product
+
+    product = get_object_or_404(Product, id=product_id)
+
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        image_formset = ProductImageFormSet(request.POST, request.FILES, instance=product, prefix='images')
+        video_formset = ProductVideoFormSet(request.POST, request.FILES, instance=product, prefix='videos')
+        size_formset = ProductSizeFormSet(request.POST, instance=product, prefix='sizes')
+
+        if form.is_valid() and image_formset.is_valid() and video_formset.is_valid() and size_formset.is_valid():
+            form.save()
+            image_formset.save()
+            video_formset.save()
+            size_formset.save()
+
+            product.recalculate_price_from_sizes()
+
+            messages.success(request, f'Товар «{product.name}» сохранён')
+            return redirect('admin_panel:product_edit', product_id=product.id)
+        else:
+            messages.error(request, 'Проверьте ошибки в форме')
+    else:
+        form = ProductForm(instance=product)
+        image_formset = ProductImageFormSet(instance=product, prefix='images')
+        video_formset = ProductVideoFormSet(instance=product, prefix='videos')
+        size_formset = ProductSizeFormSet(instance=product, prefix='sizes')
+
+    context = {
+        'form': form,
+        'image_formset': image_formset,
+        'video_formset': video_formset,
+        'size_formset': size_formset,
+        'categories': Category.objects.all(),
+        'product': product,
+        'is_edit': True,
+    }
+    return render(request, 'admin_panel/product_form_custom.html', context)
+
+
+@staff_member_required
+@require_POST
+def product_delete(request, product_id):
+    """AJAX-удаление товара."""
+    from apps.products.models import Product
+    product = get_object_or_404(Product, id=product_id)
+    name = product.name
+    product.delete()
+    return JsonResponse({'success': True, 'name': name})
